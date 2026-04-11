@@ -116,6 +116,21 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
+      {/* Dark Mode */}
+      <Card className="shadow-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Moon className="w-4 h-4" /> Tampilan
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <Label>Mode Gelap</Label>
+            <Switch checked={theme === "dark"} onCheckedChange={toggleTheme} />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* About */}
       <Card className="shadow-card">
         <CardHeader className="pb-3">
