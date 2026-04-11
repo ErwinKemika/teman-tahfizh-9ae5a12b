@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookmarks: {
+        Row: {
+          ayat_number: number
+          created_at: string
+          id: string
+          label: string | null
+          page_number: number | null
+          surah_number: number
+          user_id: string
+        }
+        Insert: {
+          ayat_number: number
+          created_at?: string
+          id?: string
+          label?: string | null
+          page_number?: number | null
+          surah_number: number
+          user_id: string
+        }
+        Update: {
+          ayat_number?: number
+          created_at?: string
+          id?: string
+          label?: string | null
+          page_number?: number | null
+          surah_number?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       halaman_quran: {
         Row: {
           ayat_end: number | null

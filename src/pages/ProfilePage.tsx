@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, Lock, Info } from "lucide-react";
+import { User, Lock, Info, Moon } from "lucide-react";
 
 export default function ProfilePage() {
   const { profile, user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [newPassword, setNewPassword] = useState("");
 
@@ -110,6 +113,21 @@ export default function ProfilePage() {
           >
             Ubah Password
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Dark Mode */}
+      <Card className="shadow-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Moon className="w-4 h-4" /> Tampilan
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <Label>Mode Gelap</Label>
+            <Switch checked={theme === "dark"} onCheckedChange={toggleTheme} />
+          </div>
         </CardContent>
       </Card>
 
