@@ -163,6 +163,33 @@ export type Database = {
         }
         Relationships: []
       }
+      reading_progress: {
+        Row: {
+          id: string
+          last_ayat: number
+          last_page: number
+          last_surah: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_ayat?: number
+          last_page?: number
+          last_surah?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_ayat?: number
+          last_page?: number
+          last_surah?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       surat: {
         Row: {
           id: string

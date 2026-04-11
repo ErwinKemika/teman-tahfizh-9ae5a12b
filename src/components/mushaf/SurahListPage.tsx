@@ -3,13 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, BookOpen, Play } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface SurahListPageProps {
-  onSelectSurah: (number: number, ayat?: number) => void;
+  onSelectSurah: (number: number) => void;
+  onSelectJuz: (juz: number) => void;
+  onSelectPage: (page: number) => void;
+  lastReadPage?: number;
 }
 
 interface SurahInfo {
@@ -21,7 +25,7 @@ interface SurahInfo {
   revelationType: string;
 }
 
-export default function SurahListPage({ onSelectSurah }: SurahListPageProps) {
+export default function SurahListPage({ onSelectSurah, onSelectJuz, onSelectPage, lastReadPage }: SurahListPageProps) {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
 
@@ -61,10 +65,20 @@ export default function SurahListPage({ onSelectSurah }: SurahListPageProps) {
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <BookOpen className="w-5 h-5 text-primary" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold text-foreground">Al-Qur'an</h1>
           <p className="text-xs text-muted-foreground">Baca & hafal Al-Qur'an</p>
         </div>
+        {lastReadPage && (
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={() => onSelectPage(lastReadPage)}
+          >
+            <Play className="w-3.5 h-3.5" />
+            Lanjut Hal. {lastReadPage}
+          </Button>
+        )}
       </div>
 
       <div className="relative">
@@ -117,11 +131,7 @@ export default function SurahListPage({ onSelectSurah }: SurahListPageProps) {
               <Card
                 key={juz}
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => {
-                  // Find first surah of juz (approximation: use page-based)
-                  const approxSurah = Math.max(1, Math.min(114, Math.ceil(juz * 3.8)));
-                  onSelectSurah(approxSurah);
-                }}
+                onClick={() => onSelectJuz(juz)}
               >
                 <CardContent className="p-3 text-center">
                   <p className="text-lg font-bold text-primary">{juz}</p>
@@ -141,7 +151,7 @@ export default function SurahListPage({ onSelectSurah }: SurahListPageProps) {
             bookmarks.map((b: any) => (
               <button
                 key={b.id}
-                onClick={() => onSelectSurah(b.surah_number, b.ayat_number)}
+                onClick={() => onSelectPage(b.page_number || 1)}
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors text-left"
               >
                 <div className="w-10 h-10 rounded-lg bg-highlight/10 flex items-center justify-center shrink-0">
