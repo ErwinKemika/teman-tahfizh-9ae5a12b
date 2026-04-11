@@ -158,6 +158,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
             </p>
             <p className="text-[11px] text-sidebar-foreground/50 capitalize">{profile?.role}</p>
           </div>
+          <ThemeToggle className="text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent" />
           <Button
             variant="ghost"
             size="icon"
