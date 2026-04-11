@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import Login from "@/pages/Login";
@@ -26,26 +27,28 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
-            <Route path="/tracker" element={<ProtectedLayout><TahfizhTracker /></ProtectedLayout>} />
-            <Route path="/mutabaah" element={<ProtectedLayout><MutabaahPage /></ProtectedLayout>} />
-            <Route path="/mushaf" element={<ProtectedLayout><MushafViewer /></ProtectedLayout>} />
-            <Route path="/ujian" element={<ProtectedLayout><UjianPage /></ProtectedLayout>} />
-            <Route path="/profile" element={<ProtectedLayout><ProfilePage /></ProtectedLayout>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+              <Route path="/tracker" element={<ProtectedLayout><TahfizhTracker /></ProtectedLayout>} />
+              <Route path="/mutabaah" element={<ProtectedLayout><MutabaahPage /></ProtectedLayout>} />
+              <Route path="/mushaf" element={<ProtectedLayout><MushafViewer /></ProtectedLayout>} />
+              <Route path="/ujian" element={<ProtectedLayout><UjianPage /></ProtectedLayout>} />
+              <Route path="/profile" element={<ProtectedLayout><ProfilePage /></ProtectedLayout>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;
