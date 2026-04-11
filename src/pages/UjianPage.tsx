@@ -37,12 +37,24 @@ export default function UjianPage() {
   const { data: ujianResults } = useQuery({
     queryKey: ["ujian-results", user?.id, role],
     queryFn: async () => {
-      let query = supabase.from("ujian").select("*, profiles!ujian_student_id_fkey(full_name)");
+      let query = supabase.from("ujian").select("*");
       if (role === "siswa") {
         query = query.eq("student_id", user!.id);
       }
       const { data } = await query.order("tahun", { ascending: false }).order("bulan", { ascending: false });
-      return data || [];
+      if (!data) return [];
+      // Fetch student names for guru view
+      if (role === "guru") {
+        const studentIds = [...new Set(data.map((r) => r.student_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", studentIds);
+        const nameMap: Record<string, string> = {};
+        profiles?.forEach((p) => { nameMap[p.user_id] = p.full_name; });
+        return data.map((r) => ({ ...r, student_name: nameMap[r.student_id] || "Unknown" }));
+      }
+      return data;
     },
     enabled: !!user,
   });
