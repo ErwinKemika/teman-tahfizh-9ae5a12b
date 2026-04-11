@@ -15,6 +15,7 @@ import { User, Lock, Info, Moon } from "lucide-react";
 
 export default function ProfilePage() {
   const { profile, user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [newPassword, setNewPassword] = useState("");
 
