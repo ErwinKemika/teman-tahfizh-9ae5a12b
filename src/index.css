@@ -121,6 +121,10 @@
   .font-arabic {
     font-family: var(--font-arabic);
   }
+
+  .font-mushaf {
+    font-family: var(--font-mushaf);
+  }
 }
 
 @layer utilities {
