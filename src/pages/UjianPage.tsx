@@ -202,7 +202,7 @@ export default function UjianPage() {
                 <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl border border-border/50">
                   <div className="flex-1 min-w-0">
                     {role === "guru" && (
-                      <p className="text-sm font-medium text-foreground">{r.profiles?.full_name}</p>
+                      <p className="text-sm font-medium text-foreground">{r.student_name}</p>
                     )}
                     <p className="text-xs text-muted-foreground">
                       {monthNames[(r.bulan || 1) - 1]} {r.tahun} — {r.juz_tested}
