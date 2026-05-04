@@ -23,6 +23,7 @@ interface SurahInfo {
   englishNameTranslation: string;
   numberOfAyahs: number;
   revelationType: string;
+  juz?: number;
 }
 
 export default function SurahListPage({ onSelectSurah, onSelectJuz, onSelectPage, lastReadPage }: SurahListPageProps) {
@@ -32,9 +33,20 @@ export default function SurahListPage({ onSelectSurah, onSelectJuz, onSelectPage
   const { data: surahs, isLoading } = useQuery({
     queryKey: ["quran-surahs"],
     queryFn: async () => {
-      const res = await fetch("https://api.alquran.cloud/v1/surah");
-      const json = await res.json();
-      return json.data as SurahInfo[];
+      const { data, error } = await supabase
+        .from("surat")
+        .select("*")
+        .order("number", { ascending: true });
+      if (error) throw error;
+      return (data || []).map((s) => ({
+        number: s.number,
+        name: s.name_arabic,
+        englishName: s.name_latin,
+        englishNameTranslation: "",
+        numberOfAyahs: s.total_ayat,
+        revelationType: "",
+        juz: s.juz,
+      })) as SurahInfo[];
     },
     staleTime: Infinity,
   });
@@ -115,7 +127,7 @@ export default function SurahListPage({ onSelectSurah, onSelectJuz, onSelectPage
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">{s.englishName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {s.englishNameTranslation} · {s.numberOfAyahs} ayat
+                      {s.numberOfAyahs} ayat · Juz {s.juz}
                     </p>
                   </div>
                   <p className="font-arabic text-lg text-highlight shrink-0" dir="rtl">
