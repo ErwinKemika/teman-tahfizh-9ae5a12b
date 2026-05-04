@@ -53,14 +53,16 @@ function useSurahNames() {
   return useQuery<Record<number, { name: string; englishName: string }>>({
     queryKey: ["surat-names"],
     queryFn: async () => {
-      const { data } = await supabase.from("surat").select("number, name_arabic, name_latin");
+      const res = await fetch(`${QURAN_API}/chapters?language=en`);
+      const json = await res.json();
       const map: Record<number, { name: string; englishName: string }> = {};
-      (data || []).forEach((s) => {
-        map[s.number] = { name: s.name_arabic, englishName: s.name_latin };
+      (json.chapters || []).forEach((ch: { id: number; name_arabic: string; name_simple: string }) => {
+        map[ch.id] = { name: ch.name_arabic, englishName: ch.name_simple };
       });
       return map;
     },
     staleTime: Infinity,
+    retry: 2,
   });
 }
 
@@ -250,7 +252,7 @@ export default function MushafPageView({
             <div className="flex-1 flex flex-col justify-center">
               {surahGroups.map((group, gi) => (
                 <div key={gi}>
-                  {group.isStart && (
+                  {group.isStart ? (
                     <div className="my-3 py-2 px-4 rounded-xl bg-primary/10 border border-primary/20 text-center">
                       <p className="font-mushaf text-lg text-primary leading-relaxed">
                         {group.surah.name}
@@ -264,7 +266,14 @@ export default function MushafPageView({
                         </p>
                       )}
                     </div>
-                  )}
+                  ) : gi === 0 ? (
+                    <div className="mb-2 py-1 text-center" dir="ltr">
+                      <p className="text-xs text-muted-foreground font-sans">
+                        {group.surah.name && <span className="font-mushaf text-sm text-foreground/70 ml-1">{group.surah.name}</span>}
+                        {" "}{group.surah.englishName}
+                      </p>
+                    </div>
+                  ) : null}
                   <p
                     className="font-mushaf text-foreground leading-[2.4] text-justify"
                     style={{ fontSize: `${fontSize}px` }}
