@@ -9,6 +9,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const QURAN_API = "https://api.quran.com/api/v4";
+
 interface SurahListPageProps {
   onSelectSurah: (number: number) => void;
   onSelectJuz: (juz: number) => void;
@@ -23,7 +25,6 @@ interface SurahInfo {
   englishNameTranslation: string;
   numberOfAyahs: number;
   revelationType: string;
-  juz?: number;
 }
 
 export default function SurahListPage({ onSelectSurah, onSelectJuz, onSelectPage, lastReadPage }: SurahListPageProps) {
@@ -33,22 +34,26 @@ export default function SurahListPage({ onSelectSurah, onSelectJuz, onSelectPage
   const { data: surahs, isLoading } = useQuery({
     queryKey: ["quran-surahs"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("surat")
-        .select("*")
-        .order("number", { ascending: true });
-      if (error) throw error;
-      return (data || []).map((s) => ({
-        number: s.number,
-        name: s.name_arabic,
-        englishName: s.name_latin,
-        englishNameTranslation: "",
-        numberOfAyahs: s.total_ayat,
-        revelationType: "",
-        juz: s.juz,
+      const res = await fetch(`${QURAN_API}/chapters?language=en`);
+      const json = await res.json();
+      return (json.chapters || []).map((ch: {
+        id: number;
+        name_arabic: string;
+        name_simple: string;
+        translated_name?: { name: string };
+        verses_count: number;
+        revelation_place: string;
+      }) => ({
+        number: ch.id,
+        name: ch.name_arabic,
+        englishName: ch.name_simple,
+        englishNameTranslation: ch.translated_name?.name || "",
+        numberOfAyahs: ch.verses_count,
+        revelationType: ch.revelation_place,
       })) as SurahInfo[];
     },
     staleTime: Infinity,
+    retry: 2,
   });
 
   const { data: bookmarks } = useQuery({
@@ -127,10 +132,10 @@ export default function SurahListPage({ onSelectSurah, onSelectJuz, onSelectPage
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">{s.englishName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {s.numberOfAyahs} ayat · Juz {s.juz}
+                      {s.numberOfAyahs} ayat · {s.revelationType === "makkah" ? "Makkiyyah" : "Madaniyyah"}
                     </p>
                   </div>
-                  <p className="font-arabic text-lg text-highlight shrink-0" dir="rtl">
+                  <p className="font-mushaf text-lg text-highlight shrink-0" dir="rtl">
                     {s.name}
                   </p>
                 </button>
