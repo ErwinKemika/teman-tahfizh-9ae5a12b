@@ -51,7 +51,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
       const json = await res.json();
       const v = json.verse;
       return {
-        translation: v?.translations?.[0]?.text || "",
+        translation: (v?.translations?.[0]?.text || "").replace(/<[^>]+>/g, "").trim(),
         tafsir: (v?.tafsirs?.[0]?.text || "").replace(/<[^>]+>/g, "").trim(),
         words: (v?.words || [])
           .filter((w: { char_type_name: string }) => w.char_type_name === "word")
