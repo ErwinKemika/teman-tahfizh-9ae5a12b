@@ -49,11 +49,10 @@ export default function MushafViewer() {
   }, [readingProgress, resumeChecked, currentPage]);
 
   const handleSelectSurah = async (surahNumber: number) => {
-    // Find first page of this surah from API
     try {
-      const res = await fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`);
+      const res = await fetch(`https://api.quran.com/api/v4/chapters/${surahNumber}?language=en`);
       const json = await res.json();
-      const firstPage = json.data?.ayahs?.[0]?.page || 1;
+      const firstPage = json.chapter?.pages?.[0] || 1;
       setCurrentPage(firstPage);
     } catch {
       setCurrentPage(1);

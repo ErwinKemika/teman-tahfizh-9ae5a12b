@@ -4,10 +4,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Bookmark, Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import AyatDetailSheet from "./AyatDetailSheet";
 import ReadingSettings from "./ReadingSettings";
 import TrackerBadge from "./TrackerBadge";
+
+const QURAN_API = "https://api.quran.com/api/v4";
+const TOTAL_PAGES = 604;
 
 interface AyahData {
   number: number;
@@ -19,48 +22,45 @@ interface AyahData {
   surah: { number: number; name: string; englishName: string };
 }
 
-interface PageData {
-  ayahs: AyahData[];
+interface QuranComVerse {
+  id: number;
+  verse_number: number;
+  verse_key: string;
+  juz_number: number;
+  hizb_number: number;
+  page_number: number;
+  text_uthmani: string;
 }
 
-const TOTAL_PAGES = 604;
-
 function usePageData(pageNumber: number) {
-  return useQuery<PageData>({
+  return useQuery<QuranComVerse[]>({
     queryKey: ["mushaf-page", pageNumber],
     queryFn: async () => {
-      // Primary: alquran.cloud
-      try {
-        const res = await fetch(`https://api.alquran.cloud/v1/page/${pageNumber}/quran-uthmani`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.data?.ayahs?.length) return { ayahs: json.data.ayahs };
-        }
-      } catch (_) { /* fall through */ }
-
-      // Fallback: api.quran.com v4
-      const res2 = await fetch(
-        `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?fields=text_uthmani,page_number,juz_number,hizb_number&per_page=50`
+      const res = await fetch(
+        `${QURAN_API}/verses/by_page/${pageNumber}?words=false&fields=text_uthmani&per_page=50`
       );
-      const json2 = await res2.json();
-      const ayahs: AyahData[] = (json2.verses || []).map((v: any) => {
-        const [s, n] = String(v.verse_key).split(":").map(Number);
-        return {
-          number: v.id,
-          text: v.text_uthmani,
-          numberInSurah: n,
-          juz: v.juz_number,
-          hizbQuarter: v.hizb_number * 4,
-          page: v.page_number,
-          surah: { number: s, name: "", englishName: `Surah ${s}` },
-        };
-      });
-      return { ayahs };
+      const json = await res.json();
+      return json.verses || [];
     },
     retry: 2,
     retryDelay: 800,
     staleTime: 1000 * 60 * 60,
     enabled: pageNumber >= 1 && pageNumber <= TOTAL_PAGES,
+  });
+}
+
+function useSurahNames() {
+  return useQuery<Record<number, { name: string; englishName: string }>>({
+    queryKey: ["surat-names"],
+    queryFn: async () => {
+      const { data } = await supabase.from("surat").select("number, name_arabic, name_latin");
+      const map: Record<number, { name: string; englishName: string }> = {};
+      (data || []).forEach((s) => {
+        map[s.number] = { name: s.name_arabic, englishName: s.name_latin };
+      });
+      return map;
+    },
+    staleTime: Infinity,
   });
 }
 
@@ -86,24 +86,45 @@ export default function MushafPageView({
     return s ? parseInt(s) : 22;
   });
 
-  // Current page data
-  const { data: pageData, isLoading } = usePageData(page);
+  const { data: rawVerses, isLoading } = usePageData(page);
+  const { data: surahNamesMap = {} } = useSurahNames();
 
   // Pre-fetch adjacent pages
   usePageData(page + 1);
   usePageData(page - 1);
 
+  // Map Quran.com verses to AyahData
+  const ayahs = useMemo<AyahData[]>(() => {
+    return (rawVerses || []).map((v) => {
+      const surahNum = parseInt(v.verse_key.split(":")[0]);
+      return {
+        number: v.id,
+        text: v.text_uthmani,
+        numberInSurah: v.verse_number,
+        juz: v.juz_number,
+        hizbQuarter: v.hizb_number * 4,
+        page: v.page_number,
+        surah: {
+          number: surahNum,
+          name: surahNamesMap[surahNum]?.name || "",
+          englishName: surahNamesMap[surahNum]?.englishName || `Surah ${surahNum}`,
+        },
+      };
+    });
+  }, [rawVerses, surahNamesMap]);
+
   // Save reading progress
   const saveProgress = useMutation({
     mutationFn: async (pg: number) => {
       if (!user) return;
-      const ayahs = queryClient.getQueryData<PageData>(["mushaf-page", pg])?.ayahs;
-      const firstAyah = ayahs?.[0];
+      const cached = queryClient.getQueryData<QuranComVerse[]>(["mushaf-page", pg]);
+      const first = cached?.[0];
+      const surahNum = first ? parseInt(first.verse_key.split(":")[0]) : 1;
       const payload = {
         user_id: user.id,
         last_page: pg,
-        last_surah: firstAyah?.surah?.number || 1,
-        last_ayat: firstAyah?.numberInSurah || 1,
+        last_surah: surahNum,
+        last_ayat: first?.verse_number || 1,
         updated_at: new Date().toISOString(),
       };
       const { data: existing } = await supabase
@@ -137,7 +158,6 @@ export default function MushafPageView({
     queryClient.invalidateQueries({ queryKey: ["reading-progress"] });
   }, [page]);
 
-  // Navigate
   const goNext = useCallback(() => {
     if (page < TOTAL_PAGES) setPage((p) => p + 1);
   }, [page]);
@@ -146,7 +166,6 @@ export default function MushafPageView({
     if (page > 1) setPage((p) => p - 1);
   }, [page]);
 
-  // Touch handling for swipe
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStart.current = e.touches[0].clientX;
   };
@@ -154,13 +173,11 @@ export default function MushafPageView({
   const handleTouchEnd = (e: React.TouchEvent) => {
     const diff = touchStart.current - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 60) {
-      // RTL: swipe left = next page (in Quran: higher page number)
       if (diff > 0) goNext();
       else goPrev();
     }
   };
 
-  // Keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") goNext();
@@ -170,29 +187,22 @@ export default function MushafPageView({
     return () => window.removeEventListener("keydown", handler);
   }, [goNext, goPrev]);
 
-  // Tap to toggle top bar
   const handlePageTap = (e: React.MouseEvent) => {
-    // Don't toggle if tapping an ayat
     if ((e.target as HTMLElement).closest("[data-ayat]")) return;
     resetHideTimer();
   };
 
-  const ayahs = pageData?.ayahs || [];
   const firstAyah = ayahs[0];
   const juz = firstAyah?.juz || 1;
   const hizb = firstAyah?.hizbQuarter ? Math.ceil(firstAyah.hizbQuarter / 4) : 1;
+  const pageTitle = [...new Set(ayahs.map((a) => a.surah.englishName))].join(" - ");
 
-  // Group ayahs by surah for surah headers
   const surahGroups = useMemo(() => {
     const groups: { surah: AyahData["surah"]; ayahs: AyahData[]; isStart: boolean }[] = [];
     let lastSurah = -1;
     for (const a of ayahs) {
       if (a.surah.number !== lastSurah) {
-        groups.push({
-          surah: a.surah,
-          ayahs: [a],
-          isStart: a.numberInSurah === 1,
-        });
+        groups.push({ surah: a.surah, ayahs: [a], isStart: a.numberInSurah === 1 });
         lastSurah = a.surah.number;
       } else {
         groups[groups.length - 1].ayahs.push(a);
@@ -200,9 +210,6 @@ export default function MushafPageView({
     }
     return groups;
   }, [ayahs]);
-
-  // Page info string
-  const surahNames = [...new Set(ayahs.map((a) => a.surah.englishName))].join(" - ");
 
   return (
     <div
@@ -222,7 +229,7 @@ export default function MushafPageView({
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1 text-center min-w-0">
-          <p className="text-xs font-semibold text-foreground truncate">{surahNames}</p>
+          <p className="text-xs font-semibold text-foreground truncate">{pageTitle}</p>
           <p className="text-[10px] text-muted-foreground">Juz {juz} · Hizb {hizb}</p>
         </div>
         <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setSettingsOpen(true); }}>
@@ -239,14 +246,10 @@ export default function MushafPageView({
             ))}
           </div>
         ) : (
-          <div
-            className="w-full max-w-2xl mx-auto h-full flex flex-col justify-between"
-            dir="rtl"
-          >
+          <div className="w-full max-w-2xl mx-auto h-full flex flex-col justify-between" dir="rtl">
             <div className="flex-1 flex flex-col justify-center">
               {surahGroups.map((group, gi) => (
                 <div key={gi}>
-                  {/* Surah header banner */}
                   {group.isStart && (
                     <div className="my-3 py-2 px-4 rounded-xl bg-primary/10 border border-primary/20 text-center">
                       <p className="font-mushaf text-lg text-primary leading-relaxed">
@@ -255,7 +258,6 @@ export default function MushafPageView({
                       <p className="text-[10px] text-muted-foreground font-sans" dir="ltr">
                         {group.surah.englishName}
                       </p>
-                      {/* Basmallah */}
                       {group.surah.number !== 1 && group.surah.number !== 9 && (
                         <p className="font-mushaf text-base text-foreground mt-1 leading-relaxed">
                           بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
@@ -263,8 +265,6 @@ export default function MushafPageView({
                       )}
                     </div>
                   )}
-
-                  {/* Ayahs - flowing text */}
                   <p
                     className="font-mushaf text-foreground leading-[2.4] text-justify"
                     style={{ fontSize: `${fontSize}px` }}
@@ -279,7 +279,6 @@ export default function MushafPageView({
                           setSelectedAyat(ayah);
                         }}
                       >
-                        {/* Remove basmallah from first ayat if surah start (it's shown separately) */}
                         {group.isStart && ayah.numberInSurah === 1 && group.surah.number !== 1 && group.surah.number !== 9
                           ? ayah.text.replace(/بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ\s*/, "")
                           : ayah.text}
@@ -329,7 +328,6 @@ export default function MushafPageView({
         </Button>
       </div>
 
-      {/* Ayat Detail Sheet */}
       {selectedAyat && (
         <AyatDetailSheet
           ayah={selectedAyat}
@@ -340,7 +338,6 @@ export default function MushafPageView({
         />
       )}
 
-      {/* Settings */}
       <ReadingSettings
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
