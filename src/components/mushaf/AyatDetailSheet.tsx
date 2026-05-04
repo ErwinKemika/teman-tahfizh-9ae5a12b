@@ -19,6 +19,8 @@ import AudioPlayer from "./AudioPlayer";
 import AudioTafsirPlayer from "./AudioTafsirPlayer";
 import TrackerBadge from "./TrackerBadge";
 
+const QURAN_API = "https://api.quran.com/api/v4";
+
 interface AyatDetailSheetProps {
   ayah: {
     number: number;
@@ -38,46 +40,35 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
   const queryClient = useQueryClient();
   const ayatRef = `${surahNumber}:${ayah.numberInSurah}`;
 
-  // Translation
-  const { data: translation, isLoading: loadingTranslation } = useQuery({
-    queryKey: ["ayat-translation", ayah.number],
+  // Fetch translation + tafsir + word-by-word in one call
+  const { data: verseDetail, isLoading: loadingDetail } = useQuery({
+    queryKey: ["verse-detail", surahNumber, ayah.numberInSurah],
     queryFn: async () => {
-      const res = await fetch(`https://api.alquran.cloud/v1/ayah/${ayah.number}/id.indonesian`);
+      const verseKey = `${surahNumber}:${ayah.numberInSurah}`;
+      const res = await fetch(
+        `${QURAN_API}/verses/by_key/${verseKey}?translations=33&tafsirs=169&words=true&word_fields=text_uthmani,translation_text`
+      );
       const json = await res.json();
-      return json.data?.text || "";
+      const v = json.verse;
+      return {
+        translation: v?.translations?.[0]?.text || "",
+        tafsir: (v?.tafsirs?.[0]?.text || "").replace(/<[^>]+>/g, "").trim(),
+        words: (v?.words || [])
+          .filter((w: { char_type_name: string }) => w.char_type_name === "word")
+          .map((w: { text_uthmani: string; translation?: { text: string } }) => ({
+            ar: w.text_uthmani,
+            id: w.translation?.text || "",
+          })),
+      };
     },
     enabled: open,
+    staleTime: 1000 * 60 * 60,
+    retry: 2,
   });
 
-  // Word by word
-  const { data: wordByWord, isLoading: loadingWbw } = useQuery({
-    queryKey: ["word-by-word", surahNumber, ayah.numberInSurah],
-    queryFn: async () => {
-      try {
-        const res = await fetch(
-          `https://api.quranwbw.com/v1/verse?chapter=${surahNumber}&verse=${ayah.numberInSurah}`
-        );
-        if (!res.ok) return null;
-        const json = await res.json();
-        return json.verse?.words || null;
-      } catch {
-        return null;
-      }
-    },
-    enabled: open,
-    retry: 1,
-  });
-
-  // Tafsir
-  const { data: tafsir, isLoading: loadingTafsir } = useQuery({
-    queryKey: ["tafsir", ayah.number],
-    queryFn: async () => {
-      const res = await fetch(`https://api.alquran.cloud/v1/ayah/${ayah.number}/id.muntakhab`);
-      const json = await res.json();
-      return json.data?.text || "";
-    },
-    enabled: open,
-  });
+  const translation = verseDetail?.translation;
+  const tafsir = verseDetail?.tafsir;
+  const wordByWord = verseDetail?.words;
 
   // Bookmark check
   const { data: isBookmarked } = useQuery({
@@ -153,7 +144,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
             <AccordionItem value="terjemahan">
               <AccordionTrigger className="text-sm font-semibold">Terjemahan</AccordionTrigger>
               <AccordionContent>
-                {loadingTranslation ? (
+                {loadingDetail ? (
                   <Skeleton className="h-16" />
                 ) : (
                   <p className="text-sm text-foreground/80 leading-relaxed">{translation}</p>
@@ -164,9 +155,9 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
             <AccordionItem value="kata-per-kata">
               <AccordionTrigger className="text-sm font-semibold">Kata per Kata</AccordionTrigger>
               <AccordionContent>
-                {loadingWbw ? (
+                {loadingDetail ? (
                   <Skeleton className="h-24" />
-                ) : wordByWord ? (
+                ) : wordByWord?.length ? (
                   <div className="grid grid-cols-3 gap-2" dir="rtl">
                     {wordByWord.map((w: any, i: number) => (
                       <div key={i} className="text-center p-2 rounded-lg bg-muted/50">
@@ -197,7 +188,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
             </TabsContent>
 
             <TabsContent value="tafsir" className="mt-3">
-              {loadingTafsir ? (
+              {loadingDetail ? (
                 <Skeleton className="h-24" />
               ) : (
                 <div className="p-3 rounded-xl bg-muted/30 text-sm text-foreground/80 leading-relaxed">
