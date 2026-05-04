@@ -29,10 +29,36 @@ function usePageData(pageNumber: number) {
   return useQuery<PageData>({
     queryKey: ["mushaf-page", pageNumber],
     queryFn: async () => {
-      const res = await fetch(`https://api.alquran.cloud/v1/page/${pageNumber}/quran-uthmani`);
-      const json = await res.json();
-      return { ayahs: json.data?.ayahs || [] };
+      // Primary: alquran.cloud
+      try {
+        const res = await fetch(`https://api.alquran.cloud/v1/page/${pageNumber}/quran-uthmani`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data?.ayahs?.length) return { ayahs: json.data.ayahs };
+        }
+      } catch (_) { /* fall through */ }
+
+      // Fallback: api.quran.com v4
+      const res2 = await fetch(
+        `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?fields=text_uthmani,page_number,juz_number,hizb_number&per_page=50`
+      );
+      const json2 = await res2.json();
+      const ayahs: AyahData[] = (json2.verses || []).map((v: any) => {
+        const [s, n] = String(v.verse_key).split(":").map(Number);
+        return {
+          number: v.id,
+          text: v.text_uthmani,
+          numberInSurah: n,
+          juz: v.juz_number,
+          hizbQuarter: v.hizb_number * 4,
+          page: v.page_number,
+          surah: { number: s, name: "", englishName: `Surah ${s}` },
+        };
+      });
+      return { ayahs };
     },
+    retry: 2,
+    retryDelay: 800,
     staleTime: 1000 * 60 * 60,
     enabled: pageNumber >= 1 && pageNumber <= TOTAL_PAGES,
   });
