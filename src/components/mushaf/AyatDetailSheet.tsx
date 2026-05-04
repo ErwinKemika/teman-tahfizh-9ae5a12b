@@ -39,20 +39,21 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const ayatRef = `${surahNumber}:${ayah.numberInSurah}`;
+  const [tafsirSource, setTafsirSource] = useState<"ibnu-katsir" | "al-muyassar">("ibnu-katsir");
 
-  // Fetch translation + tafsir + word-by-word in one call
+  const verseKey = `${surahNumber}:${ayah.numberInSurah}`;
+
+  // Fetch translation + word-by-word (language=id for Indonesian words)
   const { data: verseDetail, isLoading: loadingDetail } = useQuery({
     queryKey: ["verse-detail", surahNumber, ayah.numberInSurah],
     queryFn: async () => {
-      const verseKey = `${surahNumber}:${ayah.numberInSurah}`;
       const res = await fetch(
-        `${QURAN_API}/verses/by_key/${verseKey}?translations=33&tafsirs=169&words=true&word_fields=text_uthmani,translation_text`
+        `${QURAN_API}/verses/by_key/${verseKey}?translations=33&words=true&word_fields=text_uthmani,translation_text&language=id`
       );
       const json = await res.json();
       const v = json.verse;
       return {
         translation: (v?.translations?.[0]?.text || "").replace(/<[^>]+>/g, "").trim(),
-        tafsir: (v?.tafsirs?.[0]?.text || "").replace(/<[^>]+>/g, "").trim(),
         words: (v?.words || [])
           .filter((w: { char_type_name: string }) => w.char_type_name === "word")
           .map((w: { text_uthmani: string; translation?: { text: string } }) => ({
@@ -66,8 +67,37 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
     retry: 2,
   });
 
+  // Tafsir Ibnu Katsir (ID 169, English abridged)
+  const { data: tafsirIbnuKatsir, isLoading: loadingIbnuKatsir } = useQuery({
+    queryKey: ["tafsir-ibnu-katsir", surahNumber, ayah.numberInSurah],
+    queryFn: async () => {
+      const res = await fetch(`${QURAN_API}/tafsirs/169/by_ayah/${verseKey}`, {
+        headers: { Accept: "application/json" },
+      });
+      const json = await res.json();
+      return (json.tafsir?.text || "").replace(/<[^>]+>/g, "").trim();
+    },
+    enabled: open,
+    staleTime: 1000 * 60 * 60,
+    retry: 2,
+  });
+
+  // Tafsir Al-Muyassar (ID 16, Arabic)
+  const { data: tafsirMuyassar, isLoading: loadingMuyassar } = useQuery({
+    queryKey: ["tafsir-muyassar", surahNumber, ayah.numberInSurah],
+    queryFn: async () => {
+      const res = await fetch(`${QURAN_API}/tafsirs/16/by_ayah/${verseKey}`, {
+        headers: { Accept: "application/json" },
+      });
+      const json = await res.json();
+      return (json.tafsir?.text || "").replace(/<[^>]+>/g, "").trim();
+    },
+    enabled: open,
+    staleTime: 1000 * 60 * 60,
+    retry: 2,
+  });
+
   const translation = verseDetail?.translation;
-  const tafsir = verseDetail?.tafsir;
   const wordByWord = verseDetail?.words;
 
   // Bookmark check
@@ -105,6 +135,9 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
       toast.success(isBookmarked ? "Bookmark dihapus" : "Bookmark ditambahkan");
     },
   });
+
+  const activeTafsirText = tafsirSource === "ibnu-katsir" ? tafsirIbnuKatsir : tafsirMuyassar;
+  const activeTafsirLoading = tafsirSource === "ibnu-katsir" ? loadingIbnuKatsir : loadingMuyassar;
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -163,7 +196,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
                       <div key={i} className="text-center p-2 rounded-lg bg-muted/50">
                         <p className="font-arabic text-base text-foreground">{w.ar}</p>
                         <p className="text-[10px] text-muted-foreground mt-1" dir="ltr">
-                          {w.id || w.en}
+                          {w.id}
                         </p>
                       </div>
                     ))}
@@ -187,13 +220,39 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
               <AudioPlayer ayahNumber={ayah.number} />
             </TabsContent>
 
-            <TabsContent value="tafsir" className="mt-3">
-              {loadingDetail ? (
-                <Skeleton className="h-24" />
+            <TabsContent value="tafsir" className="mt-3 space-y-3">
+              {/* Tafsir source toggle */}
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                <button
+                  onClick={() => setTafsirSource("ibnu-katsir")}
+                  className={`flex-1 py-1.5 text-xs font-medium transition-colors ${
+                    tafsirSource === "ibnu-katsir"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  Ibnu Katsir
+                </button>
+                <button
+                  onClick={() => setTafsirSource("al-muyassar")}
+                  className={`flex-1 py-1.5 text-xs font-medium transition-colors ${
+                    tafsirSource === "al-muyassar"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  Al-Muyassar
+                </button>
+              </div>
+
+              {activeTafsirLoading ? (
+                <Skeleton className="h-32" />
               ) : (
-                <div className="p-3 rounded-xl bg-muted/30 text-sm text-foreground/80 leading-relaxed">
-                  <p className="font-semibold text-foreground text-xs mb-2">Tafsir Ringkas</p>
-                  {tafsir || "Tafsir tidak tersedia untuk ayat ini."}
+                <div
+                  className="p-3 rounded-xl bg-muted/30 text-sm text-foreground/80 leading-relaxed"
+                  dir={tafsirSource === "al-muyassar" ? "rtl" : "ltr"}
+                >
+                  {activeTafsirText || "Tafsir tidak tersedia untuk ayat ini."}
                 </div>
               )}
             </TabsContent>
