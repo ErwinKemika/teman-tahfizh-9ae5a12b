@@ -13,6 +13,11 @@ import { toast } from "sonner";
 import { ClipboardCheck, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 
 type MutabaahStatus = "lulus" | "mengulang" | "libur" | "sakit";
+type QadhimValue = "none" | "lulus" | "mengulang";
+
+function toQadhimDb(val: QadhimValue): string | null {
+  return val === "none" ? null : val;
+}
 
 export default function MutabaahPage() {
   const { user } = useAuth();
@@ -24,7 +29,8 @@ export default function MutabaahPage() {
   const [hifdzJadidDari, setHifdzJadidDari] = useState("");
   const [hifdzJadidHingga, setHifdzJadidHingga] = useState("");
   const [murojaahTsnai, setMurojaahTsnai] = useState("");
-  const [murojaahQodim, setMurojaahQodim] = useState("");
+  const [murojaahQadhimTsnai, setMurojaahQadhimTsnai] = useState<QadhimValue>("none");
+  const [murojaahQadhimFardhi, setMurojaahQadhimFardhi] = useState<QadhimValue>("none");
   const [ziyadahSurat, setZiyadahSurat] = useState("");
   const [ziyadahAyatStart, setZiyadahAyatStart] = useState("");
   const [ziyadahAyatEnd, setZiyadahAyatEnd] = useState("");
@@ -79,7 +85,8 @@ export default function MutabaahPage() {
         murojaah_hifdzul_jadid_dari: hifdzJadidDari ? parseInt(hifdzJadidDari) : null,
         murojaah_hifdzul_jadid_hingga: hifdzJadidHingga ? parseInt(hifdzJadidHingga) : null,
         murojaah_tsnai: murojaahTsnai || null,
-        murojaah_hifdzul_qodim: murojaahQodim || null,
+        murojaah_hifdzul_qadhim_tsnai: toQadhimDb(murojaahQadhimTsnai),
+        murojaah_hifdzul_qadhim_fardhi: toQadhimDb(murojaahQadhimFardhi),
         ziyadah_surat: ziyadahSurat || null,
         ziyadah_ayat_start: ziyadahAyatStart ? parseInt(ziyadahAyatStart) : null,
         ziyadah_ayat_end: ziyadahAyatEnd ? parseInt(ziyadahAyatEnd) : null,
@@ -105,6 +112,14 @@ export default function MutabaahPage() {
   };
 
   const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+  const qadhimOptions = (
+    <>
+      <SelectItem value="none">-</SelectItem>
+      <SelectItem value="lulus">Lulus</SelectItem>
+      <SelectItem value="mengulang">Mengulang</SelectItem>
+    </>
+  );
 
   return (
     <div className="p-4 lg:p-6 space-y-4 max-w-2xl mx-auto">
@@ -174,10 +189,28 @@ export default function MutabaahPage() {
                       <Label>Muroja'ah Tsnai</Label>
                       <Input placeholder="Juz/surat yang dimuroja'ah" value={murojaahTsnai} onChange={(e) => setMurojaahTsnai(e.target.value)} />
                     </div>
+
+                    {/* Muraja'ah Hifdzul Qadhim — split into Tsuna'i and Fardhi */}
                     <div className="space-y-2">
-                      <Label>Muroja'ah Hifdzul Qodim</Label>
-                      <Input placeholder="Juz/surat" value={murojaahQodim} onChange={(e) => setMurojaahQodim(e.target.value)} />
+                      <Label className="font-semibold">Muraja'ah Hifdzul Qadhim</Label>
+                      <div className="space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                          <span className="text-sm text-foreground/80 sm:w-20 shrink-0">Tsuna'i</span>
+                          <Select value={murojaahQadhimTsnai} onValueChange={(v) => setMurojaahQadhimTsnai(v as QadhimValue)}>
+                            <SelectTrigger className="sm:flex-1"><SelectValue /></SelectTrigger>
+                            <SelectContent>{qadhimOptions}</SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                          <span className="text-sm text-foreground/80 sm:w-20 shrink-0">Fardhi</span>
+                          <Select value={murojaahQadhimFardhi} onValueChange={(v) => setMurojaahQadhimFardhi(v as QadhimValue)}>
+                            <SelectTrigger className="sm:flex-1"><SelectValue /></SelectTrigger>
+                            <SelectContent>{qadhimOptions}</SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                     </div>
+
                     <div className="space-y-2">
                       <Label>Ziyadah Baru</Label>
                       <Input placeholder="Nama surat" value={ziyadahSurat} onChange={(e) => setZiyadahSurat(e.target.value)} />
@@ -264,6 +297,29 @@ export default function MutabaahPage() {
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-destructive" /> Sakit</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-muted-foreground" /> Libur</span>
             </div>
+
+            {/* Entry detail list */}
+            {monthEntries && monthEntries.length > 0 && (
+              <div className="mt-4 space-y-2 border-t border-border pt-3">
+                <p className="text-xs font-semibold text-foreground mb-2">Detail Entri</p>
+                {[...monthEntries].reverse().map((entry: any) => (
+                  <div key={entry.id} className="text-xs bg-muted/30 rounded-lg p-2.5 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{entry.date}</span>
+                      <Badge className={`text-[10px] px-1.5 py-0 ${statusColor[entry.status]}`}>
+                        {entry.status}
+                      </Badge>
+                    </div>
+                    {(entry.murojaah_hifdzul_qadhim_tsnai || entry.murojaah_hifdzul_qadhim_fardhi) && (
+                      <p className="text-muted-foreground">
+                        Hifdzul Qadhim — Tsuna'i: <span className="text-foreground">{entry.murojaah_hifdzul_qadhim_tsnai || "-"}</span>
+                        {" | "}Fardhi: <span className="text-foreground">{entry.murojaah_hifdzul_qadhim_fardhi || "-"}</span>
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
