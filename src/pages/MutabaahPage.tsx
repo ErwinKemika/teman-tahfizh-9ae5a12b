@@ -309,12 +309,17 @@ export default function MutabaahPage() {
                         {entry.status}
                       </Badge>
                     </div>
-                    {(entry.murojaah_hifdzul_qadhim_tsnai || entry.murojaah_hifdzul_qadhim_fardhi) && (
-                      <p className="text-muted-foreground">
-                        Hifdzul Qadhim — Tsuna'i: <span className="text-foreground">{entry.murojaah_hifdzul_qadhim_tsnai || "-"}</span>
-                        {" | "}Fardhi: <span className="text-foreground">{entry.murojaah_hifdzul_qadhim_fardhi || "-"}</span>
-                      </p>
-                    )}
+                    {entry.murojaah_hifdzul_qodim && (() => {
+                      let q: { tsnai?: string | null; fardhi?: string | null } = {};
+                      try { q = JSON.parse(entry.murojaah_hifdzul_qodim); } catch { q = {}; }
+                      if (!q.tsnai && !q.fardhi) return null;
+                      return (
+                        <p className="text-muted-foreground">
+                          Hifdzul Qadhim — Tsuna'i: <span className="text-foreground">{q.tsnai || "-"}</span>
+                          {" | "}Fardhi: <span className="text-foreground">{q.fardhi || "-"}</span>
+                        </p>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
