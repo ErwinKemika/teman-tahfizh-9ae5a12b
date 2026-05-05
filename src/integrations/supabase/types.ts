@@ -87,8 +87,7 @@ export type Database = {
           keterangan: string | null
           murojaah_hifdzul_jadid_dari: number | null
           murojaah_hifdzul_jadid_hingga: number | null
-          murojaah_hifdzul_qadhim_fardhi: string | null
-          murojaah_hifdzul_qadhim_tsnai: string | null
+          murojaah_hifdzul_qodim: string | null
           murojaah_tsnai: string | null
           status: Database["public"]["Enums"]["mutabaah_status"]
           student_id: string
@@ -104,8 +103,7 @@ export type Database = {
           keterangan?: string | null
           murojaah_hifdzul_jadid_dari?: number | null
           murojaah_hifdzul_jadid_hingga?: number | null
-          murojaah_hifdzul_qadhim_fardhi?: string | null
-          murojaah_hifdzul_qadhim_tsnai?: string | null
+          murojaah_hifdzul_qodim?: string | null
           murojaah_tsnai?: string | null
           status?: Database["public"]["Enums"]["mutabaah_status"]
           student_id: string
@@ -121,8 +119,7 @@ export type Database = {
           keterangan?: string | null
           murojaah_hifdzul_jadid_dari?: number | null
           murojaah_hifdzul_jadid_hingga?: number | null
-          murojaah_hifdzul_qadhim_fardhi?: string | null
-          murojaah_hifdzul_qadhim_tsnai?: string | null
+          murojaah_hifdzul_qodim?: string | null
           murojaah_tsnai?: string | null
           status?: Database["public"]["Enums"]["mutabaah_status"]
           student_id?: string
@@ -275,37 +272,91 @@ export type Database = {
       }
       ujian: {
         Row: {
+          ayat_end: number | null
+          ayat_start: number | null
           bulan: number
           catatan_guru: string | null
           created_at: string
           created_by: string | null
           id: string
+          jenis_penilaian: string[] | null
+          jenis_ujian: Database["public"]["Enums"]["jenis_ujian_enum"]
+          jumlah_ayat: number | null
+          juz_diuji: string[] | null
           juz_tested: string
+          materi_surat: string | null
           nilai: number
+          nilai_adab: number | null
+          nilai_akhir: number | null
+          nilai_kelancaran: number | null
+          nilai_tajwid: number | null
+          nilai_total: number | null
+          pekan_ke: number | null
+          peringkat: number | null
+          rekomendasi: string | null
+          status_lulus: boolean | null
+          status_naik_juz: boolean | null
           student_id: string
           tahun: number
+          tanggal: string | null
         }
         Insert: {
+          ayat_end?: number | null
+          ayat_start?: number | null
           bulan: number
           catatan_guru?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
+          jenis_penilaian?: string[] | null
+          jenis_ujian?: Database["public"]["Enums"]["jenis_ujian_enum"]
+          jumlah_ayat?: number | null
+          juz_diuji?: string[] | null
           juz_tested: string
+          materi_surat?: string | null
           nilai?: number
+          nilai_adab?: number | null
+          nilai_akhir?: number | null
+          nilai_kelancaran?: number | null
+          nilai_tajwid?: number | null
+          nilai_total?: number | null
+          pekan_ke?: number | null
+          peringkat?: number | null
+          rekomendasi?: string | null
+          status_lulus?: boolean | null
+          status_naik_juz?: boolean | null
           student_id: string
           tahun: number
+          tanggal?: string | null
         }
         Update: {
+          ayat_end?: number | null
+          ayat_start?: number | null
           bulan?: number
           catatan_guru?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
+          jenis_penilaian?: string[] | null
+          jenis_ujian?: Database["public"]["Enums"]["jenis_ujian_enum"]
+          jumlah_ayat?: number | null
+          juz_diuji?: string[] | null
           juz_tested?: string
+          materi_surat?: string | null
           nilai?: number
+          nilai_adab?: number | null
+          nilai_akhir?: number | null
+          nilai_kelancaran?: number | null
+          nilai_tajwid?: number | null
+          nilai_total?: number | null
+          pekan_ke?: number | null
+          peringkat?: number | null
+          rekomendasi?: string | null
+          status_lulus?: boolean | null
+          status_naik_juz?: boolean | null
           student_id?: string
           tahun?: number
+          tanggal?: string | null
         }
         Relationships: []
       }
@@ -342,6 +393,7 @@ export type Database = {
     }
     Enums: {
       app_role: "guru" | "siswa"
+      jenis_ujian_enum: "harian" | "pekanan" | "bulanan"
       mutabaah_status: "lulus" | "mengulang" | "libur" | "sakit"
       tahfizh_status: "belum_dihafalkan" | "murajaah" | "tasmi_done" | "mutqin"
     }
@@ -472,6 +524,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["guru", "siswa"],
+      jenis_ujian_enum: ["harian", "pekanan", "bulanan"],
       mutabaah_status: ["lulus", "mengulang", "libur", "sakit"],
       tahfizh_status: ["belum_dihafalkan", "murajaah", "tasmi_done", "mutqin"],
     },
