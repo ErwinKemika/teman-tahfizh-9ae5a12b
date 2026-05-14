@@ -15,7 +15,6 @@ import {
   Calendar,
   Megaphone,
   Mic,
-  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,13 +33,9 @@ const mainNavItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/" },
   { label: "Tracker", icon: BookOpen, path: "/tracker" },
   { label: "Mutaba'ah", icon: ClipboardCheck, path: "/mutabaah" },
-  { label: "Mushaf", icon: BookMarked, path: "/mushaf" },
+  { label: "Ujian", icon: Trophy, path: "/ujian" },
   { label: "Profil", icon: User, path: "/profile" },
-];
-
-const guruNavItems: NavItem[] = [
-  { label: "Ujian", icon: ClipboardCheck, path: "/ujian" },
-  { label: "Siswa", icon: Users, path: "/students" },
+  { label: "Mushaf", icon: BookMarked, path: "/mushaf" },
 ];
 
 const comingSoonItems: NavItem[] = [
@@ -117,21 +112,6 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
           />
         ))}
 
-        {profile?.role === "guru" && (
-          <>
-            <p className="px-3 py-1.5 mt-4 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
-              Guru
-            </p>
-            {guruNavItems.map((item) => (
-              <NavItemButton
-                key={item.path}
-                item={item}
-                active={pathname === item.path}
-                onClick={() => handleNav(item.path)}
-              />
-            ))}
-          </>
-        )}
 
         <p className="px-3 py-1.5 mt-4 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
           Segera Hadir
