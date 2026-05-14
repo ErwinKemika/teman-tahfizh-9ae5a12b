@@ -178,7 +178,7 @@ export default function MutabaahPage() {
         </div>
 
         {/* Tabs — hidden on print */}
-        <div className="flex gap-2 print:hidden">
+        <div className="flex flex-wrap gap-2 print:hidden">
           <Button
             variant={activeTab === "form" ? "default" : "outline"}
             size="sm"
