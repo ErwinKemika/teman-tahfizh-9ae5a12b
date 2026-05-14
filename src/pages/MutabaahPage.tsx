@@ -150,7 +150,8 @@ export default function MutabaahPage() {
     },
     onSuccess: () => {
       toast.success("Mutaba'ah hari ini berhasil disimpan!");
-      queryClient.invalidateQueries({ queryKey: ["mutabaah"] });
+      queryClient.invalidateQueries({ queryKey: ["mutabaah-today"] });
+      queryClient.invalidateQueries({ queryKey: ["mutabaah-month"] });
       queryClient.invalidateQueries({ queryKey: ["today-mutabaah"] });
       queryClient.invalidateQueries({ queryKey: ["streak"] });
     },
