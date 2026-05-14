@@ -491,7 +491,7 @@ export default function UjianPage() {
 
       <Card className="shadow-card">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Hasil Ujian</CardTitle>
+          <CardTitle className="text-base">Hasil Ujian Pekanan</CardTitle>
         </CardHeader>
         <CardContent>
           {pekanList.length > 0 && (
