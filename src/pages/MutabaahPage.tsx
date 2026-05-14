@@ -46,9 +46,10 @@ const monthNames = [
 ];
 
 export default function MutabaahPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, role } = useAuth();
+  const isGuru = role === "guru";
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"form" | "history" | "report">("form");
+  const [activeTab, setActiveTab] = useState<"form" | "history" | "report">(isGuru ? "report" : "form");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -69,6 +70,21 @@ export default function MutabaahPage() {
   // Report filter state
   const [reportMonth, setReportMonth] = useState(String(new Date().getMonth() + 1));
   const [reportYear, setReportYear] = useState(String(new Date().getFullYear()));
+  const [selectedReportStudent, setSelectedReportStudent] = useState<string>("");
+
+  // Students list for guru report filter
+  const { data: students } = useQuery({
+    queryKey: ["students-list"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("role", "siswa")
+        .order("full_name");
+      return data || [];
+    },
+    enabled: isGuru,
+  });
 
   // Auto-status: lulus jika semua field wajib terisi
   const requiredFields = [
@@ -111,8 +127,10 @@ export default function MutabaahPage() {
     enabled: !!user,
   });
 
+  const reportStudentId = isGuru ? selectedReportStudent : user?.id;
+
   const { data: reportEntries } = useQuery({
-    queryKey: ["mutabaah-report", user?.id, reportMonth, reportYear],
+    queryKey: ["mutabaah-report", reportStudentId, reportMonth, reportYear],
     queryFn: async () => {
       const m = parseInt(reportMonth);
       const y = parseInt(reportYear);
@@ -121,13 +139,13 @@ export default function MutabaahPage() {
       const { data } = await supabase
         .from("mutabaah_entries")
         .select("*")
-        .eq("student_id", user!.id)
+        .eq("student_id", reportStudentId!)
         .gte("date", start)
         .lte("date", end)
         .order("date");
       return data || [];
     },
-    enabled: !!user && activeTab === "report",
+    enabled: !!reportStudentId && activeTab === "report",
   });
 
   const submitMutation = useMutation({
@@ -206,20 +224,24 @@ export default function MutabaahPage() {
 
         {/* Tabs — hidden on print */}
         <div className="flex flex-wrap gap-2 print:hidden">
-          <Button
-            variant={activeTab === "form" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveTab("form")}
-          >
-            Input Hari Ini
-          </Button>
-          <Button
-            variant={activeTab === "history" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveTab("history")}
-          >
-            Riwayat Bulanan
-          </Button>
+          {!isGuru && (
+            <>
+              <Button
+                variant={activeTab === "form" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveTab("form")}
+              >
+                Input Hari Ini
+              </Button>
+              <Button
+                variant={activeTab === "history" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveTab("history")}
+              >
+                Riwayat Bulanan
+              </Button>
+            </>
+          )}
           <Button
             variant={activeTab === "report" ? "default" : "outline"}
             size="sm"
@@ -461,6 +483,23 @@ export default function MutabaahPage() {
             <Card className="shadow-card print:hidden">
               <CardContent className="py-4">
                 <div className="flex flex-wrap items-end gap-3">
+                  {isGuru && (
+                    <div className="space-y-1.5 w-full sm:w-auto">
+                      <Label className="text-xs">Siswa</Label>
+                      <Select value={selectedReportStudent} onValueChange={setSelectedReportStudent}>
+                        <SelectTrigger className="w-full sm:w-52">
+                          <SelectValue placeholder="Pilih siswa..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {students?.map((s) => (
+                            <SelectItem key={s.user_id} value={s.user_id}>
+                              {s.full_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <Label className="text-xs">Bulan</Label>
                     <Select value={reportMonth} onValueChange={setReportMonth}>
@@ -497,7 +536,18 @@ export default function MutabaahPage() {
               </CardContent>
             </Card>
 
-            {/* Summary cards */}
+            {/* Guru: prompt to select student */}
+            {isGuru && !selectedReportStudent && (
+              <Card className="shadow-card">
+                <CardContent className="py-12 text-center">
+                  <p className="text-sm text-muted-foreground">Pilih siswa di atas untuk melihat laporan mutaba'ahnya</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Summary cards + Table (only when student selected for guru) */}
+            {(!isGuru || selectedReportStudent) && (
+              <>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:grid-cols-4">
               {[
                 { label: "Total Hari", value: reportEntries?.length ?? 0, cls: "text-foreground" },
@@ -604,6 +654,8 @@ export default function MutabaahPage() {
                 )}
               </CardContent>
             </Card>
+              </>
+            )}
           </div>
         )}
       </div>
