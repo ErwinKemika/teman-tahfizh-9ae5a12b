@@ -303,7 +303,14 @@ export default function UjianPage() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label>Pekan ke-</Label>
-                    <Input type="number" value={pekanKe} onChange={(e) => setPekanKe(e.target.value)} />
+                    <Select value={pekanKe} onValueChange={setPekanKe}>
+                      <SelectTrigger><SelectValue placeholder="Pilih pekan..." /></SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5].map((p) => (
+                          <SelectItem key={p} value={String(p)}>Pekan {p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Bulan</Label>
