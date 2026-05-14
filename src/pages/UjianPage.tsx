@@ -26,7 +26,7 @@ export default function UjianPage() {
   const queryClient = useQueryClient();
   const isGuru = role === "guru";
 
-  const [formType, setFormType] = useState<JenisUjian>("harian");
+  const [formType, setFormType] = useState<JenisUjian>(isGuru ? "pekanan" : "harian");
   const [historyTab, setHistoryTab] = useState<"semua" | JenisUjian>("semua");
 
   // Common
@@ -239,11 +239,13 @@ export default function UjianPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Tabs value={formType} onValueChange={(v) => setFormType(v as JenisUjian)}>
-              <TabsList className="grid grid-cols-3 w-full">
-                <TabsTrigger value="harian">Harian</TabsTrigger>
-                <TabsTrigger value="pekanan">Pekanan</TabsTrigger>
-                <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
-              </TabsList>
+              {!isGuru && (
+                <TabsList className="grid grid-cols-3 w-full">
+                  <TabsTrigger value="harian">Harian</TabsTrigger>
+                  <TabsTrigger value="pekanan">Pekanan</TabsTrigger>
+                  <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
+                </TabsList>
+              )}
 
               <div className="space-y-2 mt-4">
                 <Label>Siswa</Label>
@@ -328,16 +330,6 @@ export default function UjianPage() {
                         onClick={() => toggleArr(juzPekanan, j, setJuzPekanan)}
                       >Juz {j}</Badge>
                     ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Halaman dari</Label>
-                    <Input type="number" value={halamanDari} onChange={(e) => setHalamanDari(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Halaman hingga</Label>
-                    <Input type="number" value={halamanHingga} onChange={(e) => setHalamanHingga(e.target.value)} />
                   </div>
                 </div>
                 <div className="space-y-2">
