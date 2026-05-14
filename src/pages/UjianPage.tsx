@@ -49,8 +49,8 @@ export default function UjianPage() {
   const [juzPekanan, setJuzPekanan] = useState<string[]>([]);
   const [halamanDari, setHalamanDari] = useState("");
   const [halamanHingga, setHalamanHingga] = useState("");
-  const [nilaiKelancaranPekan, setNilaiKelancaranPekan] = useState(80);
-  const [nilaiTajwidPekan, setNilaiTajwidPekan] = useState(80);
+  const [hafalanScores, setHafalanScores] = useState<number[]>([0, 0, 0, 0, 0]);
+  const [tajwidScores, setTajwidScores] = useState<number[]>([0, 0, 0, 0, 0]);
   const [statusLulus, setStatusLulus] = useState<"true" | "false">("true");
 
   // Bulanan
@@ -70,9 +70,17 @@ export default function UjianPage() {
     return 0;
   }, [ayatStart, ayatEnd]);
 
+  const avgHafalanPekan = useMemo(
+    () => Math.round(hafalanScores.reduce((a, b) => a + b, 0) / 5),
+    [hafalanScores]
+  );
+  const avgTajwidPekan = useMemo(
+    () => Math.round(tajwidScores.reduce((a, b) => a + b, 0) / 5),
+    [tajwidScores]
+  );
   const nilaiTotalPekan = useMemo(
-    () => Math.round((nilaiKelancaranPekan + nilaiTajwidPekan) / 2),
-    [nilaiKelancaranPekan, nilaiTajwidPekan]
+    () => Math.round((avgHafalanPekan + avgTajwidPekan) / 2),
+    [avgHafalanPekan, avgTajwidPekan]
   );
   const nilaiAkhirBulan = useMemo(
     () => Math.round(nilaiHafalan * 0.5 + nilaiTajwidBulan * 0.3 + nilaiAdab * 0.2),
@@ -115,7 +123,7 @@ export default function UjianPage() {
     setCatatanGuru("");
     setMateriSurat(""); setAyatStart(""); setAyatEnd(""); setJenisPenilaian([]); setNilaiHarian(80);
     setPekanKe(""); setJuzPekanan([]); setHalamanDari(""); setHalamanHingga("");
-    setNilaiKelancaranPekan(80); setNilaiTajwidPekan(80); setStatusLulus("true");
+    setHafalanScores([0, 0, 0, 0, 0]); setTajwidScores([0, 0, 0, 0, 0]); setStatusLulus("true");
     setJuzBulanan([]); setTotalJuz(""); setNilaiHafalan(80); setNilaiTajwidBulan(80);
     setNilaiAdab(80); setPeringkat(""); setStatusNaikJuz("true"); setRekomendasi("");
   };
@@ -155,8 +163,8 @@ export default function UjianPage() {
           juz_diuji: juzPekanan,
           ayat_start: halamanDari ? parseInt(halamanDari) : null,
           ayat_end: halamanHingga ? parseInt(halamanHingga) : null,
-          nilai_kelancaran: nilaiKelancaranPekan,
-          nilai_tajwid: nilaiTajwidPekan,
+          nilai_kelancaran: avgHafalanPekan,
+          nilai_tajwid: avgTajwidPekan,
           nilai_total: nilaiTotalPekan,
           nilai: nilaiTotalPekan,
           status_lulus: statusLulus === "true",
@@ -340,12 +348,48 @@ export default function UjianPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Nilai Kelancaran: <span className="font-semibold text-primary">{nilaiKelancaranPekan}</span></Label>
-                  <Slider value={[nilaiKelancaranPekan]} onValueChange={(v) => setNilaiKelancaranPekan(v[0])} min={0} max={100} step={1} />
+                  <Label>Hafalan <span className="text-xs text-muted-foreground font-normal">(rata-rata: {avgHafalanPekan})</span></Label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {hafalanScores.map((score, i) => (
+                      <div key={i} className="space-y-1">
+                        <p className="text-xs text-center text-muted-foreground">Soal {i + 1}</p>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={score}
+                          onChange={(e) => {
+                            const next = [...hafalanScores];
+                            next[i] = Number(e.target.value);
+                            setHafalanScores(next);
+                          }}
+                          className="text-center px-1"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Nilai Tajwid: <span className="font-semibold text-primary">{nilaiTajwidPekan}</span></Label>
-                  <Slider value={[nilaiTajwidPekan]} onValueChange={(v) => setNilaiTajwidPekan(v[0])} min={0} max={100} step={1} />
+                  <Label>Tajwid <span className="text-xs text-muted-foreground font-normal">(rata-rata: {avgTajwidPekan})</span></Label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {tajwidScores.map((score, i) => (
+                      <div key={i} className="space-y-1">
+                        <p className="text-xs text-center text-muted-foreground">Soal {i + 1}</p>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={score}
+                          onChange={(e) => {
+                            const next = [...tajwidScores];
+                            next[i] = Number(e.target.value);
+                            setTajwidScores(next);
+                          }}
+                          className="text-center px-1"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <p className="text-sm">Nilai Total: <span className={`font-bold text-lg ${scoreColor(nilaiTotalPekan)}`}>{nilaiTotalPekan}</span></p>
                 <div className="space-y-2">
