@@ -87,9 +87,8 @@ export default function MutabaahPage() {
         ziyadah_jumlah: ziyadahHalaman ? parseInt(ziyadahHalaman) : null,
         murojaah_hifdzul_jadid_dari: hifdzJadidDari ? parseInt(hifdzJadidDari) : null,
         murojaah_hifdzul_jadid_hingga: hifdzJadidHingga ? parseInt(hifdzJadidHingga) : null,
-        murojaah_tsnai: null,
-        murojaah_hifdzul_qadhim_tsnai: murojaahQadhimTsnai || null,
-        murojaah_hifdzul_qadhim_fardhi: murojaahQadhimFardhi || null,
+        murojaah_hifdzul_qodim: murojaahQadhimTsnai || null,
+        murojaah_tsnai: murojaahQadhimFardhi || null,
         keterangan: keterangan || null,
       });
       if (error) throw error;
@@ -338,10 +337,10 @@ export default function MutabaahPage() {
                         Hifdzul Jadid: hal. <span className="text-foreground">{entry.murojaah_hifdzul_jadid_dari}–{entry.murojaah_hifdzul_jadid_hingga}</span>
                       </p>
                     )}
-                    {(entry.murojaah_hifdzul_qadhim_tsnai || entry.murojaah_hifdzul_qadhim_fardhi) && (
+                    {(entry.murojaah_hifdzul_qodim || entry.murojaah_tsnai) && (
                       <p className="text-muted-foreground">
-                        Hifdzul Qadhim — Tsuna'i: <span className="text-foreground">{entry.murojaah_hifdzul_qadhim_tsnai || "-"}</span>
-                        {" | "}Fardhi: <span className="text-foreground">{entry.murojaah_hifdzul_qadhim_fardhi || "-"}</span>
+                        Hifdzul Qadhim — Tsuna'i: <span className="text-foreground">{entry.murojaah_hifdzul_qodim || "-"}</span>
+                        {" | "}Fardhi: <span className="text-foreground">{entry.murojaah_tsnai || "-"}</span>
                       </p>
                     )}
                     {entry.keterangan && (
