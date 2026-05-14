@@ -5,19 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ClipboardCheck, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { ClipboardCheck, ChevronLeft, ChevronRight } from "lucide-react";
 
 type MutabaahStatus = "lulus" | "mengulang" | "libur" | "sakit";
-type QadhimValue = "none" | "lulus" | "mengulang";
-
-function toQadhimDb(val: QadhimValue): string | null {
-  return val === "none" ? null : val;
-}
 
 export default function MutabaahPage() {
   const { user } = useAuth();
@@ -25,19 +19,28 @@ export default function MutabaahPage() {
   const [activeTab, setActiveTab] = useState<"form" | "history">("form");
 
   const today = new Date().toISOString().split("T")[0];
-  const [status, setStatus] = useState<MutabaahStatus>("lulus");
-  const [hifdzJadidDari, setHifdzJadidDari] = useState("");
-  const [hifdzJadidHingga, setHifdzJadidHingga] = useState("");
-  const [murojaahTsnai, setMurojaahTsnai] = useState("");
-  const [murojaahQadhimTsnai, setMurojaahQadhimTsnai] = useState<QadhimValue>("none");
-  const [murojaahQadhimFardhi, setMurojaahQadhimFardhi] = useState<QadhimValue>("none");
+
+  // Form state
   const [ziyadahSurat, setZiyadahSurat] = useState("");
   const [ziyadahAyatStart, setZiyadahAyatStart] = useState("");
   const [ziyadahAyatEnd, setZiyadahAyatEnd] = useState("");
+  const [ziyadahHalaman, setZiyadahHalaman] = useState("");
+  const [hifdzJadidDari, setHifdzJadidDari] = useState("");
+  const [hifdzJadidHingga, setHifdzJadidHingga] = useState("");
+  const [murojaahQadhimTsnai, setMurojaahQadhimTsnai] = useState("");
+  const [murojaahQadhimFardhi, setMurojaahQadhimFardhi] = useState("");
   const [keterangan, setKeterangan] = useState("");
 
   // History month navigation
   const [historyMonth, setHistoryMonth] = useState(new Date());
+
+  // Auto-status: lulus jika semua field wajib terisi
+  const requiredFields = [
+    ziyadahSurat, ziyadahAyatStart, ziyadahAyatEnd, ziyadahHalaman,
+    hifdzJadidDari, hifdzJadidHingga,
+    murojaahQadhimTsnai, murojaahQadhimFardhi,
+  ];
+  const autoStatus: MutabaahStatus = requiredFields.every((f) => f.trim() !== "") ? "lulus" : "mengulang";
 
   const { data: todayEntry } = useQuery({
     queryKey: ["mutabaah-today", user?.id],
@@ -74,22 +77,19 @@ export default function MutabaahPage() {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      const ziyadahJumlah = ziyadahAyatEnd && ziyadahAyatStart
-        ? parseInt(ziyadahAyatEnd) - parseInt(ziyadahAyatStart) + 1
-        : null;
-
       const { error } = await supabase.from("mutabaah_entries").insert({
         student_id: user!.id,
         date: today,
-        status,
-        murojaah_hifdzul_jadid_dari: hifdzJadidDari ? parseInt(hifdzJadidDari) : null,
-        murojaah_hifdzul_jadid_hingga: hifdzJadidHingga ? parseInt(hifdzJadidHingga) : null,
-        murojaah_tsnai: murojaahTsnai || null,
-        murojaah_hifdzul_qodim: JSON.stringify({ tsnai: toQadhimDb(murojaahQadhimTsnai), fardhi: toQadhimDb(murojaahQadhimFardhi) }),
+        status: autoStatus,
         ziyadah_surat: ziyadahSurat || null,
         ziyadah_ayat_start: ziyadahAyatStart ? parseInt(ziyadahAyatStart) : null,
         ziyadah_ayat_end: ziyadahAyatEnd ? parseInt(ziyadahAyatEnd) : null,
-        ziyadah_jumlah: ziyadahJumlah,
+        ziyadah_jumlah: ziyadahHalaman ? parseInt(ziyadahHalaman) : null,
+        murojaah_hifdzul_jadid_dari: hifdzJadidDari ? parseInt(hifdzJadidDari) : null,
+        murojaah_hifdzul_jadid_hingga: hifdzJadidHingga ? parseInt(hifdzJadidHingga) : null,
+        murojaah_tsnai: null,
+        murojaah_hifdzul_qadhim_tsnai: murojaahQadhimTsnai || null,
+        murojaah_hifdzul_qadhim_fardhi: murojaahQadhimFardhi || null,
         keterangan: keterangan || null,
       });
       if (error) throw error;
@@ -111,14 +111,6 @@ export default function MutabaahPage() {
   };
 
   const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-
-  const qadhimOptions = (
-    <>
-      <SelectItem value="none">-</SelectItem>
-      <SelectItem value="lulus">Lulus</SelectItem>
-      <SelectItem value="mengulang">Mengulang</SelectItem>
-    </>
-  );
 
   return (
     <div className="p-4 lg:p-6 space-y-4 max-w-2xl mx-auto">
@@ -162,76 +154,104 @@ export default function MutabaahPage() {
               </p>
             ) : (
               <>
+                {/* 1. Ziyadah Baru */}
                 <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={status} onValueChange={(v) => setStatus(v as MutabaahStatus)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="lulus">Normal (Lulus)</SelectItem>
-                      <SelectItem value="mengulang">Mengulang</SelectItem>
-                      <SelectItem value="libur">Libur</SelectItem>
-                      <SelectItem value="sakit">Sakit</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="font-semibold">Ziyadah (Hafalan Baru)</Label>
+                  <Input
+                    placeholder="Nama surat"
+                    value={ziyadahSurat}
+                    onChange={(e) => setZiyadahSurat(e.target.value)}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      placeholder="Ayat awal"
+                      type="number"
+                      value={ziyadahAyatStart}
+                      onChange={(e) => setZiyadahAyatStart(e.target.value)}
+                    />
+                    <Input
+                      placeholder="Ayat akhir"
+                      type="number"
+                      value={ziyadahAyatEnd}
+                      onChange={(e) => setZiyadahAyatEnd(e.target.value)}
+                    />
+                  </div>
+                  <Input
+                    placeholder="Jumlah halaman"
+                    type="number"
+                    value={ziyadahHalaman}
+                    onChange={(e) => setZiyadahHalaman(e.target.value)}
+                  />
                 </div>
 
-                {(status === "lulus" || status === "mengulang") && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Muroja'ah Hifdzul Jadid (Halaman)</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input placeholder="Dari hal." value={hifdzJadidDari} onChange={(e) => setHifdzJadidDari(e.target.value)} type="number" />
-                        <Input placeholder="Hingga hal." value={hifdzJadidHingga} onChange={(e) => setHifdzJadidHingga(e.target.value)} type="number" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Muroja'ah Tsnai</Label>
-                      <Input placeholder="Juz/surat yang dimuroja'ah" value={murojaahTsnai} onChange={(e) => setMurojaahTsnai(e.target.value)} />
-                    </div>
-
-                    {/* Muraja'ah Hifdzul Qadhim — split into Tsuna'i and Fardhi */}
-                    <div className="space-y-2">
-                      <Label className="font-semibold">Muraja'ah Hifdzul Qadhim</Label>
-                      <div className="space-y-2">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
-                          <span className="text-sm text-foreground/80 sm:w-20 shrink-0">Tsuna'i</span>
-                          <Select value={murojaahQadhimTsnai} onValueChange={(v) => setMurojaahQadhimTsnai(v as QadhimValue)}>
-                            <SelectTrigger className="sm:flex-1"><SelectValue /></SelectTrigger>
-                            <SelectContent>{qadhimOptions}</SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
-                          <span className="text-sm text-foreground/80 sm:w-20 shrink-0">Fardhi</span>
-                          <Select value={murojaahQadhimFardhi} onValueChange={(v) => setMurojaahQadhimFardhi(v as QadhimValue)}>
-                            <SelectTrigger className="sm:flex-1"><SelectValue /></SelectTrigger>
-                            <SelectContent>{qadhimOptions}</SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Ziyadah Baru</Label>
-                      <Input placeholder="Nama surat" value={ziyadahSurat} onChange={(e) => setZiyadahSurat(e.target.value)} />
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input placeholder="Ayat awal" value={ziyadahAyatStart} onChange={(e) => setZiyadahAyatStart(e.target.value)} type="number" />
-                        <Input placeholder="Ayat akhir" value={ziyadahAyatEnd} onChange={(e) => setZiyadahAyatEnd(e.target.value)} type="number" />
-                      </div>
-                      {ziyadahAyatStart && ziyadahAyatEnd && (
-                        <p className="text-xs text-muted-foreground">
-                          Jumlah ayat: {Math.max(0, parseInt(ziyadahAyatEnd) - parseInt(ziyadahAyatStart) + 1)}
-                        </p>
-                      )}
-                    </div>
-                  </>
-                )}
-
+                {/* 2. Muroja'ah Hifdzul Jadid */}
                 <div className="space-y-2">
-                  <Label>Keterangan</Label>
-                  <Textarea placeholder="Catatan tambahan (opsional)" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} rows={2} />
+                  <Label className="font-semibold">Muroja'ah Hifdzul Jadid (Halaman)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      placeholder="Dari hal."
+                      type="number"
+                      value={hifdzJadidDari}
+                      onChange={(e) => setHifdzJadidDari(e.target.value)}
+                    />
+                    <Input
+                      placeholder="Hingga hal."
+                      type="number"
+                      value={hifdzJadidHingga}
+                      onChange={(e) => setHifdzJadidHingga(e.target.value)}
+                    />
+                  </div>
                 </div>
 
-                <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending} className="w-full">
+                {/* 3. Muraja'ah Hifdzul Qadhim */}
+                <div className="space-y-2">
+                  <Label className="font-semibold">Muraja'ah Hifdzul Qadhim</Label>
+                  <div className="space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                      <span className="text-sm text-foreground/80 sm:w-20 shrink-0">Tsuna'i</span>
+                      <Input
+                        placeholder="Contoh: Juz 30 / Juz 20"
+                        value={murojaahQadhimTsnai}
+                        onChange={(e) => setMurojaahQadhimTsnai(e.target.value)}
+                        className="sm:flex-1"
+                      />
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                      <span className="text-sm text-foreground/80 sm:w-20 shrink-0">Fardhi</span>
+                      <Input
+                        placeholder="Contoh: Juz 29 / Juz 1"
+                        value={murojaahQadhimFardhi}
+                        onChange={(e) => setMurojaahQadhimFardhi(e.target.value)}
+                        className="sm:flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Keterangan */}
+                <div className="space-y-2">
+                  <Label>Keterangan <span className="text-muted-foreground font-normal">(opsional)</span></Label>
+                  <Textarea
+                    placeholder="Catatan tambahan..."
+                    value={keterangan}
+                    onChange={(e) => setKeterangan(e.target.value)}
+                    rows={2}
+                  />
+                </div>
+
+                {/* Auto-status indicator */}
+                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 bg-muted/20">
+                  <span className="text-sm text-muted-foreground">Status otomatis</span>
+                  <Badge className={autoStatus === "lulus" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}>
+                    {autoStatus === "lulus" ? "Lulus ✓" : "Belum Lulus"}
+                  </Badge>
+                </div>
+
+                <Button
+                  onClick={() => submitMutation.mutate()}
+                  disabled={submitMutation.isPending}
+                  className="w-full"
+                >
                   {submitMutation.isPending ? "Menyimpan..." : "Simpan Mutaba'ah"}
                 </Button>
               </>
@@ -277,9 +297,7 @@ export default function MutabaahPage() {
                   cells.push(
                     <div
                       key={d}
-                      className={`text-center text-xs py-1.5 rounded-lg ${
-                        st ? statusColor[st] : "text-muted-foreground"
-                      }`}
+                      className={`text-center text-xs py-1.5 rounded-lg ${st ? statusColor[st] : "text-muted-foreground"}`}
                     >
                       {d}
                     </div>
@@ -292,7 +310,7 @@ export default function MutabaahPage() {
             {/* Legend */}
             <div className="flex flex-wrap gap-3 text-[10px]">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-success" /> Lulus</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-warning" /> Mengulang</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-warning" /> Belum Lulus</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-destructive" /> Sakit</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-muted-foreground" /> Libur</span>
             </div>
@@ -306,20 +324,29 @@ export default function MutabaahPage() {
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{entry.date}</span>
                       <Badge className={`text-[10px] px-1.5 py-0 ${statusColor[entry.status]}`}>
-                        {entry.status}
+                        {entry.status === "mengulang" ? "Belum Lulus" : entry.status}
                       </Badge>
                     </div>
-                    {entry.murojaah_hifdzul_qodim && (() => {
-                      let q: { tsnai?: string | null; fardhi?: string | null } = {};
-                      try { q = JSON.parse(entry.murojaah_hifdzul_qodim); } catch { q = {}; }
-                      if (!q.tsnai && !q.fardhi) return null;
-                      return (
-                        <p className="text-muted-foreground">
-                          Hifdzul Qadhim — Tsuna'i: <span className="text-foreground">{q.tsnai || "-"}</span>
-                          {" | "}Fardhi: <span className="text-foreground">{q.fardhi || "-"}</span>
-                        </p>
-                      );
-                    })()}
+                    {entry.ziyadah_surat && (
+                      <p className="text-muted-foreground">
+                        Ziyadah: <span className="text-foreground">{entry.ziyadah_surat} ayat {entry.ziyadah_ayat_start}–{entry.ziyadah_ayat_end}</span>
+                        {entry.ziyadah_jumlah ? <span className="text-foreground"> ({entry.ziyadah_jumlah} hal.)</span> : null}
+                      </p>
+                    )}
+                    {(entry.murojaah_hifdzul_jadid_dari || entry.murojaah_hifdzul_jadid_hingga) && (
+                      <p className="text-muted-foreground">
+                        Hifdzul Jadid: hal. <span className="text-foreground">{entry.murojaah_hifdzul_jadid_dari}–{entry.murojaah_hifdzul_jadid_hingga}</span>
+                      </p>
+                    )}
+                    {(entry.murojaah_hifdzul_qadhim_tsnai || entry.murojaah_hifdzul_qadhim_fardhi) && (
+                      <p className="text-muted-foreground">
+                        Hifdzul Qadhim — Tsuna'i: <span className="text-foreground">{entry.murojaah_hifdzul_qadhim_tsnai || "-"}</span>
+                        {" | "}Fardhi: <span className="text-foreground">{entry.murojaah_hifdzul_qadhim_fardhi || "-"}</span>
+                      </p>
+                    )}
+                    {entry.keterangan && (
+                      <p className="text-muted-foreground italic">"{entry.keterangan}"</p>
+                    )}
                   </div>
                 ))}
               </div>
