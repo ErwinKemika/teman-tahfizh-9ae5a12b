@@ -14,6 +14,32 @@ import { ClipboardCheck, ChevronLeft, ChevronRight, FileDown } from "lucide-reac
 
 type MutabaahStatus = "lulus" | "mengulang" | "libur" | "sakit";
 
+const QURAN_SURAHS = [
+  "Al-Fatihah", "Al-Baqarah", "Ali 'Imran", "An-Nisa'", "Al-Ma'idah",
+  "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Taubah", "Yunus",
+  "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr",
+  "An-Nahl", "Al-Isra'", "Al-Kahf", "Maryam", "Ta Ha",
+  "Al-Anbiya'", "Al-Hajj", "Al-Mu'minun", "An-Nur", "Al-Furqan",
+  "Asy-Syu'ara'", "An-Naml", "Al-Qashash", "Al-'Ankabut", "Ar-Rum",
+  "Luqman", "As-Sajdah", "Al-Ahzab", "Saba'", "Fatir",
+  "Ya Sin", "As-Saffat", "Sad", "Az-Zumar", "Ghafir",
+  "Fussilat", "Asy-Syura", "Az-Zukhruf", "Ad-Dukhan", "Al-Jasiyah",
+  "Al-Ahqaf", "Muhammad", "Al-Fath", "Al-Hujurat", "Qaf",
+  "Az-Zariyat", "At-Tur", "An-Najm", "Al-Qamar", "Ar-Rahman",
+  "Al-Waqi'ah", "Al-Hadid", "Al-Mujadilah", "Al-Hasyr", "Al-Mumtahanah",
+  "As-Saf", "Al-Jumu'ah", "Al-Munafiqun", "At-Tagabun", "At-Talaq",
+  "At-Tahrim", "Al-Mulk", "Al-Qalam", "Al-Haqqah", "Al-Ma'arij",
+  "Nuh", "Al-Jinn", "Al-Muzzammil", "Al-Muddassir", "Al-Qiyamah",
+  "Al-Insan", "Al-Mursalat", "An-Naba'", "An-Nazi'at", "'Abasa",
+  "At-Takwir", "Al-Infitar", "Al-Mutaffifin", "Al-Insyiqaq", "Al-Buruj",
+  "At-Tariq", "Al-A'la", "Al-Ghasyiyah", "Al-Fajr", "Al-Balad",
+  "Asy-Syams", "Al-Lail", "Ad-Duha", "Al-Insyirah", "At-Tin",
+  "Al-'Alaq", "Al-Qadr", "Al-Bayyinah", "Az-Zalzalah", "Al-'Adiyat",
+  "Al-Qari'ah", "At-Takasur", "Al-'Asr", "Al-Humazah", "Al-Fil",
+  "Quraisy", "Al-Ma'un", "Al-Kausar", "Al-Kafirun", "An-Nasr",
+  "Al-Masad", "Al-Ikhlas", "Al-Falaq", "An-Nas",
+];
+
 const monthNames = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
@@ -221,11 +247,18 @@ export default function MutabaahPage() {
                   {/* 1. Ziyadah */}
                   <div className="space-y-2">
                     <Label className="font-semibold">Ziyadah (Hafalan Baru)</Label>
-                    <Input
-                      placeholder="Nama surat"
-                      value={ziyadahSurat}
-                      onChange={(e) => setZiyadahSurat(e.target.value)}
-                    />
+                    <Select value={ziyadahSurat} onValueChange={setZiyadahSurat}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih nama surat..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {QURAN_SURAHS.map((surah, i) => (
+                          <SelectItem key={i} value={surah}>
+                            {i + 1}. {surah}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <div className="grid grid-cols-2 gap-2">
                       <Input
                         placeholder="Ayat awal"
