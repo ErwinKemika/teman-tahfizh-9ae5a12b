@@ -112,7 +112,6 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
           />
         ))}
 
-
         <p className="px-3 py-1.5 mt-4 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
           Segera Hadir
         </p>
