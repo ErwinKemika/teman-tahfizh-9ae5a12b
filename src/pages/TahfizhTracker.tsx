@@ -64,19 +64,6 @@ export default function TahfizhTracker() {
   const [editEntry, setEditEntry] = useState<EditEntry | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<string>("all");
 
-  // Tracker grid: always show current user's own entries
-  const { data: entries } = useQuery({
-    queryKey: ["tahfizh-entries", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("tahfizh_entries")
-        .select("*")
-        .eq("student_id", user!.id);
-      return data || [];
-    },
-    enabled: !!user,
-  });
-
   // Students list for guru dropdown
   const { data: students } = useQuery({
     queryKey: ["students-list"],
@@ -174,7 +161,7 @@ export default function TahfizhTracker() {
   const saveMutation = useMutation({
     mutationFn: async (entry: EditEntry) => {
       const payload = {
-        student_id: user!.id,
+        student_id: chartStudentId || user!.id,
         page_number: entry.page_number,
         status: entry.is_mutqin
           ? ("mutqin" as const)
@@ -199,7 +186,7 @@ export default function TahfizhTracker() {
     },
     onSuccess: () => {
       toast.success("Tersimpan!");
-      queryClient.invalidateQueries({ queryKey: ["tahfizh-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["chart-entries"] });
       queryClient.invalidateQueries({ queryKey: ["tahfizh-stats"] });
       setEditEntry(null);
     },
@@ -224,7 +211,7 @@ export default function TahfizhTracker() {
         if (error) throw error;
       } else {
         const { error } = await supabase.from("tahfizh_entries").insert({
-          student_id: user!.id,
+          student_id: chartStudentId || user!.id,
           page_number: pageNum,
           status: "mutqin",
           is_mutqin: true,
@@ -236,7 +223,7 @@ export default function TahfizhTracker() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tahfizh-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["chart-entries"] });
       queryClient.invalidateQueries({ queryKey: ["tahfizh-stats"] });
       toast.success("Status Mutqin diperbarui!");
     },
@@ -245,14 +232,17 @@ export default function TahfizhTracker() {
 
   // --- Derived tracker state ---
 
+  // Use chartEntries for the grid; if guru selects "all", chartStudentId is null → empty grid
   const entriesByPage =
-    entries?.reduce(
-      (acc, e) => {
-        acc[e.page_number] = e;
-        return acc;
-      },
-      {} as Record<number, (typeof entries)[0]>
-    ) || {};
+    chartStudentId && chartEntries
+      ? chartEntries.reduce(
+          (acc, e) => {
+            acc[e.page_number] = e;
+            return acc;
+          },
+          {} as Record<number, (typeof chartEntries)[0]>
+        )
+      : {};
 
   const juzStart = (parseInt(selectedJuz) - 1) * 20 + 1;
   const juzEnd = Math.min(parseInt(selectedJuz) * 20, 604);
@@ -458,6 +448,15 @@ export default function TahfizhTracker() {
         </CardContent>
       </Card>
 
+      {/* ── Juz Tabs + Grid: only shown when a specific student (or siswa's own) is selected ── */}
+      {isGuru && !chartStudentId ? (
+        <Card className="shadow-card">
+          <CardContent className="py-12 text-center">
+            <p className="text-sm text-muted-foreground">Pilih siswa dari dropdown di atas untuk melihat tracker halaman</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
       {/* ── Juz Tabs ── */}
       <div className="overflow-x-auto -mx-4 px-4">
         <div className="flex gap-1.5 pb-2 min-w-max">
@@ -552,6 +551,8 @@ export default function TahfizhTracker() {
           );
         })}
       </div>
+        </>
+      )}
 
       {/* ── Edit Modal ── */}
       <Dialog open={!!editEntry} onOpenChange={() => setEditEntry(null)}>
