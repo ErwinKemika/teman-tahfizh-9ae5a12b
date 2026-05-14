@@ -31,12 +31,12 @@ export default function SiswaDashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("tahfizh_entries")
-        .select("status, is_mutqin")
+        .select("status, is_mutqin, kuantitas_murojaah")
         .eq("student_id", user!.id);
       const total = data?.length || 0;
       const mutqin = data?.filter((e) => e.is_mutqin).length || 0;
       const tasmi = data?.filter((e) => e.status === "tasmi_done").length || 0;
-      const murajaah = data?.filter((e) => e.status === "murajaah").length || 0;
+      const murajaah = data?.reduce((sum, e) => sum + (e.kuantitas_murojaah || 0), 0) || 0;
       return { total, mutqin, tasmi, murajaah, percent: Math.round((mutqin / 604) * 100) };
     },
     enabled: !!user,
@@ -141,10 +141,10 @@ export default function SiswaDashboard() {
             </p>
             <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-success" /> Tasmi': {tahfizhStats?.tasmi || 0}
+                <span className="w-2 h-2 rounded-full bg-success" /> Hafal: {tahfizhStats?.tasmi || 0}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-warning" /> Muraja'ah: {tahfizhStats?.murajaah || 0}
+                <span className="w-2 h-2 rounded-full bg-warning" /> Muraja'ah: {tahfizhStats?.murajaah || 0}x
               </span>
             </div>
           </div>

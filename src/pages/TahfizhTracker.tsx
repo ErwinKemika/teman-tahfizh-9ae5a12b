@@ -40,11 +40,11 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   belum_dihafalkan: "Belum",
   murajaah: "Muraja'ah",
-  tasmi_done: "Tasmi'",
+  tasmi_done: "Hafal",
   mutqin: "Mutqin",
 };
 
-const DONUT_COLORS = ["#27AE60", "#F39C12", "#E74C3C"];
+const DONUT_COLORS = ["#27AE60", "#E74C3C"];
 
 interface EditEntry {
   page_number: number;
@@ -117,15 +117,18 @@ export default function TahfizhTracker() {
     [chartEntries]
   );
 
+  const totalMurojaah = useMemo(
+    () => chartEntries?.reduce((sum, e) => sum + (e.kuantitas_murojaah || 0), 0) ?? 0,
+    [chartEntries]
+  );
+
   const donutData = useMemo(() => {
     if (!chartEntries) return [];
     const done = chartEntries.filter((e) => e.is_mutqin || e.status === "tasmi_done").length;
-    const murajaah = chartEntries.filter((e) => e.status === "murajaah" && !e.is_mutqin).length;
-    const belum = Math.max(0, 604 - done - murajaah);
+    const belum = Math.max(0, 604 - done);
     return [
-      { name: "Tasmi' + Mutqin", value: done },
-      { name: "Muraja'ah", value: murajaah },
-      { name: "Belum Dihafalkan", value: belum },
+      { name: "Hafal + Mutqin", value: done },
+      { name: "Belum Hafal", value: belum },
     ];
   }, [chartEntries]);
 
@@ -175,7 +178,7 @@ export default function TahfizhTracker() {
         page_number: entry.page_number,
         status: entry.is_mutqin
           ? ("mutqin" as const)
-          : (entry.status as "belum_dihafalkan" | "murajaah" | "tasmi_done" | "mutqin"),
+          : (entry.status as "belum_dihafalkan" | "tasmi_done" | "mutqin"),
         kualitas_hafalan: entry.kualitas_hafalan,
         kuantitas_murojaah: entry.kuantitas_murojaah,
         is_mutqin: entry.is_mutqin,
@@ -258,13 +261,13 @@ export default function TahfizhTracker() {
   const juzEntries = pages.map((p) => entriesByPage[p]);
   const juzMutqin = juzEntries.filter((e) => e?.is_mutqin).length;
   const juzTasmi = juzEntries.filter((e) => e?.status === "tasmi_done").length;
-  const juzMurajaah = juzEntries.filter((e) => e?.status === "murajaah").length;
+  const juzMurajaah = juzEntries.reduce((sum, e) => sum + (e?.kuantitas_murojaah || 0), 0);
 
   const openEdit = (pageNum: number) => {
     const existing = entriesByPage[pageNum];
     setEditEntry({
       page_number: pageNum,
-      status: existing?.status || "belum_dihafalkan",
+      status: existing?.status === "murajaah" ? "tasmi_done" : (existing?.status || "belum_dihafalkan"),
       kualitas_hafalan: existing?.kualitas_hafalan || 0,
       kuantitas_murojaah: existing?.kuantitas_murojaah || 0,
       is_mutqin: existing?.is_mutqin || false,
@@ -342,15 +345,18 @@ export default function TahfizhTracker() {
               </ResponsiveContainer>
               {/* Legend */}
               <div className="flex flex-col gap-1 mt-1">
-                {donutData.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: DONUT_COLORS[idx] }}
-                    />
-                    {item.name}: <span className="font-medium text-foreground">{item.value}</span>
-                  </div>
-                ))}
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#27AE60" }} />
+                  Hafal + Mutqin: <span className="font-medium text-foreground">{donutData[0]?.value ?? 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#F39C12" }} />
+                  Muraja'ah: <span className="font-medium text-foreground">{totalMurojaah}x</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#E74C3C" }} />
+                  Belum Hafal: <span className="font-medium text-foreground">{donutData[1]?.value ?? 0}</span>
+                </div>
               </div>
               <p className="text-center text-xs text-muted-foreground mt-2">
                 Selesai:{" "}
@@ -412,7 +418,7 @@ export default function TahfizhTracker() {
           {/* Row 2: Line chart full width */}
           <div className="rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
             <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
-              Progress Tasmi' per Bulan (6 Bulan Terakhir)
+              Progress Hafal per Bulan (6 Bulan Terakhir)
             </p>
             <ResponsiveContainer width="100%" height={160}>
               <LineChart data={lineData} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
@@ -480,10 +486,10 @@ export default function TahfizhTracker() {
           </div>
           <Progress value={(juzMutqin / pages.length) * 100} className="h-2" />
           <div className="flex gap-4 mt-2 text-xs">
-            <span className="text-success">Tasmi': {juzTasmi}</span>
-            <span className="text-warning">Muraja'ah: {juzMurajaah}</span>
+            <span className="text-success">Hafal: {juzTasmi}</span>
+            <span className="text-warning">Muraja'ah: {juzMurajaah}x</span>
             <span className="text-destructive">
-              Belum: {pages.length - juzMutqin - juzTasmi - juzMurajaah}
+              Belum: {pages.length - juzMutqin - juzTasmi}
             </span>
           </div>
         </CardContent>
@@ -565,9 +571,8 @@ export default function TahfizhTracker() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="belum_dihafalkan">Belum Dihafalkan</SelectItem>
-                    <SelectItem value="murajaah">Muraja'ah</SelectItem>
-                    <SelectItem value="tasmi_done">Tasmi' Done</SelectItem>
+                    <SelectItem value="tasmi_done">Sudah Hafal</SelectItem>
+                    <SelectItem value="belum_dihafalkan">Belum Hafal</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
