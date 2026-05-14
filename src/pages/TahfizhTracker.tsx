@@ -250,7 +250,7 @@ export default function TahfizhTracker() {
 
   const juzEntries = pages.map((p) => entriesByPage[p]);
   const juzMutqin = juzEntries.filter((e) => e?.is_mutqin).length;
-  const juzTasmi = juzEntries.filter((e) => e?.status === "tasmi_done").length;
+  const juzHafal = juzEntries.filter((e) => e?.is_mutqin || e?.status === "tasmi_done").length;
   const juzMurajaah = juzEntries.reduce((sum, e) => sum + (e?.kuantitas_murojaah || 0), 0);
 
   const openEdit = (pageNum: number) => {
@@ -485,10 +485,10 @@ export default function TahfizhTracker() {
           </div>
           <Progress value={(juzMutqin / pages.length) * 100} className="h-2" />
           <div className="flex gap-4 mt-2 text-xs">
-            <span className="text-success">Hafal: {juzTasmi}</span>
+            <span className="text-success">Hafal: {juzHafal}</span>
             <span className="text-warning">Muraja'ah: {juzMurajaah}x</span>
             <span className="text-destructive">
-              Belum: {pages.length - juzMutqin - juzTasmi}
+              Belum: {pages.length - juzHafal}
             </span>
           </div>
         </CardContent>
