@@ -225,10 +225,13 @@ export default function SiswaDashboard() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Tanggal</th>
-                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Ziyadah</th>
-                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Hifdzul Jadid</th>
-                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Status</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium whitespace-nowrap">Tanggal</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium whitespace-nowrap">Ziyadah</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium whitespace-nowrap">Hifdzul Jadid</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium whitespace-nowrap">Qadhim Tsuna'i</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium whitespace-nowrap">Qadhim Fardhi</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium whitespace-nowrap">Keterangan</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium whitespace-nowrap">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -239,7 +242,7 @@ export default function SiswaDashboard() {
                         <td className="px-4 py-2.5 font-medium text-foreground whitespace-nowrap">
                           {new Date(entry.date + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                         </td>
-                        <td className="px-4 py-2.5 text-muted-foreground">
+                        <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
                           {entry.ziyadah_surat
                             ? `${entry.ziyadah_surat} ${entry.ziyadah_ayat_start ?? ""}–${entry.ziyadah_ayat_end ?? ""} (${entry.ziyadah_jumlah ?? 0} ayat)`
                             : "-"}
@@ -249,6 +252,9 @@ export default function SiswaDashboard() {
                             ? `Hal. ${entry.murojaah_hifdzul_jadid_dari}–${entry.murojaah_hifdzul_jadid_hingga}`
                             : "-"}
                         </td>
+                        <td className="px-4 py-2.5 text-muted-foreground">{entry.murojaah_hifdzul_qodim || "-"}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground">{entry.murojaah_tsnai || "-"}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground">{entry.keterangan || "-"}</td>
                         <td className="px-4 py-2.5">
                           <Badge variant="outline" className={`text-[10px] ${sc.className}`}>{sc.label}</Badge>
                         </td>
