@@ -1,11 +1,19 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Users, Activity, BookOpen, TrendingUp } from "lucide-react";
+import { Users, Activity, BookOpen, TrendingUp, ClipboardCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+
+const statusConfig = {
+  lulus: { label: "Lulus", className: "bg-success/10 text-success border-success/20" },
+  mengulang: { label: "Mengulang", className: "bg-warning/10 text-warning border-warning/20" },
+  libur: { label: "Libur", className: "bg-muted text-muted-foreground border-border" },
+  sakit: { label: "Sakit", className: "bg-destructive/10 text-destructive border-destructive/20" },
+} as const;
 
 export default function GuruDashboard() {
   const { profile } = useAuth();
@@ -32,6 +40,19 @@ export default function GuruDashboard() {
         .select("student_id")
         .eq("date", today);
       return data?.length || 0;
+    },
+  });
+
+  const { data: todayMutabaahEntries } = useQuery({
+    queryKey: ["today-mutabaah-entries"],
+    queryFn: async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const { data } = await supabase
+        .from("mutabaah_entries")
+        .select("*")
+        .eq("date", today)
+        .order("created_at", { ascending: false });
+      return data || [];
     },
   });
 
@@ -165,6 +186,65 @@ export default function GuruDashboard() {
               </div>
             );
           })}
+        </CardContent>
+      </Card>
+
+      {/* Today's Mutabaah Review */}
+      <Card className="shadow-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ClipboardCheck className="w-4 h-4 text-primary" />
+            Mutaba'ah Hari Ini
+            <Badge variant="outline" className="ml-auto text-xs">
+              {todayMutabaahEntries?.length || 0} siswa
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {todayMutabaahEntries?.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8 px-4">
+              Belum ada siswa yang mengisi mutaba'ah hari ini
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Siswa</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Ziyadah</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Hifdzul Jadid</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {todayMutabaahEntries?.map((entry) => {
+                    const student = students?.find((s) => s.user_id === entry.student_id);
+                    const sc = statusConfig[entry.status as keyof typeof statusConfig] ?? statusConfig.libur;
+                    return (
+                      <tr key={entry.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-2.5 font-medium text-foreground">
+                          {student?.full_name || "—"}
+                        </td>
+                        <td className="px-4 py-2.5 text-muted-foreground">
+                          {entry.ziyadah_surat
+                            ? `${entry.ziyadah_surat} ${entry.ziyadah_ayat_start ?? ""}–${entry.ziyadah_ayat_end ?? ""} (${entry.ziyadah_jumlah ?? 0} ayat)`
+                            : "-"}
+                        </td>
+                        <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
+                          {entry.murojaah_hifdzul_jadid_dari != null && entry.murojaah_hifdzul_jadid_hingga != null
+                            ? `Hal. ${entry.murojaah_hifdzul_jadid_dari}–${entry.murojaah_hifdzul_jadid_hingga}`
+                            : "-"}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <Badge variant="outline" className={`text-[10px] ${sc.className}`}>{sc.label}</Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

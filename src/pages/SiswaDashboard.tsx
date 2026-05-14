@@ -1,11 +1,19 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, ClipboardCheck, Star, Flame, Plus, Eye, BookMarked } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+const statusConfig = {
+  lulus: { label: "Lulus", className: "bg-success/10 text-success border-success/20" },
+  mengulang: { label: "Mengulang", className: "bg-warning/10 text-warning border-warning/20" },
+  libur: { label: "Libur", className: "bg-muted text-muted-foreground border-border" },
+  sakit: { label: "Sakit", className: "bg-destructive/10 text-destructive border-destructive/20" },
+} as const;
 
 const islamicQuotes = [
   { arabic: "خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ", id: "Sebaik-baik kalian adalah yang mempelajari Al-Qur'an dan mengajarkannya" },
@@ -44,6 +52,20 @@ export default function SiswaDashboard() {
         .eq("student_id", user!.id)
         .eq("date", today);
       return data && data.length > 0;
+    },
+    enabled: !!user,
+  });
+
+  const { data: recentMutabaah } = useQuery({
+    queryKey: ["recent-mutabaah", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("mutabaah_entries")
+        .select("*")
+        .eq("student_id", user!.id)
+        .order("date", { ascending: false })
+        .limit(7);
+      return data || [];
     },
     enabled: !!user,
   });
@@ -188,6 +210,57 @@ export default function SiswaDashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Recent Mutabaah Table */}
+      {recentMutabaah && recentMutabaah.length > 0 && (
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ClipboardCheck className="w-4 h-4 text-primary" />
+              Riwayat Mutaba'ah Terbaru
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Tanggal</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Ziyadah</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Hifdzul Jadid</th>
+                    <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentMutabaah.map((entry) => {
+                    const sc = statusConfig[entry.status as keyof typeof statusConfig] ?? statusConfig.libur;
+                    return (
+                      <tr key={entry.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-2.5 font-medium text-foreground whitespace-nowrap">
+                          {new Date(entry.date + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                        </td>
+                        <td className="px-4 py-2.5 text-muted-foreground">
+                          {entry.ziyadah_surat
+                            ? `${entry.ziyadah_surat} ${entry.ziyadah_ayat_start ?? ""}–${entry.ziyadah_ayat_end ?? ""} (${entry.ziyadah_jumlah ?? 0} ayat)`
+                            : "-"}
+                        </td>
+                        <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
+                          {entry.murojaah_hifdzul_jadid_dari != null && entry.murojaah_hifdzul_jadid_hingga != null
+                            ? `Hal. ${entry.murojaah_hifdzul_jadid_dari}–${entry.murojaah_hifdzul_jadid_hingga}`
+                            : "-"}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <Badge variant="outline" className={`text-[10px] ${sc.className}`}>{sc.label}</Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
