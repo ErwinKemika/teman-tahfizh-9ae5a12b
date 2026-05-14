@@ -483,7 +483,7 @@ export default function TahfizhTracker() {
               {juzMutqin}/{pages.length} Mutqin
             </span>
           </div>
-          <Progress value={(juzMutqin / pages.length) * 100} className="h-2" />
+          <Progress value={(juzHafal / pages.length) * 100} className="h-2" />
           <div className="flex gap-4 mt-2 text-xs">
             <span className="text-success">Hafal: {juzHafal}</span>
             <span className="text-warning">Muraja'ah: {juzMurajaah}x</span>
