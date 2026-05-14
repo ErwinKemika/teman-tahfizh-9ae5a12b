@@ -27,7 +27,7 @@ export default function UjianPage() {
   const isGuru = role === "guru";
 
   const [formType, setFormType] = useState<JenisUjian>(isGuru ? "pekanan" : "harian");
-  const [historyTab, setHistoryTab] = useState<"semua" | JenisUjian>("semua");
+  const [selectedPekan, setSelectedPekan] = useState<string>("semua");
 
   // Common
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -213,9 +213,17 @@ export default function UjianPage() {
 
   const scoreColor = (n: number) => n >= 80 ? "text-success" : n >= 60 ? "text-warning" : "text-destructive";
 
-  const filteredResults = (ujianResults || []).filter((r: any) =>
-    historyTab === "semua" ? true : r.jenis_ujian === historyTab
-  );
+  const pekanList = useMemo(() => {
+    const nums = (ujianResults || [])
+      .filter((r: any) => r.jenis_ujian === "pekanan" && r.pekan_ke != null)
+      .map((r: any) => r.pekan_ke as number);
+    return [...new Set(nums)].sort((a, b) => a - b);
+  }, [ujianResults]);
+
+  const filteredResults = (ujianResults || []).filter((r: any) => {
+    if (selectedPekan === "semua") return r.jenis_ujian === "pekanan";
+    return r.jenis_ujian === "pekanan" && String(r.pekan_ke) === selectedPekan;
+  });
 
   const toggleArr = (arr: string[], v: string, set: (x: string[]) => void) => {
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
@@ -486,52 +494,46 @@ export default function UjianPage() {
           <CardTitle className="text-base">Hasil Ujian</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs value={historyTab} onValueChange={(v) => setHistoryTab(v as any)}>
-            <TabsList className="grid grid-cols-4 w-full mb-4">
-              <TabsTrigger value="semua">Semua</TabsTrigger>
-              <TabsTrigger value="harian">Harian</TabsTrigger>
-              <TabsTrigger value="pekanan">Pekanan</TabsTrigger>
-              <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {pekanList.length > 0 && (
+            <div className="flex gap-2 flex-wrap mb-4">
+              <Button
+                variant={selectedPekan === "semua" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedPekan("semua")}
+              >Semua</Button>
+              {pekanList.map((p) => (
+                <Button
+                  key={p}
+                  variant={selectedPekan === String(p) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedPekan(String(p))}
+                >Pekan {p}</Button>
+              ))}
+            </div>
+          )}
 
           {filteredResults.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">Belum ada data ujian</p>
           ) : (
             <div className="space-y-2">
               {filteredResults.map((r: any) => {
-                const jenis: JenisUjian = r.jenis_ujian || "bulanan";
-                const score = jenis === "bulanan" ? (r.nilai_akhir ?? r.nilai) : jenis === "pekanan" ? (r.nilai_total ?? r.nilai) : r.nilai;
+                const score = r.nilai_total ?? r.nilai;
                 return (
                   <div key={r.id} className="flex items-start gap-3 p-3 rounded-xl border border-border/50">
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className="text-[10px] capitalize">{jenis}</Badge>
+                        <Badge variant="outline" className="text-[10px]">Pekan {r.pekan_ke}</Badge>
                         {isGuru && r.student_name && (
                           <p className="text-sm font-medium text-foreground">{r.student_name}</p>
                         )}
                       </div>
-                      {jenis === "harian" && (
-                        <p className="text-xs text-muted-foreground">
-                          {r.tanggal || `${monthNames[(r.bulan || 1) - 1]} ${r.tahun}`} — {r.materi_surat}
-                          {r.ayat_start && `: ${r.ayat_start}-${r.ayat_end}`}
-                        </p>
-                      )}
-                      {jenis === "pekanan" && (
-                        <p className="text-xs text-muted-foreground">
-                          Pekan ke-{r.pekan_ke} {monthNames[(r.bulan || 1) - 1]} {r.tahun} — Juz {(r.juz_diuji || []).join(", ")}
-                          {" • "}
-                          <span className={r.status_lulus ? "text-success" : "text-warning"}>
-                            {r.status_lulus ? "Lulus" : "Mengulang"}
-                          </span>
-                        </p>
-                      )}
-                      {jenis === "bulanan" && (
-                        <p className="text-xs text-muted-foreground">
-                          {monthNames[(r.bulan || 1) - 1]} {r.tahun} — Naik Juz: {r.status_naik_juz ? "✓" : "✗"}
-                          {r.peringkat && ` • Peringkat ${r.peringkat}`}
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {monthNames[(r.bulan || 1) - 1]} {r.tahun} — Juz {(r.juz_diuji || []).join(", ")}
+                        {" • "}
+                        <span className={r.status_lulus ? "text-success" : "text-warning"}>
+                          {r.status_lulus ? "Lulus" : "Mengulang"}
+                        </span>
+                      </p>
                       {r.catatan_guru && (
                         <p className="text-xs text-muted-foreground italic">"{r.catatan_guru}"</p>
                       )}
