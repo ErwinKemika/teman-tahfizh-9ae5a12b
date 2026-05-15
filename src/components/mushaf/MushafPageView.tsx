@@ -11,12 +11,6 @@ import ReadingSettings from "./ReadingSettings";
 const QURAN_API = "https://api.quran.com/api/v4";
 const TOTAL_PAGES = 604;
 
-const getPageImageUrl = (page: number, size: 240 | 480 = 480) =>
-  `https://cdn.islamic.network/quran/images/${size}/${page}.png`;
-
-const getPageImageFallbackUrl = (page: number, size: 240 | 480 = 480) =>
-  `https://raw.githubusercontent.com/quran/quran.com-images/master/images/${size}/${page}.png`;
-
 interface AyahData {
   number: number;
   text: string;
@@ -75,11 +69,7 @@ function useSurahNames() {
 
 function toArabicNum(n: number): string {
   const d = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
-  return n
-    .toString()
-    .split("")
-    .map((c) => d[parseInt(c)])
-    .join("");
+  return n.toString().split("").map((c) => d[parseInt(c)]).join("");
 }
 
 // ── Single page panel ────────────────────────────────────────────────────────
@@ -88,39 +78,31 @@ function PagePanel({
   page,
   verses,
   surahNamesMap,
-  imageSize,
+  fontSize,
   onTap,
 }: {
   page: number;
   verses: QuranComVerse[] | undefined;
   surahNamesMap: Record<number, { name: string; englishName: string }>;
-  imageSize: 240 | 480;
+  fontSize: number;
   onTap: () => void;
 }) {
-  const [imgSrc, setImgSrc] = useState(() => getPageImageUrl(page, imageSize));
-  const [imgFailed, setImgFailed] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(false);
-
-  useEffect(() => {
-    setImgSrc(getPageImageUrl(page, imageSize));
-    setImgFailed(false);
-    setImgLoaded(false);
-  }, [page, imageSize]);
-
-  const handleImgError = () => {
-    const fallback = getPageImageFallbackUrl(page, imageSize);
-    if (imgSrc !== fallback) {
-      setImgSrc(fallback);
-      setImgLoaded(false);
-    } else {
-      setImgFailed(true);
-    }
-  };
-
   const firstVerse = verses?.[0];
   const juz = firstVerse?.juz_number ?? 1;
   const surahNum = firstVerse ? parseInt(firstVerse.verse_key.split(":")[0]) : 1;
   const surahName = surahNamesMap[surahNum]?.name ?? "";
+
+  // Group consecutive verses by surah for headers/bismillah
+  const groups: { surahNum: number; verses: QuranComVerse[] }[] = [];
+  (verses || []).forEach((v) => {
+    const sNum = parseInt(v.verse_key.split(":")[0]);
+    const last = groups[groups.length - 1];
+    if (!last || last.surahNum !== sNum) {
+      groups.push({ surahNum: sNum, verses: [v] });
+    } else {
+      last.verses.push(v);
+    }
+  });
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -140,42 +122,60 @@ function PagePanel({
         </span>
       </div>
 
-      {/* Page image */}
-      <div
-        className="flex-1 flex items-center justify-center overflow-hidden cursor-pointer relative bg-white dark:bg-card"
-        onClick={onTap}
-      >
-        {!imgFailed ? (
-          <>
-            {!imgLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-                  <span className="text-[10px] text-muted-foreground">Memuat halaman...</span>
-                </div>
-              </div>
-            )}
-            <img
-              src={imgSrc}
-              alt={`Halaman ${page}`}
-              className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
-              onLoad={() => setImgLoaded(true)}
-              onError={handleImgError}
-            />
-          </>
+      {/* Verse content */}
+      <div className="flex-1 overflow-y-auto cursor-pointer" onClick={onTap}>
+        {!verses ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+              <span className="text-[10px] text-muted-foreground">Memuat halaman...</span>
+            </div>
+          </div>
         ) : (
-          /* Fallback: text rendering */
-          <div className="w-full h-full overflow-y-auto p-4" dir="rtl">
-            <p className="font-mushaf text-foreground leading-[2.8] text-justify text-lg">
-              {verses?.map((v) => (
-                <span key={v.id}>
-                  {v.text_uthmani}{" "}
-                  <span className="text-primary/60 text-base">
-                    ۝{toArabicNum(v.verse_number)}
-                  </span>{" "}
-                </span>
-              ))}
-            </p>
+          <div className="px-5 py-4" dir="rtl">
+            {groups.map(({ surahNum: sNum, verses: groupVerses }) => {
+              const isNewSurah = groupVerses[0].verse_number === 1;
+              // Show Bismillah before verse 1 of every surah except Al-Fatiha (1) and At-Tawbah (9)
+              const showBismillah = isNewSurah && sNum !== 9 && sNum !== 1;
+              const surahNameAr = surahNamesMap[sNum]?.name ?? "";
+              return (
+                <div key={sNum}>
+                  {isNewSurah && (
+                    <div className="text-center my-3">
+                      <div className="inline-block px-8 py-1 border border-primary/40 rounded-full">
+                        <span className="font-arabic text-sm font-semibold text-primary">
+                          {surahNameAr}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {showBismillah && (
+                    <p
+                      className="text-center font-mushaf text-foreground mb-3"
+                      style={{ fontSize: fontSize + 2 }}
+                    >
+                      بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+                    </p>
+                  )}
+                  <p
+                    className="font-mushaf text-foreground text-justify leading-[2.6]"
+                    style={{ fontSize }}
+                  >
+                    {groupVerses.map((v) => (
+                      <span key={v.id}>
+                        {v.text_uthmani}
+                        <span
+                          className="text-primary/70 mx-0.5"
+                          style={{ fontSize: fontSize * 0.78 }}
+                        >
+                          ﴿{toArabicNum(v.verse_number)}﴾
+                        </span>
+                      </span>
+                    ))}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -214,10 +214,11 @@ export default function MushafPageView({
   const [verseListPage, setVerseListPage] = useState(page);
   const [selectedAyat, setSelectedAyat] = useState<AyahData | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [fontSize, setFontSize] = useState(22);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStart = useRef<number>(0);
 
-  // Landscape: left = odd, right = even
+  // Landscape: left = even page, right = odd page (Arabic RTL)
   const spreadLeft = page % 2 === 1 ? page : page - 1;
   const spreadRight = spreadLeft + 1;
 
@@ -355,8 +356,6 @@ export default function MushafPageView({
     });
   }, [verseListPage, isLandscape, spreadLeft, leftVerses, rightVerses, pageVerses, surahNamesMap]);
 
-  const imageSize = isLandscape ? 240 : 480;
-
   return (
     <div
       className="fixed inset-0 z-[60] bg-background flex flex-col select-none"
@@ -418,7 +417,7 @@ export default function MushafPageView({
                 page={Math.min(spreadRight, TOTAL_PAGES)}
                 verses={rightVerses}
                 surahNamesMap={surahNamesMap}
-                imageSize={imageSize}
+                fontSize={fontSize}
                 onTap={() => handlePageTap(Math.min(spreadRight, TOTAL_PAGES))}
               />
             </div>
@@ -428,7 +427,7 @@ export default function MushafPageView({
                 page={spreadLeft}
                 verses={leftVerses}
                 surahNamesMap={surahNamesMap}
-                imageSize={imageSize}
+                fontSize={fontSize}
                 onTap={() => handlePageTap(spreadLeft)}
               />
             </div>
@@ -464,7 +463,7 @@ export default function MushafPageView({
               page={page}
               verses={pageVerses}
               surahNamesMap={surahNamesMap}
-              imageSize={imageSize}
+              fontSize={fontSize}
               onTap={() => handlePageTap(page)}
             />
           </div>
@@ -530,8 +529,8 @@ export default function MushafPageView({
       <ReadingSettings
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        fontSize={22}
-        onFontSizeChange={() => {}}
+        fontSize={fontSize}
+        onFontSizeChange={setFontSize}
         showTranslation={false}
         onShowTranslationChange={() => {}}
       />
