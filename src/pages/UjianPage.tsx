@@ -169,6 +169,8 @@ export default function UjianPage() {
           nilai: nilaiTotalPekan,
           status_lulus: statusLulus === "true",
           juz_tested: juzPekanan.join(", "),
+          hafalan_scores: hafalanScores,
+          tajwid_scores: tajwidScores,
         };
       } else {
         payload = {
@@ -551,18 +553,38 @@ export default function UjianPage() {
                         )}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40">
-                      <div className="bg-muted/30 rounded-lg p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground mb-0.5">Hafalan (rata-rata)</p>
-                        <p className={`text-base font-bold ${scoreColor(r.nilai_kelancaran || 0)}`}>
-                          {r.nilai_kelancaran ?? "-"}
-                        </p>
+                    <div className="pt-2 border-t border-border/40 space-y-2">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-medium text-muted-foreground">Hafalan — rata-rata: <span className={`font-bold ${scoreColor(r.nilai_kelancaran || 0)}`}>{r.nilai_kelancaran ?? "-"}</span></p>
+                        <div className="grid grid-cols-5 gap-1.5">
+                          {(r.hafalan_scores && r.hafalan_scores.length === 5
+                            ? r.hafalan_scores
+                            : [null, null, null, null, null]
+                          ).map((s: number | null, i: number) => (
+                            <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
+                              <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
+                              <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>
+                                {s ?? "-"}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="bg-muted/30 rounded-lg p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground mb-0.5">Tajwid (rata-rata)</p>
-                        <p className={`text-base font-bold ${scoreColor(r.nilai_tajwid || 0)}`}>
-                          {r.nilai_tajwid ?? "-"}
-                        </p>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-medium text-muted-foreground">Tajwid — rata-rata: <span className={`font-bold ${scoreColor(r.nilai_tajwid || 0)}`}>{r.nilai_tajwid ?? "-"}</span></p>
+                        <div className="grid grid-cols-5 gap-1.5">
+                          {(r.tajwid_scores && r.tajwid_scores.length === 5
+                            ? r.tajwid_scores
+                            : [null, null, null, null, null]
+                          ).map((s: number | null, i: number) => (
+                            <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
+                              <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
+                              <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>
+                                {s ?? "-"}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
