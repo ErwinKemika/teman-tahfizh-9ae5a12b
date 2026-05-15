@@ -28,6 +28,7 @@ interface NavItem {
   icon: React.ElementType;
   path: string;
   comingSoon?: boolean;
+  subItems?: NavItem[];
 }
 
 const mainNavItems: NavItem[] = [
@@ -87,8 +88,12 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
         { label: "Dashboard", icon: LayoutDashboard, path: "/" },
         { label: "Tracker", icon: BookOpen, path: "/tracker" },
         { label: "Mutaba'ah", icon: ClipboardCheck, path: "/mutabaah" },
-        { label: "Ujian", icon: Trophy, path: "/ujian" },
-        { label: "Hasil Ujian", icon: ClipboardList, path: "/hasil-ujian" },
+        {
+          label: "Ujian", icon: Trophy, path: "/ujian",
+          subItems: [
+            { label: "Hasil Ujian", icon: ClipboardList, path: "/hasil-ujian" },
+          ],
+        },
         { label: "Profil", icon: User, path: "/profile" },
         { label: "Mushaf", icon: BookMarked, path: "/mushaf" },
       ]
@@ -117,12 +122,25 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
           Menu Utama
         </p>
         {navItems.map((item) => (
-          <NavItemButton
-            key={item.path}
-            item={item}
-            active={pathname === item.path}
-            onClick={() => handleNav(item.path)}
-          />
+          <div key={item.path}>
+            <NavItemButton
+              item={item}
+              active={pathname === item.path}
+              onClick={() => handleNav(item.path)}
+            />
+            {item.subItems && (
+              <div className="ml-3 pl-3 border-l border-sidebar-border/50 mt-0.5 space-y-0.5">
+                {item.subItems.map((sub) => (
+                  <NavItemButton
+                    key={sub.path}
+                    item={sub}
+                    active={pathname === sub.path}
+                    onClick={() => handleNav(sub.path)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         ))}
 
         <p className="px-3 py-1.5 mt-4 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
@@ -178,7 +196,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         { label: "Hasil Ujian", icon: ClipboardList, path: "/hasil-ujian" },
         { label: "Mutaba'ah", icon: ClipboardCheck, path: "/mutabaah" },
         { label: "Profil", icon: User, path: "/profile" },
-      ]
+      ] as NavItem[]
     : mainNavItems.slice(0, 5);
 
   return (
