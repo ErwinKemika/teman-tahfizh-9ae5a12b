@@ -390,29 +390,29 @@ export default function MushafPageView({
       {/* Main content */}
       <div className="flex-1 flex pt-[52px] overflow-hidden">
         {isLandscape ? (
-          /* ── Landscape: two-page spread ── */
+          /* ── Landscape: two-page spread (Arabic RTL — odd on right, even on left) ── */
           <div className="flex-1 flex overflow-hidden">
-            {/* Left page (odd) */}
+            {/* Left page (even) */}
             <div
               className="flex-1 overflow-hidden"
               style={{ borderRight: "2px solid hsl(var(--primary) / 0.25)" }}
             >
-              <PagePanel
-                page={spreadLeft}
-                verses={leftVerses}
-                surahNamesMap={surahNamesMap}
-                imageSize={imageSize}
-                onTap={() => handlePageTap(spreadLeft)}
-              />
-            </div>
-            {/* Right page (even) */}
-            <div className="flex-1 overflow-hidden">
               <PagePanel
                 page={Math.min(spreadRight, TOTAL_PAGES)}
                 verses={rightVerses}
                 surahNamesMap={surahNamesMap}
                 imageSize={imageSize}
                 onTap={() => handlePageTap(Math.min(spreadRight, TOTAL_PAGES))}
+              />
+            </div>
+            {/* Right page (odd) — Quran opens from the right */}
+            <div className="flex-1 overflow-hidden">
+              <PagePanel
+                page={spreadLeft}
+                verses={leftVerses}
+                surahNamesMap={surahNamesMap}
+                imageSize={imageSize}
+                onTap={() => handlePageTap(spreadLeft)}
               />
             </div>
 
