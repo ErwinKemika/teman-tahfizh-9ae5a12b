@@ -515,36 +515,55 @@ export default function UjianPage() {
           {filteredResults.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">Belum ada data ujian</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {filteredResults.map((r: any) => {
                 const score = r.nilai_total ?? r.nilai;
                 return (
-                  <div key={r.id} className="flex items-start gap-3 p-3 rounded-xl border border-border/50">
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className="text-[10px]">Pekan {r.pekan_ke}</Badge>
-                        {isGuru && r.student_name && (
-                          <p className="text-sm font-medium text-foreground">{r.student_name}</p>
+                  <div key={r.id} className="p-3 rounded-xl border border-border/50 space-y-2">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className="text-[10px]">Pekan {r.pekan_ke}</Badge>
+                          {isGuru && r.student_name && (
+                            <p className="text-sm font-medium text-foreground">{r.student_name}</p>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {monthNames[(r.bulan || 1) - 1]} {r.tahun} — Juz {(r.juz_diuji || []).join(", ")}
+                          {" • "}
+                          <span className={r.status_lulus ? "text-success" : "text-warning"}>
+                            {r.status_lulus ? "Lulus" : "Mengulang"}
+                          </span>
+                        </p>
+                        {r.catatan_guru && (
+                          <p className="text-xs text-muted-foreground italic">"{r.catatan_guru}"</p>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {monthNames[(r.bulan || 1) - 1]} {r.tahun} — Juz {(r.juz_diuji || []).join(", ")}
-                        {" • "}
-                        <span className={r.status_lulus ? "text-success" : "text-warning"}>
-                          {r.status_lulus ? "Lulus" : "Mengulang"}
-                        </span>
-                      </p>
-                      {r.catatan_guru && (
-                        <p className="text-xs text-muted-foreground italic">"{r.catatan_guru}"</p>
-                      )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-right">
+                          <p className="text-[10px] text-muted-foreground">Total</p>
+                          <div className={`text-xl font-bold ${scoreColor(score || 0)}`}>{score || 0}</div>
+                        </div>
+                        {isGuru && (
+                          <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(r.id)}>
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className={`text-xl font-bold ${scoreColor(score || 0)}`}>{score || 0}</div>
-                      {isGuru && (
-                        <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(r.id)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      )}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40">
+                      <div className="bg-muted/30 rounded-lg p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground mb-0.5">Hafalan (rata-rata)</p>
+                        <p className={`text-base font-bold ${scoreColor(r.nilai_kelancaran || 0)}`}>
+                          {r.nilai_kelancaran ?? "-"}
+                        </p>
+                      </div>
+                      <div className="bg-muted/30 rounded-lg p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground mb-0.5">Tajwid (rata-rata)</p>
+                        <p className={`text-base font-bold ${scoreColor(r.nilai_tajwid || 0)}`}>
+                          {r.nilai_tajwid ?? "-"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 );
