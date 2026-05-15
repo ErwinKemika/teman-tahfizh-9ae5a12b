@@ -28,6 +28,8 @@ export default function UjianPage() {
 
   const [formType, setFormType] = useState<JenisUjian>(isGuru ? "pekanan" : "harian");
   const [selectedPekan, setSelectedPekan] = useState<string>("semua");
+  const [filterBulan, setFilterBulan] = useState<string>("semua");
+  const [filterTahun, setFilterTahun] = useState<string>(String(new Date().getFullYear()));
 
   // Common
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -210,10 +212,20 @@ export default function UjianPage() {
     return [...new Set(nums)].sort((a, b) => a - b);
   }, [ujianResults]);
 
-  const filteredResults = (ujianResults || []).filter((r: any) => {
-    if (selectedPekan === "semua") return r.jenis_ujian === "pekanan";
-    return r.jenis_ujian === "pekanan" && String(r.pekan_ke) === selectedPekan;
-  });
+  const yearList = useMemo(() => {
+    const years = (ujianResults || [])
+      .filter((r: any) => r.jenis_ujian === "pekanan" && r.tahun != null)
+      .map((r: any) => r.tahun as number);
+    return [...new Set(years)].sort((a, b) => b - a);
+  }, [ujianResults]);
+
+  const filteredResults = useMemo(() => (ujianResults || []).filter((r: any) => {
+    if (r.jenis_ujian !== "pekanan") return false;
+    if (filterBulan !== "semua" && String(r.bulan) !== filterBulan) return false;
+    if (filterTahun !== "semua" && String(r.tahun) !== filterTahun) return false;
+    if (selectedPekan !== "semua" && String(r.pekan_ke) !== selectedPekan) return false;
+    return true;
+  }), [ujianResults, filterBulan, filterTahun, selectedPekan]);
 
   const toggleArr = (arr: string[], v: string, set: (x: string[]) => void) => {
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
@@ -485,6 +497,33 @@ export default function UjianPage() {
             <CardTitle className="text-base">Hasil Ujian Pekanan</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Bulan</Label>
+                <Select value={filterBulan} onValueChange={setFilterBulan}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="semua">Semua Bulan</SelectItem>
+                    {monthNames.map((m, i) => (
+                      <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Tahun</Label>
+                <Select value={filterTahun} onValueChange={setFilterTahun}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="semua">Semua Tahun</SelectItem>
+                    {yearList.map((y) => (
+                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             {pekanList.length > 0 && (
               <div className="flex gap-2 flex-wrap mb-4">
                 <Button
