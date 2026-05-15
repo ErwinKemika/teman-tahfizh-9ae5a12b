@@ -14,7 +14,7 @@ import { Slider } from "@/components/ui/slider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ClipboardCheck, Trash2 } from "lucide-react";
+import { ClipboardCheck } from "lucide-react";
 
 type JenisUjian = "harian" | "pekanan" | "bulanan";
 
@@ -197,18 +197,6 @@ export default function UjianPage() {
       toast.success("Nilai ujian berhasil disimpan!");
       queryClient.invalidateQueries({ queryKey: ["ujian-results"] });
       resetForm();
-    },
-    onError: (e: any) => toast.error("Gagal: " + e.message),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("ujian").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Data ujian dihapus");
-      queryClient.invalidateQueries({ queryKey: ["ujian-results"] });
     },
     onError: (e: any) => toast.error("Gagal: " + e.message),
   });
@@ -491,109 +479,101 @@ export default function UjianPage() {
         </Card>
       )}
 
-      <Card className="shadow-card">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Hasil Ujian Pekanan</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {pekanList.length > 0 && (
-            <div className="flex gap-2 flex-wrap mb-4">
-              <Button
-                variant={selectedPekan === "semua" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedPekan("semua")}
-              >Semua</Button>
-              {pekanList.map((p) => (
+      {!isGuru && (
+        <Card className="shadow-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Hasil Ujian Pekanan</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {pekanList.length > 0 && (
+              <div className="flex gap-2 flex-wrap mb-4">
                 <Button
-                  key={p}
-                  variant={selectedPekan === String(p) ? "default" : "outline"}
+                  variant={selectedPekan === "semua" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setSelectedPekan(String(p))}
-                >Pekan {p}</Button>
-              ))}
-            </div>
-          )}
+                  onClick={() => setSelectedPekan("semua")}
+                >Semua</Button>
+                {pekanList.map((p) => (
+                  <Button
+                    key={p}
+                    variant={selectedPekan === String(p) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedPekan(String(p))}
+                  >Pekan {p}</Button>
+                ))}
+              </div>
+            )}
 
-          {filteredResults.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Belum ada data ujian</p>
-          ) : (
-            <div className="space-y-3">
-              {filteredResults.map((r: any) => {
-                const score = r.nilai_total ?? r.nilai;
-                return (
-                  <div key={r.id} className="p-3 rounded-xl border border-border/50 space-y-2">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className="text-[10px]">Pekan {r.pekan_ke}</Badge>
-                          {isGuru && r.student_name && (
-                            <p className="text-sm font-medium text-foreground">{r.student_name}</p>
+            {filteredResults.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Belum ada data ujian</p>
+            ) : (
+              <div className="space-y-3">
+                {filteredResults.map((r: any) => {
+                  const score = r.nilai_total ?? r.nilai;
+                  return (
+                    <div key={r.id} className="p-3 rounded-xl border border-border/50 space-y-2">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="text-[10px]">Pekan {r.pekan_ke}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {monthNames[(r.bulan || 1) - 1]} {r.tahun} — Juz {(r.juz_diuji || []).join(", ")}
+                            {" • "}
+                            <span className={r.status_lulus ? "text-success" : "text-warning"}>
+                              {r.status_lulus ? "Lulus" : "Mengulang"}
+                            </span>
+                          </p>
+                          {r.catatan_guru && (
+                            <p className="text-xs text-muted-foreground italic">"{r.catatan_guru}"</p>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {monthNames[(r.bulan || 1) - 1]} {r.tahun} — Juz {(r.juz_diuji || []).join(", ")}
-                          {" • "}
-                          <span className={r.status_lulus ? "text-success" : "text-warning"}>
-                            {r.status_lulus ? "Lulus" : "Mengulang"}
-                          </span>
-                        </p>
-                        {r.catatan_guru && (
-                          <p className="text-xs text-muted-foreground italic">"{r.catatan_guru}"</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <p className="text-[10px] text-muted-foreground">Total</p>
                           <div className={`text-xl font-bold ${scoreColor(score || 0)}`}>{score || 0}</div>
                         </div>
-                        {isGuru && (
-                          <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(r.id)}>
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        )}
                       </div>
-                    </div>
-                    <div className="pt-2 border-t border-border/40 space-y-2">
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-medium text-muted-foreground">Hafalan — rata-rata: <span className={`font-bold ${scoreColor(r.nilai_kelancaran || 0)}`}>{r.nilai_kelancaran ?? "-"}</span></p>
-                        <div className="grid grid-cols-5 gap-1.5">
-                          {(r.hafalan_scores && r.hafalan_scores.length === 5
-                            ? r.hafalan_scores
-                            : [null, null, null, null, null]
-                          ).map((s: number | null, i: number) => (
-                            <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
-                              <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
-                              <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>
-                                {s ?? "-"}
-                              </p>
-                            </div>
-                          ))}
+                      <div className="pt-2 border-t border-border/40 space-y-2">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-medium text-muted-foreground">Hafalan — rata-rata: <span className={`font-bold ${scoreColor(r.nilai_kelancaran || 0)}`}>{r.nilai_kelancaran ?? "-"}</span></p>
+                          <div className="grid grid-cols-5 gap-1.5">
+                            {(r.hafalan_scores && r.hafalan_scores.length === 5
+                              ? r.hafalan_scores
+                              : [null, null, null, null, null]
+                            ).map((s: number | null, i: number) => (
+                              <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
+                                <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
+                                <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>
+                                  {s ?? "-"}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-medium text-muted-foreground">Tajwid — rata-rata: <span className={`font-bold ${scoreColor(r.nilai_tajwid || 0)}`}>{r.nilai_tajwid ?? "-"}</span></p>
-                        <div className="grid grid-cols-5 gap-1.5">
-                          {(r.tajwid_scores && r.tajwid_scores.length === 5
-                            ? r.tajwid_scores
-                            : [null, null, null, null, null]
-                          ).map((s: number | null, i: number) => (
-                            <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
-                              <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
-                              <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>
-                                {s ?? "-"}
-                              </p>
-                            </div>
-                          ))}
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-medium text-muted-foreground">Tajwid — rata-rata: <span className={`font-bold ${scoreColor(r.nilai_tajwid || 0)}`}>{r.nilai_tajwid ?? "-"}</span></p>
+                          <div className="grid grid-cols-5 gap-1.5">
+                            {(r.tajwid_scores && r.tajwid_scores.length === 5
+                              ? r.tajwid_scores
+                              : [null, null, null, null, null]
+                            ).map((s: number | null, i: number) => (
+                              <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
+                                <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
+                                <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>
+                                  {s ?? "-"}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
   Calendar,
   Megaphone,
   Mic,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,18 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
     onNav?.();
   };
 
+  const navItems: NavItem[] = profile?.role === "guru"
+    ? [
+        { label: "Dashboard", icon: LayoutDashboard, path: "/" },
+        { label: "Tracker", icon: BookOpen, path: "/tracker" },
+        { label: "Mutaba'ah", icon: ClipboardCheck, path: "/mutabaah" },
+        { label: "Ujian", icon: Trophy, path: "/ujian" },
+        { label: "Hasil Ujian", icon: ClipboardList, path: "/hasil-ujian" },
+        { label: "Profil", icon: User, path: "/profile" },
+        { label: "Mushaf", icon: BookMarked, path: "/mushaf" },
+      ]
+    : mainNavItems;
+
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
@@ -103,7 +116,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
         <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
           Menu Utama
         </p>
-        {mainNavItems.map((item) => (
+        {navItems.map((item) => (
           <NavItemButton
             key={item.path}
             item={item}
@@ -155,9 +168,18 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const mobileNavItems = mainNavItems.slice(0, 5);
+  const mobileNavItems = profile?.role === "guru"
+    ? [
+        { label: "Dashboard", icon: LayoutDashboard, path: "/" },
+        { label: "Ujian", icon: Trophy, path: "/ujian" },
+        { label: "Hasil Ujian", icon: ClipboardList, path: "/hasil-ujian" },
+        { label: "Mutaba'ah", icon: ClipboardCheck, path: "/mutabaah" },
+        { label: "Profil", icon: User, path: "/profile" },
+      ]
+    : mainNavItems.slice(0, 5);
 
   return (
     <div className="min-h-screen flex w-full">

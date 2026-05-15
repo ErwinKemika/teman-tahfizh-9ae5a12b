@@ -13,6 +13,7 @@ import TahfizhTracker from "@/pages/TahfizhTracker";
 import MutabaahPage from "@/pages/MutabaahPage";
 import MushafViewer from "@/pages/MushafViewer";
 import UjianPage from "@/pages/UjianPage";
+import HasilUjianPage from "@/pages/HasilUjianPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "@/pages/NotFound";
 
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/mutabaah" element={<ProtectedLayout><MutabaahPage /></ProtectedLayout>} />
               <Route path="/mushaf" element={<ProtectedLayout><MushafViewer /></ProtectedLayout>} />
               <Route path="/ujian" element={<ProtectedLayout><UjianPage /></ProtectedLayout>} />
+              <Route path="/hasil-ujian" element={<ProtectedLayout><HasilUjianPage /></ProtectedLayout>} />
               <Route path="/profile" element={<ProtectedLayout><ProfilePage /></ProtectedLayout>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
