@@ -12,7 +12,10 @@ const QURAN_API = "https://api.quran.com/api/v4";
 const TOTAL_PAGES = 604;
 
 const getPageImageUrl = (page: number, size: 240 | 480 = 480) =>
-  `https://cdn.jsdelivr.net/gh/quran/quran.com-images@master/images/${size}/${page}.png`;
+  `https://cdn.islamic.network/quran/images/${size}/${page}.png`;
+
+const getPageImageFallbackUrl = (page: number, size: 240 | 480 = 480) =>
+  `https://raw.githubusercontent.com/quran/quran.com-images/master/images/${size}/${page}.png`;
 
 interface AyahData {
   number: number;
@@ -94,13 +97,25 @@ function PagePanel({
   imageSize: 240 | 480;
   onTap: () => void;
 }) {
+  const [imgSrc, setImgSrc] = useState(() => getPageImageUrl(page, imageSize));
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
 
   useEffect(() => {
+    setImgSrc(getPageImageUrl(page, imageSize));
     setImgFailed(false);
     setImgLoaded(false);
-  }, [page]);
+  }, [page, imageSize]);
+
+  const handleImgError = () => {
+    const fallback = getPageImageFallbackUrl(page, imageSize);
+    if (imgSrc !== fallback) {
+      setImgSrc(fallback);
+      setImgLoaded(false);
+    } else {
+      setImgFailed(true);
+    }
+  };
 
   const firstVerse = verses?.[0];
   const juz = firstVerse?.juz_number ?? 1;
@@ -141,11 +156,11 @@ function PagePanel({
               </div>
             )}
             <img
-              src={getPageImageUrl(page, imageSize)}
+              src={imgSrc}
               alt={`Halaman ${page}`}
               className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
               onLoad={() => setImgLoaded(true)}
-              onError={() => setImgFailed(true)}
+              onError={handleImgError}
             />
           </>
         ) : (
@@ -344,7 +359,8 @@ export default function MushafPageView({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-background flex flex-col select-none"
+      className="fixed inset-0 z-[60] bg-background flex flex-col select-none"
+      style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -355,7 +371,7 @@ export default function MushafPageView({
             ? "opacity-100 translate-y-0"
             : "opacity-0 -translate-y-full pointer-events-none"
         }`}
-        style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "0.75rem", paddingRight: "0.75rem", paddingBottom: "0.5rem" }}
+        style={{ paddingLeft: "0.75rem", paddingRight: "0.75rem", paddingTop: "0.5rem", paddingBottom: "0.5rem" }}
         onClick={resetHideTimer}
       >
         <Button
@@ -389,10 +405,7 @@ export default function MushafPageView({
       </div>
 
       {/* Main content */}
-      <div
-        className="flex-1 flex overflow-hidden"
-        style={{ paddingTop: "calc(52px + env(safe-area-inset-top))", paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
+      <div className="flex-1 flex overflow-hidden pt-[52px]">
         {isLandscape ? (
           /* ── Landscape: two-page spread (Arabic RTL — odd on right, even on left) ── */
           <div className="flex-1 flex overflow-hidden">

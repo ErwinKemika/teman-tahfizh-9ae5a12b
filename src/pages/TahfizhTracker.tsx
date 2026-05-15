@@ -299,9 +299,9 @@ export default function TahfizhTracker() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Row 1: Donut (40%) + Bar (60%) */}
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4 min-w-0">
             {/* Chart 1: Donut */}
-            <div className="md:w-[40%] rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
+            <div className="w-full md:w-[40%] min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
               <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
                 Status Hafalan Keseluruhan
               </p>
@@ -358,7 +358,7 @@ export default function TahfizhTracker() {
             </div>
 
             {/* Chart 2: Bar - Kualitas per Juz */}
-            <div className="md:w-[60%] rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
+            <div className="w-full md:w-[60%] min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
               <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
                 Kualitas Hafalan per Juz
               </p>
@@ -406,7 +406,7 @@ export default function TahfizhTracker() {
           </div>
 
           {/* Row 2: Line chart full width */}
-          <div className="rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
+          <div className="min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
             <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
               Progress Hafal per Bulan (6 Bulan Terakhir)
             </p>
