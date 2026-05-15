@@ -130,18 +130,15 @@ function PagePanel({
   return (
     <div className="flex flex-col h-full bg-background" onClick={onTap}>
       {/* Header */}
-      <div className="flex items-center justify-between px-3 pt-2 pb-1 shrink-0">
-        <div className="px-3 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-          <span className="text-[10px] font-semibold text-primary">
-            {surahInfo
-              ? `${surahNum}. ${surahInfo.englishName}`
-              : `Surah ${surahNum}`}
+      <div className="flex items-center justify-between px-4 pt-2 pb-1 shrink-0">
+        <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+          <span className="text-[10px] font-bold tracking-wider text-primary">
+            {surahInfo ? surahInfo.englishName.toUpperCase() : `SURAH ${surahNum}`}
           </span>
         </div>
-        <div className="px-3 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-          <span className="text-[10px] font-semibold text-primary">
+        <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+          <span className="text-[10px] font-bold text-primary">
             Juz {juz}
-            {hizb != null ? `, Hizb ${hizb}` : ""}
           </span>
         </div>
       </div>
@@ -175,8 +172,12 @@ function PagePanel({
                     </p>
                   )}
                   <p
-                    className="font-mushaf text-foreground text-justify"
-                    style={{ lineHeight: 2.1, wordSpacing: "0.04em" }}
+                    className="font-mushaf text-foreground"
+                    style={{
+                      lineHeight: 2.0,
+                      textAlign: "justify",
+                      textAlignLast: "right",
+                    }}
                   >
                     {groupVerses.map((v) => (
                       <span key={v.id}>
@@ -198,10 +199,8 @@ function PagePanel({
       </div>
 
       {/* Footer */}
-      <div className="flex justify-center py-1.5 shrink-0">
-        <div className="px-4 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-          <span className="text-[10px] font-semibold text-primary">Hal. {page}</span>
-        </div>
+      <div className="flex justify-center items-center py-2 shrink-0">
+        <span className="text-xs font-semibold text-muted-foreground">{page}</span>
       </div>
     </div>
   );
