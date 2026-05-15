@@ -267,7 +267,7 @@ export default function TahfizhTracker() {
   };
 
   return (
-    <div className="p-4 lg:p-6 space-y-4 max-w-4xl mx-auto">
+    <div className="p-4 lg:p-6 space-y-4 max-w-4xl mx-auto overflow-x-hidden">
       <div className="space-y-1">
         <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-primary" /> Tahfizh Tracker
@@ -276,7 +276,7 @@ export default function TahfizhTracker() {
       </div>
 
       {/* ── Chart Section ── */}
-      <Card className="shadow-card">
+      <Card className="shadow-card overflow-hidden">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-base">📊 Ringkasan Progress</CardTitle>
@@ -305,7 +305,7 @@ export default function TahfizhTracker() {
               <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
                 Status Hafalan Keseluruhan
               </p>
-              <ResponsiveContainer width="100%" height={180}>
+              <ResponsiveContainer width="99%" height={180}>
                 <PieChart>
                   <Pie
                     data={donutData}
@@ -367,7 +367,7 @@ export default function TahfizhTracker() {
                   Belum ada data
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={180}>
+                <ResponsiveContainer width="99%" height={180}>
                   <BarChart data={barData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                     <XAxis
