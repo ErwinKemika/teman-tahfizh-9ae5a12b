@@ -131,7 +131,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
             return (
               <div key={item.path}>
                 <button
-                  onClick={() => setUjianOpen((v) => !v)}
+                  onClick={() => { handleNav(item.path); setUjianOpen(true); }}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all w-full text-left",
                     isParentActive
