@@ -4,6 +4,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* PWA safe area utilities */
+.main-content-pb {
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 1024px) {
+  .main-content-pb {
+    padding-bottom: 1.5rem;
+  }
+}
+
 @layer base {
   :root {
     --background: 210 33% 96%;

@@ -1,0 +1,17 @@
+{
+  "name": "Tahfizh Tracker",
+  "short_name": "Tahfizh",
+  "description": "Platform manajemen hafalan Al-Qur'an untuk sekolah Islam",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#1e3b6f",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

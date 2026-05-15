@@ -257,12 +257,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto pb-20 lg:pb-6">
+        <main className="flex-1 overflow-auto main-content-pb">
           {children}
         </main>
 
         {/* Bottom Nav (mobile) */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border flex items-center justify-around h-16 z-50">
+        <nav
+          className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border flex items-center justify-around z-50"
+          style={{ height: "calc(4rem + env(safe-area-inset-bottom))", paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
           {mobileNavItems.map((item) => {
             const active = pathname === item.path;
             return (

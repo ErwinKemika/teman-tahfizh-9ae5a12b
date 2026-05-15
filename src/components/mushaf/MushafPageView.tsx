@@ -350,11 +350,12 @@ export default function MushafPageView({
     >
       {/* Top bar — auto-hide */}
       <div
-        className={`absolute top-0 left-0 right-0 z-20 bg-card/95 backdrop-blur-sm border-b border-border px-3 py-2 flex items-center gap-2 transition-all duration-300 ${
+        className={`absolute top-0 left-0 right-0 z-20 bg-card/95 backdrop-blur-sm border-b border-border flex items-center gap-2 transition-all duration-300 ${
           showTopBar
             ? "opacity-100 translate-y-0"
             : "opacity-0 -translate-y-full pointer-events-none"
         }`}
+        style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "0.75rem", paddingRight: "0.75rem", paddingBottom: "0.5rem" }}
         onClick={resetHideTimer}
       >
         <Button
@@ -388,7 +389,10 @@ export default function MushafPageView({
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex pt-[52px] overflow-hidden">
+      <div
+        className="flex-1 flex overflow-hidden"
+        style={{ paddingTop: "calc(52px + env(safe-area-inset-top))", paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
         {isLandscape ? (
           /* ── Landscape: two-page spread (Arabic RTL — odd on right, even on left) ── */
           <div className="flex-1 flex overflow-hidden">
