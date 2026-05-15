@@ -16,6 +16,7 @@ import {
   Megaphone,
   Mic,
   ClipboardList,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,9 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
 
+  const ujianPaths = ["/ujian", "/hasil-ujian"];
+  const [ujianOpen, setUjianOpen] = useState(() => ujianPaths.includes(pathname));
+
   const handleNav = (path: string) => {
     navigate(path);
     onNav?.();
@@ -121,27 +125,48 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
         <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
           Menu Utama
         </p>
-        {navItems.map((item) => (
-          <div key={item.path}>
+        {navItems.map((item) => {
+          if (item.subItems) {
+            const isParentActive = ujianPaths.includes(pathname);
+            return (
+              <div key={item.path}>
+                <button
+                  onClick={() => setUjianOpen((v) => !v)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all w-full text-left",
+                    isParentActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                  )}
+                >
+                  <item.icon className="w-5 h-5 shrink-0" />
+                  <span className="flex-1 truncate">{item.label}</span>
+                  <ChevronDown className={cn("w-4 h-4 shrink-0 transition-transform duration-200", ujianOpen && "rotate-180")} />
+                </button>
+                {ujianOpen && (
+                  <div className="ml-3 pl-3 border-l border-sidebar-border/50 mt-0.5 space-y-0.5">
+                    {item.subItems.map((sub) => (
+                      <NavItemButton
+                        key={sub.path}
+                        item={sub}
+                        active={pathname === sub.path}
+                        onClick={() => handleNav(sub.path)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
+          return (
             <NavItemButton
+              key={item.path}
               item={item}
               active={pathname === item.path}
               onClick={() => handleNav(item.path)}
             />
-            {item.subItems && (
-              <div className="ml-3 pl-3 border-l border-sidebar-border/50 mt-0.5 space-y-0.5">
-                {item.subItems.map((sub) => (
-                  <NavItemButton
-                    key={sub.path}
-                    item={sub}
-                    active={pathname === sub.path}
-                    onClick={() => handleNav(sub.path)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
 
         <p className="px-3 py-1.5 mt-4 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
           Segera Hadir
