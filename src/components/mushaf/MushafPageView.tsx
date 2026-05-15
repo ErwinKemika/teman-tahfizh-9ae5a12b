@@ -132,7 +132,7 @@ function PagePanel({
             </div>
           </div>
         ) : (
-          <div className="px-5 py-4" dir="rtl">
+          <div className="px-4 py-2" dir="rtl">
             {groups.map(({ surahNum: sNum, verses: groupVerses }) => {
               const isNewSurah = groupVerses[0].verse_number === 1;
               // Show Bismillah before verse 1 of every surah except Al-Fatiha (1) and At-Tawbah (9)
@@ -141,8 +141,8 @@ function PagePanel({
               return (
                 <div key={sNum}>
                   {isNewSurah && (
-                    <div className="text-center my-3">
-                      <div className="inline-block px-8 py-1 border border-primary/40 rounded-full">
+                    <div className="text-center my-2">
+                      <div className="inline-block px-8 py-0.5 border border-primary/40 rounded-full">
                         <span className="font-arabic text-sm font-semibold text-primary">
                           {surahNameAr}
                         </span>
@@ -151,15 +151,15 @@ function PagePanel({
                   )}
                   {showBismillah && (
                     <p
-                      className="text-center font-mushaf text-foreground mb-3"
+                      className="text-center font-mushaf text-foreground mb-2"
                       style={{ fontSize: fontSize + 2 }}
                     >
                       بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
                     </p>
                   )}
                   <p
-                    className="font-mushaf text-foreground text-justify leading-[2.6]"
-                    style={{ fontSize }}
+                    className="font-mushaf text-foreground text-justify leading-[2.15]"
+                    style={{ fontSize, wordSpacing: "0.05em" }}
                   >
                     {groupVerses.map((v) => (
                       <span key={v.id}>
@@ -216,7 +216,7 @@ export default function MushafPageView({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fontSize, setFontSize] = useState(22);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touchStart = useRef<number>(0);
+  const touchStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Landscape: left = even page, right = odd page (Arabic RTL)
   const spreadLeft = page % 2 === 1 ? page : page - 1;
@@ -304,12 +304,14 @@ export default function MushafPageView({
   }, [page, isLandscape, spreadLeft]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStart.current = e.touches[0].clientX;
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   };
   const handleTouchEnd = (e: React.TouchEvent) => {
-    const diff = touchStart.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 60) {
-      if (diff > 0) goNext();
+    const diffX = touchStart.current.x - e.changedTouches[0].clientX;
+    const diffY = touchStart.current.y - e.changedTouches[0].clientY;
+    // Only trigger page navigation if motion is primarily horizontal
+    if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+      if (diffX > 0) goNext();
       else goPrev();
     }
   };
