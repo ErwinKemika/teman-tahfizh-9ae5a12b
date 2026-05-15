@@ -276,7 +276,7 @@ export default function TahfizhTracker() {
   );
 
   return (
-    <div className="p-4 lg:p-6 space-y-4 max-w-4xl mx-auto">
+    <div className="p-4 lg:p-6 space-y-4 max-w-4xl mx-auto overflow-x-hidden">
       <div className="space-y-1">
         <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-primary" /> Tahfizh Tracker
@@ -293,7 +293,7 @@ export default function TahfizhTracker() {
             </Card>
           )}
 
-          <Card className="shadow-card">
+          <Card className="shadow-card overflow-hidden">
             <CardHeader className="pb-2">
               <CardTitle className="text-base text-center">📊 Ringkasan Progress</CardTitle>
             </CardHeader>
@@ -497,25 +497,40 @@ export default function TahfizhTracker() {
         </Card>
       ) : (
         <>
-          {/* Juz Tabs */}
-          <div className="overflow-x-auto -mx-4 px-4">
-            <div className="flex gap-1.5 pb-2 min-w-max">
-              {Array.from({ length: 30 }, (_, i) => i + 1).map((juz) => (
-                <Button
-                  key={juz}
-                  variant={selectedJuz === String(juz) ? "default" : "outline"}
-                  size="sm"
-                  className="text-xs px-3 h-8"
-                  onClick={() => setSelectedJuz(String(juz))}
-                >
-                  Juz {juz}
-                </Button>
-              ))}
+          {/* Juz Selector — dropdown on mobile, tabs on desktop */}
+          {isMobile ? (
+            <Select value={selectedJuz} onValueChange={setSelectedJuz}>
+              <SelectTrigger className="w-full h-10 font-medium">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 30 }, (_, i) => i + 1).map((juz) => (
+                  <SelectItem key={juz} value={String(juz)}>
+                    Juz {juz}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="overflow-x-auto -mx-4 px-4">
+              <div className="flex gap-1.5 pb-2 min-w-max">
+                {Array.from({ length: 30 }, (_, i) => i + 1).map((juz) => (
+                  <Button
+                    key={juz}
+                    variant={selectedJuz === String(juz) ? "default" : "outline"}
+                    size="sm"
+                    className="text-xs px-3 h-8"
+                    onClick={() => setSelectedJuz(String(juz))}
+                  >
+                    Juz {juz}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Juz Summary */}
-          <Card className="shadow-card">
+          <Card className="shadow-card overflow-hidden">
             <CardContent className="py-3">
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                 <span>Juz {selectedJuz} Progress</span>
