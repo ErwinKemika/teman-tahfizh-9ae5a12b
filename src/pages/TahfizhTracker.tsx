@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,12 +60,12 @@ interface EditEntry {
 export default function TahfizhTracker() {
   const { user, role } = useAuth();
   const isGuru = role === "guru";
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const [selectedJuz, setSelectedJuz] = useState("1");
   const [editEntry, setEditEntry] = useState<EditEntry | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<string>("all");
 
-  // Students list for guru dropdown
   const { data: students } = useQuery({
     queryKey: ["students-list"],
     queryFn: async () => {
@@ -77,7 +78,6 @@ export default function TahfizhTracker() {
     enabled: isGuru,
   });
 
-  // Chart entries: filtered by selected student (guru) or own data (siswa)
   const chartStudentId = isGuru
     ? selectedStudent === "all" ? null : selectedStudent
     : user?.id;
@@ -96,8 +96,6 @@ export default function TahfizhTracker() {
     },
     enabled: !!user,
   });
-
-  // --- Chart data computations ---
 
   const totalDone = useMemo(
     () => chartEntries?.filter((e) => e.is_mutqin || e.status === "tasmi_done").length ?? 0,
@@ -155,8 +153,6 @@ export default function TahfizhTracker() {
     });
     return Object.entries(months).map(([month, count]) => ({ month, count }));
   }, [chartEntries]);
-
-  // --- Mutations ---
 
   const saveMutation = useMutation({
     mutationFn: async (entry: EditEntry) => {
@@ -230,9 +226,6 @@ export default function TahfizhTracker() {
     onError: (e) => toast.error("Gagal: " + e.message),
   });
 
-  // --- Derived tracker state ---
-
-  // Use chartEntries for the grid; if guru selects "all", chartStudentId is null → empty grid
   const entriesByPage =
     chartStudentId && chartEntries
       ? chartEntries.reduce(
@@ -266,8 +259,24 @@ export default function TahfizhTracker() {
     });
   };
 
+  const studentSelector = (
+    <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+      <SelectTrigger className="w-full h-9 text-sm">
+        <SelectValue placeholder="Pilih siswa..." />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">Semua Siswa</SelectItem>
+        {students?.map((s) => (
+          <SelectItem key={s.user_id} value={s.user_id}>
+            {s.full_name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   return (
-    <div className="p-4 lg:p-6 space-y-4 max-w-4xl mx-auto overflow-x-hidden">
+    <div className="p-4 lg:p-6 space-y-4 max-w-4xl mx-auto">
       <div className="space-y-1">
         <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-primary" /> Tahfizh Tracker
@@ -275,115 +284,127 @@ export default function TahfizhTracker() {
         <p className="text-sm text-muted-foreground">Lacak hafalan per halaman Al-Qur'an</p>
       </div>
 
-      {/* ── Chart Section ── */}
-      <Card className="shadow-card overflow-hidden">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="text-base">📊 Ringkasan Progress</CardTitle>
-            {isGuru && (
-              <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                <SelectTrigger className="w-48 h-8 text-xs">
-                  <SelectValue placeholder="Pilih siswa..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Siswa</SelectItem>
-                  {students?.map((s) => (
-                    <SelectItem key={s.user_id} value={s.user_id}>
-                      {s.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Row 1: Donut (40%) + Bar (60%) */}
-          <div className="flex flex-col md:flex-row gap-4 min-w-0">
-            {/* Chart 1: Donut */}
-            <div className="w-full md:w-[40%] min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
-              <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
-                Status Hafalan Keseluruhan
-              </p>
-              <ResponsiveContainer width="99%" height={180}>
-                <PieChart>
-                  <Pie
-                    data={donutData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={2}
-                    dataKey="value"
-                    label={false}
-                  >
-                    {donutData.map((_, idx) => (
-                      <Cell key={idx} fill={DONUT_COLORS[idx]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip
-                    formatter={(value: number, name: string) => [`${value} hal.`, name]}
-                    contentStyle={{
-                      fontSize: 11,
-                      borderRadius: 8,
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      color: "hsl(var(--foreground))",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              {/* Legend */}
-              <div className="flex flex-col gap-1 mt-1">
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#27AE60" }} />
-                  Hafal + Mutqin: <span className="font-medium text-foreground">{donutData[0]?.value ?? 0}</span>
+      {/* ── MOBILE Summary ── */}
+      {isMobile && (
+        <>
+          {isGuru && (
+            <Card className="shadow-card">
+              <CardContent className="py-3">{studentSelector}</CardContent>
+            </Card>
+          )}
+
+          <Card className="shadow-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base text-center">📊 Ringkasan Progress</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-5 pb-5">
+              {/* Progress ring */}
+              {(() => {
+                const pct = totalDone / 604;
+                const r = 60;
+                const circ = 2 * Math.PI * r;
+                return (
+                  <div className="relative w-[160px] h-[160px]">
+                    <svg width="160" height="160" className="-rotate-90">
+                      <circle cx="80" cy="80" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="14" />
+                      <circle
+                        cx="80" cy="80" r={r}
+                        fill="none"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth="14"
+                        strokeLinecap="round"
+                        strokeDasharray={circ}
+                        strokeDashoffset={circ * (1 - pct)}
+                        style={{ transition: "stroke-dashoffset 0.7s ease" }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-bold text-foreground">
+                        {Math.round(pct * 100)}%
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">dari 604 hal.</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* 3 stat boxes */}
+              <div className="grid grid-cols-3 gap-3 w-full">
+                <div className="flex flex-col items-center gap-1 p-3 rounded-xl bg-success/10 border border-success/20">
+                  <span className="text-2xl font-bold text-success">{totalDone}</span>
+                  <span className="text-[10px] text-muted-foreground text-center leading-tight">Hafal &amp; Mutqin</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#F39C12" }} />
-                  Muraja'ah: <span className="font-medium text-foreground">{totalMurojaah}x</span>
+                <div className="flex flex-col items-center gap-1 p-3 rounded-xl bg-warning/10 border border-warning/20">
+                  <span className="text-2xl font-bold text-warning">{totalMurojaah}</span>
+                  <span className="text-[10px] text-muted-foreground text-center leading-tight">Total Muraja'ah</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#E74C3C" }} />
-                  Belum Hafal: <span className="font-medium text-foreground">{donutData[1]?.value ?? 0}</span>
+                <div className="flex flex-col items-center gap-1 p-3 rounded-xl bg-destructive/10 border border-destructive/20">
+                  <span className="text-2xl font-bold text-destructive">{604 - totalDone}</span>
+                  <span className="text-[10px] text-muted-foreground text-center leading-tight">Belum Hafal</span>
                 </div>
               </div>
-              <p className="text-center text-xs text-muted-foreground mt-2">
-                Selesai:{" "}
-                <span className="font-bold text-foreground">
-                  {totalDone}
-                </span>{" "}
-                / 604
-              </p>
-            </div>
 
-            {/* Chart 2: Bar - Kualitas per Juz */}
-            <div className="w-full md:w-[60%] min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
-              <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
-                Kualitas Hafalan per Juz
-              </p>
-              {barData.length === 0 ? (
-                <div className="flex items-center justify-center h-[160px] text-xs text-muted-foreground">
-                  Belum ada data
+              {/* Overall progress bar */}
+              <div className="w-full space-y-1.5">
+                <div className="flex justify-between text-[11px] text-muted-foreground">
+                  <span>Progress keseluruhan</span>
+                  <span>{totalDone} / 604</span>
                 </div>
-              ) : (
+                <Progress value={(totalDone / 604) * 100} className="h-2.5" />
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* ── DESKTOP Chart Section ── */}
+      {!isMobile && (
+        <Card className="shadow-card overflow-hidden">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <CardTitle className="text-base">📊 Ringkasan Progress</CardTitle>
+              {isGuru && (
+                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                  <SelectTrigger className="w-48 h-8 text-xs">
+                    <SelectValue placeholder="Pilih siswa..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Siswa</SelectItem>
+                    {students?.map((s) => (
+                      <SelectItem key={s.user_id} value={s.user_id}>
+                        {s.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col md:flex-row gap-4 min-w-0">
+              {/* Donut chart */}
+              <div className="w-full md:w-[40%] min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
+                <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
+                  Status Hafalan Keseluruhan
+                </p>
                 <ResponsiveContainer width="99%" height={180}>
-                  <BarChart data={barData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                    <XAxis
-                      dataKey="name"
-                      tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      domain={[0, 100]}
-                      tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
+                  <PieChart>
+                    <Pie
+                      data={donutData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={75}
+                      paddingAngle={2}
+                      dataKey="value"
+                      label={false}
+                    >
+                      {donutData.map((_, idx) => (
+                        <Cell key={idx} fill={DONUT_COLORS[idx]} />
+                      ))}
+                    </Pie>
                     <RechartsTooltip
-                      formatter={(value: number) => [`${value}%`, "Rata-rata"]}
+                      formatter={(value: number, name: string) => [`${value} hal.`, name]}
                       contentStyle={{
                         fontSize: 11,
                         borderRadius: 8,
@@ -392,63 +413,82 @@ export default function TahfizhTracker() {
                         color: "hsl(var(--foreground))",
                       }}
                     />
-                    <defs>
-                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#2E86C1" />
-                        <stop offset="100%" stopColor="#1B3A6B" />
-                      </linearGradient>
-                    </defs>
-                    <Bar dataKey="avg" fill="url(#barGradient)" radius={[3, 3, 0, 0]} />
-                  </BarChart>
+                  </PieChart>
                 </ResponsiveContainer>
-              )}
+                <div className="flex flex-col gap-1 mt-1">
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#27AE60" }} />
+                    Hafal + Mutqin: <span className="font-medium text-foreground">{donutData[0]?.value ?? 0}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#F39C12" }} />
+                    Muraja'ah: <span className="font-medium text-foreground">{totalMurojaah}x</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#E74C3C" }} />
+                    Belum Hafal: <span className="font-medium text-foreground">{donutData[1]?.value ?? 0}</span>
+                  </div>
+                </div>
+                <p className="text-center text-xs text-muted-foreground mt-2">
+                  Selesai: <span className="font-bold text-foreground">{totalDone}</span> / 604
+                </p>
+              </div>
+
+              {/* Bar chart */}
+              <div className="w-full md:w-[60%] min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
+                <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
+                  Kualitas Hafalan per Juz
+                </p>
+                {barData.length === 0 ? (
+                  <div className="flex items-center justify-center h-[160px] text-xs text-muted-foreground">
+                    Belum ada data
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="99%" height={180}>
+                    <BarChart data={barData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                      <RechartsTooltip
+                        formatter={(value: number) => [`${value}%`, "Rata-rata"]}
+                        contentStyle={{ fontSize: 11, borderRadius: 8, backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", color: "hsl(var(--foreground))" }}
+                      />
+                      <defs>
+                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#2E86C1" />
+                          <stop offset="100%" stopColor="#1B3A6B" />
+                        </linearGradient>
+                      </defs>
+                      <Bar dataKey="avg" fill="url(#barGradient)" radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Row 2: Line chart full width */}
-          <div className="min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
-            <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
-              Progress Hafal per Bulan (6 Bulan Terakhir)
-            </p>
-            <ResponsiveContainer width="100%" height={160}>
-              <LineChart data={lineData} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <RechartsTooltip
-                  formatter={(value: number) => [`${value} halaman`, "Tasmi'/Mutqin"]}
-                  contentStyle={{
-                    fontSize: 11,
-                    borderRadius: 8,
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    color: "hsl(var(--foreground))",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="count"
-                  stroke="#F4C430"
-                  strokeWidth={2.5}
-                  dot={{ fill: "#F4C430", r: 3 }}
-                  activeDot={{ r: 5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+            {/* Line chart */}
+            <div className="min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
+              <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
+                Progress Hafal per Bulan (6 Bulan Terakhir)
+              </p>
+              <ResponsiveContainer width="99%" height={160}>
+                <LineChart data={lineData} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <RechartsTooltip
+                    formatter={(value: number) => [`${value} halaman`, "Tasmi'/Mutqin"]}
+                    contentStyle={{ fontSize: 11, borderRadius: 8, backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", color: "hsl(var(--foreground))" }}
+                  />
+                  <Line type="monotone" dataKey="count" stroke="#F4C430" strokeWidth={2.5} dot={{ fill: "#F4C430", r: 3 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* ── Juz Tabs + Grid: only shown when a specific student (or siswa's own) is selected ── */}
+      {/* ── Juz Tabs + Grid ── */}
       {isGuru && !chartStudentId ? (
         <Card className="shadow-card">
           <CardContent className="py-12 text-center">
@@ -457,100 +497,91 @@ export default function TahfizhTracker() {
         </Card>
       ) : (
         <>
-      {/* ── Juz Tabs ── */}
-      <div className="overflow-x-auto -mx-4 px-4">
-        <div className="flex gap-1.5 pb-2 min-w-max">
-          {Array.from({ length: 30 }, (_, i) => i + 1).map((juz) => (
-            <Button
-              key={juz}
-              variant={selectedJuz === String(juz) ? "default" : "outline"}
-              size="sm"
-              className="text-xs px-3 h-8"
-              onClick={() => setSelectedJuz(String(juz))}
-            >
-              Juz {juz}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* Juz Summary */}
-      <Card className="shadow-card">
-        <CardContent className="py-3">
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-            <span>Juz {selectedJuz} Progress</span>
-            <span>
-              {juzMutqin}/{pages.length} Mutqin
-            </span>
+          {/* Juz Tabs */}
+          <div className="overflow-x-auto -mx-4 px-4">
+            <div className="flex gap-1.5 pb-2 min-w-max">
+              {Array.from({ length: 30 }, (_, i) => i + 1).map((juz) => (
+                <Button
+                  key={juz}
+                  variant={selectedJuz === String(juz) ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs px-3 h-8"
+                  onClick={() => setSelectedJuz(String(juz))}
+                >
+                  Juz {juz}
+                </Button>
+              ))}
+            </div>
           </div>
-          <Progress value={(juzHafal / pages.length) * 100} className="h-2" />
-          <div className="flex gap-4 mt-2 text-xs">
-            <span className="text-success">Hafal: {juzHafal}</span>
-            <span className="text-warning">Muraja'ah: {juzMurajaah}x</span>
-            <span className="text-destructive">
-              Belum: {pages.length - juzHafal}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* ── Page Cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-        {pages.map((pageNum) => {
-          const entry = entriesByPage[pageNum];
-          const status = entry?.is_mutqin ? "mutqin" : entry?.status || "belum_dihafalkan";
-          return (
-            <button
-              key={pageNum}
-              onClick={() => openEdit(pageNum)}
-              className="text-left p-3 rounded-xl border border-border/50 bg-card hover:shadow-card-hover transition-all space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">Hal. {pageNum}</span>
-
-                {/* Mutqin star: interactive for guru, read-only for siswa */}
-                {isGuru ? (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      mutqinToggleMutation.mutate({
-                        entryId: entry?.id,
-                        value: !entry?.is_mutqin,
-                        pageNum,
-                      });
-                    }}
-                    className="p-0.5 rounded hover:bg-accent transition-colors"
-                    title={entry?.is_mutqin ? "Klik untuk hapus Mutqin" : "Klik untuk set Mutqin"}
-                  >
-                    <Star
-                      className={`w-3.5 h-3.5 transition-colors ${
-                        entry?.is_mutqin
-                          ? "text-highlight fill-highlight"
-                          : "text-muted-foreground/40 fill-transparent"
-                      }`}
-                    />
-                  </button>
-                ) : (
-                  entry?.is_mutqin && (
-                    <span
-                      title="Hanya Ustadz yang dapat mengubah status Mutqin"
-                      style={{ cursor: "default" }}
-                    >
-                      <Star className="w-3.5 h-3.5 text-highlight fill-highlight" />
-                    </span>
-                  )
-                )}
+          {/* Juz Summary */}
+          <Card className="shadow-card">
+            <CardContent className="py-3">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                <span>Juz {selectedJuz} Progress</span>
+                <span>{juzMutqin}/{pages.length} Mutqin</span>
               </div>
-              <Badge className={`text-[10px] ${statusColors[status]}`}>{statusLabels[status]}</Badge>
-              {entry && (
-                <div className="text-[10px] text-muted-foreground">
-                  Kualitas: {entry.kualitas_hafalan}% • Muroja'ah: {entry.kuantitas_murojaah}x
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
+              <Progress value={(juzHafal / pages.length) * 100} className="h-2" />
+              <div className="flex gap-4 mt-2 text-xs">
+                <span className="text-success">Hafal: {juzHafal}</span>
+                <span className="text-warning">Muraja'ah: {juzMurajaah}x</span>
+                <span className="text-destructive">Belum: {pages.length - juzHafal}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Page Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {pages.map((pageNum) => {
+              const entry = entriesByPage[pageNum];
+              const status = entry?.is_mutqin ? "mutqin" : entry?.status || "belum_dihafalkan";
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => openEdit(pageNum)}
+                  className="text-left p-3 rounded-xl border border-border/50 bg-card hover:shadow-card-hover transition-all space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-foreground">Hal. {pageNum}</span>
+                    {isGuru ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          mutqinToggleMutation.mutate({
+                            entryId: entry?.id,
+                            value: !entry?.is_mutqin,
+                            pageNum,
+                          });
+                        }}
+                        className="p-0.5 rounded hover:bg-accent transition-colors"
+                        title={entry?.is_mutqin ? "Klik untuk hapus Mutqin" : "Klik untuk set Mutqin"}
+                      >
+                        <Star
+                          className={`w-3.5 h-3.5 transition-colors ${
+                            entry?.is_mutqin
+                              ? "text-highlight fill-highlight"
+                              : "text-muted-foreground/40 fill-transparent"
+                          }`}
+                        />
+                      </button>
+                    ) : (
+                      entry?.is_mutqin && (
+                        <span title="Hanya Ustadz yang dapat mengubah status Mutqin" style={{ cursor: "default" }}>
+                          <Star className="w-3.5 h-3.5 text-highlight fill-highlight" />
+                        </span>
+                      )
+                    )}
+                  </div>
+                  <Badge className={`text-[10px] ${statusColors[status]}`}>{statusLabels[status]}</Badge>
+                  {entry && (
+                    <div className="text-[10px] text-muted-foreground">
+                      Kualitas: {entry.kualitas_hafalan}% • Muroja'ah: {entry.kuantitas_murojaah}x
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </>
       )}
 
@@ -617,7 +648,6 @@ export default function TahfizhTracker() {
                 </div>
               </div>
 
-              {/* MUTQIN switch: interactive for guru, disabled read-only for siswa */}
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>MUTQIN ✓</Label>
