@@ -12,7 +12,7 @@ const QURAN_API = "https://api.quran.com/api/v4";
 const TOTAL_PAGES = 604;
 
 const getPageImageUrl = (page: number) =>
-  `https://raw.githubusercontent.com/GovarJabbar/Quran-PNG/master/${page}.png`;
+  `https://cdn.jsdelivr.net/gh/GovarJabbar/Quran-PNG@master/${page}.png`;
 
 interface AyahData {
   number: number;
