@@ -11,6 +11,9 @@ import ReadingSettings from "./ReadingSettings";
 const QURAN_API = "https://api.quran.com/api/v4";
 const TOTAL_PAGES = 604;
 
+const getPageImageUrl = (page: number) =>
+  `https://raw.githubusercontent.com/GovarJabbar/Quran-PNG/master/${page}.png`;
+
 interface AyahData {
   number: number;
   text: string;
@@ -87,12 +90,20 @@ function PagePanel({
   fontSize: number;
   onTap: () => void;
 }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  useEffect(() => {
+    setImgFailed(false);
+    setImgLoaded(false);
+  }, [page]);
+
   const firstVerse = verses?.[0];
   const juz = firstVerse?.juz_number ?? 1;
   const surahNum = firstVerse ? parseInt(firstVerse.verse_key.split(":")[0]) : 1;
   const surahName = surahNamesMap[surahNum]?.name ?? "";
 
-  // Group consecutive verses by surah for headers/bismillah
+  // Group consecutive verses by surah (used only in text fallback)
   const groups: { surahNum: number; verses: QuranComVerse[] }[] = [];
   (verses || []).forEach((v) => {
     const sNum = parseInt(v.verse_key.split(":")[0]);
@@ -106,92 +117,114 @@ function PagePanel({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Mushaf-style header */}
-      <div
-        className="flex items-center justify-between px-4 py-1.5 shrink-0"
-        style={{
-          background: "hsl(var(--primary) / 0.08)",
-          borderBottom: "1px solid hsl(var(--primary) / 0.2)",
-        }}
-      >
-        <span className="text-[11px] font-semibold text-primary font-arabic" dir="rtl">
-          الجزء {toArabicNum(juz)}
-        </span>
-        <span className="text-[11px] font-semibold text-primary font-arabic" dir="rtl">
-          {surahName}
-        </span>
-      </div>
+      {/* Header — only shown in text fallback mode */}
+      {imgFailed && (
+        <div
+          className="flex items-center justify-between px-4 py-1.5 shrink-0"
+          style={{
+            background: "hsl(var(--primary) / 0.08)",
+            borderBottom: "1px solid hsl(var(--primary) / 0.2)",
+          }}
+        >
+          <span className="text-[11px] font-semibold text-primary font-arabic" dir="rtl">
+            الجزء {toArabicNum(juz)}
+          </span>
+          <span className="text-[11px] font-semibold text-primary font-arabic" dir="rtl">
+            {surahName}
+          </span>
+        </div>
+      )}
 
-      {/* Verse content */}
-      <div className="flex-1 overflow-y-auto cursor-pointer" onClick={onTap}>
-        {!verses ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-              <span className="text-[10px] text-muted-foreground">Memuat halaman...</span>
-            </div>
-          </div>
-        ) : (
-          <div className="px-4 py-2" dir="rtl">
-            {groups.map(({ surahNum: sNum, verses: groupVerses }) => {
-              const isNewSurah = groupVerses[0].verse_number === 1;
-              // Show Bismillah before verse 1 of every surah except Al-Fatiha (1) and At-Tawbah (9)
-              const showBismillah = isNewSurah && sNum !== 9 && sNum !== 1;
-              const surahNameAr = surahNamesMap[sNum]?.name ?? "";
-              return (
-                <div key={sNum}>
-                  {isNewSurah && (
-                    <div className="text-center my-2">
-                      <div className="inline-block px-8 py-0.5 border border-primary/40 rounded-full">
-                        <span className="font-arabic text-sm font-semibold text-primary">
-                          {surahNameAr}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  {showBismillah && (
-                    <p
-                      className="text-center font-mushaf text-foreground mb-2"
-                      style={{ fontSize: fontSize + 2 }}
-                    >
-                      بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
-                    </p>
-                  )}
-                  <p
-                    className="font-mushaf text-foreground text-justify leading-[2.15]"
-                    style={{ fontSize, wordSpacing: "0.05em" }}
-                  >
-                    {groupVerses.map((v) => (
-                      <span key={v.id}>
-                        {v.text_uthmani}
-                        <span
-                          className="text-primary/70 mx-0.5"
-                          style={{ fontSize: fontSize * 0.78 }}
-                        >
-                          ﴿{toArabicNum(v.verse_number)}﴾
-                        </span>
-                      </span>
-                    ))}
-                  </p>
+      {/* Page image (primary) */}
+      <div
+        className="flex-1 flex items-center justify-center overflow-hidden cursor-pointer relative"
+        onClick={onTap}
+      >
+        {!imgFailed ? (
+          <>
+            {!imgLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                  <span className="text-[10px] text-muted-foreground">Memuat halaman...</span>
                 </div>
-              );
-            })}
+              </div>
+            )}
+            <img
+              src={getPageImageUrl(page)}
+              alt={`Halaman ${page}`}
+              className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
+                imgLoaded ? "opacity-100" : "opacity-0"
+              }`}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgFailed(true)}
+            />
+          </>
+        ) : (
+          /* Text fallback when image fails */
+          <div className="w-full h-full overflow-y-auto">
+            <div className="px-4 py-2" dir="rtl">
+              {groups.map(({ surahNum: sNum, verses: groupVerses }) => {
+                const isNewSurah = groupVerses[0].verse_number === 1;
+                const showBismillah = isNewSurah && sNum !== 9 && sNum !== 1;
+                const surahNameAr = surahNamesMap[sNum]?.name ?? "";
+                return (
+                  <div key={sNum}>
+                    {isNewSurah && (
+                      <div className="text-center my-2">
+                        <div className="inline-block px-8 py-0.5 border border-primary/40 rounded-full">
+                          <span className="font-arabic text-sm font-semibold text-primary">
+                            {surahNameAr}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    {showBismillah && (
+                      <p
+                        className="text-center font-mushaf text-foreground mb-2"
+                        style={{ fontSize: fontSize + 2 }}
+                      >
+                        بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+                      </p>
+                    )}
+                    <p
+                      className="font-mushaf text-foreground text-justify leading-[2.15]"
+                      style={{ fontSize, wordSpacing: "0.05em" }}
+                    >
+                      {groupVerses.map((v) => (
+                        <span key={v.id}>
+                          {v.text_uthmani}
+                          <span
+                            className="text-primary/70 mx-0.5"
+                            style={{ fontSize: fontSize * 0.78 }}
+                          >
+                            ﴿{toArabicNum(v.verse_number)}﴾
+                          </span>
+                        </span>
+                      ))}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Page number footer */}
-      <div
-        className="py-1 text-center shrink-0"
-        style={{
-          background: "hsl(var(--primary) / 0.08)",
-          borderTop: "1px solid hsl(var(--primary) / 0.2)",
-        }}
-      >
-        <span className="text-xs font-semibold text-primary font-arabic">
-          {toArabicNum(page)}
-        </span>
-      </div>
+      {/* Footer — only shown in text fallback mode */}
+      {imgFailed && (
+        <div
+          className="py-1 text-center shrink-0"
+          style={{
+            background: "hsl(var(--primary) / 0.08)",
+            borderTop: "1px solid hsl(var(--primary) / 0.2)",
+          }}
+        >
+          <span className="text-xs font-semibold text-primary font-arabic">
+            {toArabicNum(page)}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
