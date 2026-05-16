@@ -1,15 +1,16 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import AyatDetailSheet from "./AyatDetailSheet";
 
 const QURAN_API = "https://api.quran.com/api/v4";
 const TOTAL_PAGES = 604;
-const PAGE_IMG = (p: number) => `https://cdn.myquran.com/img/page/${p}.png`;
+
+const toArabicNum = (n: number) =>
+  n.toString().replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
 
 interface AyahData {
   number: number;
@@ -67,21 +68,123 @@ function useSurahNames() {
   });
 }
 
-// ── Single page panel — image from CDN ───────────────────────────────────────
+// ── Text-based page panel ─────────────────────────────────────────────────────
 
-function PagePanel({ page, onTap }: { page: number; onTap: () => void }) {
+function PagePanel({
+  page,
+  verses,
+  surahNames,
+  isLoading,
+  onAyatTap,
+}: {
+  page: number;
+  verses: QuranComVerse[];
+  surahNames: Record<number, { name: string; englishName: string }>;
+  isLoading: boolean;
+  onAyatTap?: (ayah: AyahData) => void;
+}) {
+  const juz = verses[0]?.juz_number;
+  const surahNums = [...new Set(verses.map((v) => parseInt(v.verse_key.split(":")[0])))];
+  const headerLabel = surahNums
+    .map((n) => surahNames[n]?.englishName?.toUpperCase())
+    .filter(Boolean)
+    .join(" • ");
+
   return (
-    <div
-      className="h-full w-full flex items-center justify-center"
-      style={{ backgroundColor: "#f8f4eb" }}
-      onClick={onTap}
-    >
-      <img
-        src={PAGE_IMG(page)}
-        alt={`Halaman ${page}`}
-        className="h-full w-auto max-w-full select-none"
-        draggable={false}
-      />
+    <div className="w-full h-full flex flex-col" style={{ backgroundColor: "#f8f4eb" }}>
+      {/* Page header */}
+      <div className="shrink-0 flex items-center justify-between px-5 pt-2 pb-1.5 border-b border-primary/15">
+        <span className="text-[11px] font-bold tracking-widest text-primary/70 uppercase truncate max-w-[60%]">
+          {headerLabel || "—"}
+        </span>
+        {juz != null && (
+          <span className="text-[11px] font-bold text-primary/70">Juz {juz}</span>
+        )}
+      </div>
+
+      {/* Arabic text */}
+      <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-3">
+        {isLoading ? (
+          <div className="space-y-4 pt-2 animate-pulse">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-7 rounded-full bg-primary/10"
+                style={{ width: `${65 + (i % 4) * 8}%`, marginLeft: "auto" }}
+              />
+            ))}
+          </div>
+        ) : (
+          <p
+            className="font-mushaf text-[22px] leading-[2.4] text-foreground"
+            dir="rtl"
+            style={{ textAlign: "justify", textAlignLast: "right" }}
+          >
+            {verses.map((verse, idx) => {
+              const surahNum = parseInt(verse.verse_key.split(":")[0]);
+              const prevSurahNum =
+                idx > 0 ? parseInt(verses[idx - 1].verse_key.split(":")[0]) : null;
+              const showSurahHeader = idx > 0 && surahNum !== prevSurahNum;
+
+              return (
+                <span key={verse.id}>
+                  {showSurahHeader && (
+                    <span className="block my-3">
+                      <span className="block text-center">
+                        <span className="inline-block border border-primary/30 rounded px-6 py-1.5 font-mushaf text-lg text-primary">
+                          سُورَةُ {surahNames[surahNum]?.name || ""}
+                        </span>
+                      </span>
+                      {surahNum !== 9 && (
+                        <span className="block text-center font-mushaf text-xl text-primary/60 mt-1.5">
+                          بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  <span
+                    onClick={() =>
+                      onAyatTap?.({
+                        number: verse.id,
+                        text: verse.text_uthmani,
+                        numberInSurah: verse.verse_number,
+                        juz: verse.juz_number,
+                        hizbQuarter: verse.hizb_number * 4,
+                        page: verse.page_number,
+                        surah: {
+                          number: surahNum,
+                          name: surahNames[surahNum]?.name || "",
+                          englishName:
+                            surahNames[surahNum]?.englishName || `Surah ${surahNum}`,
+                        },
+                      })
+                    }
+                    className={
+                      onAyatTap
+                        ? "cursor-pointer hover:bg-primary/10 active:bg-primary/20 rounded-sm transition-colors"
+                        : ""
+                    }
+                  >
+                    {verse.text_uthmani}
+                  </span>
+                  {/* Inline verse number */}
+                  <span
+                    className="inline-flex items-center justify-center w-5 h-5 rounded-full border border-primary/30 text-[9px] font-medium text-primary/60 mx-0.5 align-middle"
+                    style={{ fontFamily: "sans-serif" }}
+                  >
+                    {toArabicNum(verse.verse_number)}
+                  </span>
+                </span>
+              );
+            })}
+          </p>
+        )}
+      </div>
+
+      {/* Page number footer */}
+      <div className="shrink-0 py-1.5 text-center border-t border-primary/10">
+        <span className="text-xs font-medium text-primary/50">{page}</span>
+      </div>
     </div>
   );
 }
@@ -100,8 +203,6 @@ export default function MushafPageView({
   const [page, setPage] = useState(initialPage);
   const [isLandscape, setIsLandscape] = useState(false);
   const [showTopBar, setShowTopBar] = useState(true);
-  const [showVerseList, setShowVerseList] = useState(false);
-  const [verseListPage, setVerseListPage] = useState(page);
   const [selectedAyat, setSelectedAyat] = useState<AyahData | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -122,23 +223,15 @@ export default function MushafPageView({
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Fetch verse data (used only for verse list sheet)
-  const { data: pageVerses } = usePageData(page);
-  const { data: leftVerses } = usePageData(spreadLeft);
-  const { data: rightVerses } = usePageData(Math.min(spreadRight, TOTAL_PAGES));
+  // Fetch verse data for carousel + landscape
+  const { data: prevVerses = [], isLoading: prevLoading } = usePageData(page - 1);
+  const { data: currVerses = [], isLoading: currLoading } = usePageData(page);
+  const { data: nextVerses = [], isLoading: nextLoading } = usePageData(page + 1);
+  const { data: leftVerses = [], isLoading: leftLoading } = usePageData(spreadLeft);
+  const { data: rightVerses = [], isLoading: rightLoading } = usePageData(
+    Math.min(spreadRight, TOTAL_PAGES)
+  );
   const { data: surahNamesMap = {} } = useSurahNames();
-
-  // Preload adjacent page images
-  useEffect(() => {
-    const preload = (p: number) => {
-      if (p >= 1 && p <= TOTAL_PAGES) {
-        const img = new Image();
-        img.src = PAGE_IMG(p);
-      }
-    };
-    preload(page + 2);
-    preload(page - 2);
-  }, [page]);
 
   // Save reading progress
   const saveProgress = useMutation({
@@ -237,7 +330,6 @@ export default function MushafPageView({
         }
         return;
       }
-
       const diffX = touchStart.current.x - e.changedTouches[0].clientX;
       const diffY = touchStart.current.y - e.changedTouches[0].clientY;
       isSwipingH.current = false;
@@ -280,36 +372,6 @@ export default function MushafPageView({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [goNext, goPrev]);
-
-  const handlePageTap = (targetPage: number) => {
-    setVerseListPage(targetPage);
-    setShowVerseList(true);
-    resetHideTimer();
-  };
-
-  const verseListData = useMemo<AyahData[]>(() => {
-    const target = isLandscape
-      ? verseListPage === spreadLeft
-        ? leftVerses
-        : rightVerses
-      : pageVerses;
-    return (target || []).map((v) => {
-      const surahNum = parseInt(v.verse_key.split(":")[0]);
-      return {
-        number: v.id,
-        text: v.text_uthmani,
-        numberInSurah: v.verse_number,
-        juz: v.juz_number,
-        hizbQuarter: v.hizb_number * 4,
-        page: v.page_number,
-        surah: {
-          number: surahNum,
-          name: surahNamesMap[surahNum]?.name || "",
-          englishName: surahNamesMap[surahNum]?.englishName || `Surah ${surahNum}`,
-        },
-      };
-    });
-  }, [verseListPage, isLandscape, spreadLeft, leftVerses, rightVerses, pageVerses, surahNamesMap]);
 
   const panelStyle = (slot: "prev" | "current" | "next") => {
     const px = `${swipeOffset}px`;
@@ -368,7 +430,6 @@ export default function MushafPageView({
               : `Halaman ${page}`}
           </p>
         </div>
-        {/* spacer to balance back button */}
         <div className="w-10" />
       </div>
 
@@ -377,16 +438,25 @@ export default function MushafPageView({
         {isLandscape ? (
           /* ── Landscape: two-page spread ── */
           <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 overflow-hidden" style={{ borderRight: "2px solid hsl(var(--primary) / 0.25)" }}>
+            <div
+              className="flex-1 relative overflow-hidden"
+              style={{ borderRight: "2px solid hsl(var(--primary) / 0.25)" }}
+            >
               <PagePanel
                 page={Math.min(spreadRight, TOTAL_PAGES)}
-                onTap={() => handlePageTap(Math.min(spreadRight, TOTAL_PAGES))}
+                verses={rightVerses}
+                surahNames={surahNamesMap}
+                isLoading={rightLoading}
+                onAyatTap={setSelectedAyat}
               />
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 relative overflow-hidden">
               <PagePanel
                 page={spreadLeft}
-                onTap={() => handlePageTap(spreadLeft)}
+                verses={leftVerses}
+                surahNames={surahNamesMap}
+                isLoading={leftLoading}
+                onAyatTap={setSelectedAyat}
               />
             </div>
             <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
@@ -417,68 +487,36 @@ export default function MushafPageView({
           <div className="relative flex-1 overflow-hidden">
             {page > 1 && (
               <div className="absolute inset-0" style={panelStyle("prev")}>
-                <PagePanel page={page - 1} onTap={() => {}} />
+                <PagePanel
+                  page={page - 1}
+                  verses={prevVerses}
+                  surahNames={surahNamesMap}
+                  isLoading={prevLoading}
+                />
               </div>
             )}
             <div className="absolute inset-0" style={panelStyle("current")}>
-              <PagePanel page={page} onTap={() => handlePageTap(page)} />
+              <PagePanel
+                page={page}
+                verses={currVerses}
+                surahNames={surahNamesMap}
+                isLoading={currLoading}
+                onAyatTap={setSelectedAyat}
+              />
             </div>
             {page < TOTAL_PAGES && (
               <div className="absolute inset-0" style={panelStyle("next")}>
-                <PagePanel page={page + 1} onTap={() => {}} />
+                <PagePanel
+                  page={page + 1}
+                  verses={nextVerses}
+                  surahNames={surahNamesMap}
+                  isLoading={nextLoading}
+                />
               </div>
             )}
           </div>
         )}
       </div>
-
-      {/* Verse list sheet */}
-      <Sheet open={showVerseList} onOpenChange={setShowVerseList}>
-        <SheetContent side="bottom" className="max-h-[72vh] overflow-y-auto rounded-t-2xl">
-          <SheetHeader className="pb-2">
-            <SheetTitle className="text-sm font-semibold">
-              Ayat Halaman {verseListPage}
-            </SheetTitle>
-          </SheetHeader>
-          <div className="space-y-1.5 pb-4">
-            {verseListData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                Memuat ayat...
-              </p>
-            ) : (
-              verseListData.map((ayah) => (
-                <button
-                  key={ayah.number}
-                  className="w-full text-right px-3 py-2.5 rounded-xl hover:bg-primary/5 border border-border/40 transition-colors"
-                  onClick={() => {
-                    setSelectedAyat(ayah);
-                    setShowVerseList(false);
-                  }}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
-                      <span className="text-[9px] font-bold text-primary">
-                        {ayah.numberInSurah}
-                      </span>
-                    </div>
-                    <p
-                      className="flex-1 font-mushaf text-sm text-foreground leading-relaxed"
-                      dir="rtl"
-                    >
-                      {ayah.text.length > 80
-                        ? ayah.text.slice(0, 80) + "..."
-                        : ayah.text}
-                    </p>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground text-left mt-1 ml-9">
-                    {ayah.surah.englishName} : {ayah.numberInSurah}
-                  </p>
-                </button>
-              ))
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
 
       {selectedAyat && (
         <AyatDetailSheet
