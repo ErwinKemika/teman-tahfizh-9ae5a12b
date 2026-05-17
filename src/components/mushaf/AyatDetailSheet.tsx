@@ -72,19 +72,20 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
     }));
   const transliteration = wordByWord.map((w: any) => w.tr).filter(Boolean).join(" ");
 
-  // Tafsir Ibnu Katsir (ID 169, English abridged)
-  const { data: tafsirIbnuKatsir, isLoading: loadingIbnuKatsir } = useQuery({
-    queryKey: ["tafsir-ibnu-katsir", surahNumber, ayah.numberInSurah],
+  // Tafsir Indonesia (Kemenag) via equran.id — fetch per surah, extract ayah
+  const { data: tafsirSurahData, isLoading: loadingIbnuKatsir } = useQuery({
+    queryKey: ["tafsir-id", surahNumber],
     queryFn: async () => {
-      const res = await fetch(`${QURAN_API}/tafsirs/169/by_ayah/${verseKey}`);
+      const res = await fetch(`https://equran.id/api/v2/tafsir/${surahNumber}`);
       if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
-      return (json.tafsir?.text || "").replace(/<[^>]+>/g, "").trim();
+      return (json.data?.tafsir || []) as { ayat: number; teks: string }[];
     },
     enabled: open,
     staleTime: Infinity,
     retry: 2,
   });
+  const tafsirIbnuKatsir = tafsirSurahData?.find((t) => t.ayat === ayah.numberInSurah)?.teks || "";
 
   // Tafsir Ringkas — Al-Muyassar (ID 16, Arabic)
   const { data: tafsirRingkas, isLoading: loadingRingkas } = useQuery({
@@ -242,7 +243,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
                       : "text-muted-foreground hover:bg-muted/50"
                   }`}
                 >
-                  Ibnu Katsir
+                  Kemenag
                 </button>
                 <button
                   onClick={() => setTafsirSource("ringkas")}
@@ -262,6 +263,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
                 <div
                   className="p-3 rounded-xl bg-muted/30 text-sm text-foreground/80 leading-relaxed"
                   dir={tafsirSource === "ringkas" ? "rtl" : "ltr"}
+                  lang={tafsirSource === "ibnu-katsir" ? "id" : undefined}
                 >
                   {activeTafsirText || "Tafsir tidak tersedia untuk ayat ini."}
                 </div>
