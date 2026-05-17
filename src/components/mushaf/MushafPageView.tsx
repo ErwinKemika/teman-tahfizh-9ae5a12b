@@ -5,8 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import AyatDetailSheet from "./AyatDetailSheet";
+import { quranFetch, QURAN_API_BASE } from "@/services/quranAuth";
 
-const QURAN_API = "https://api.quran.com/api/v4";
+const QURAN_API = QURAN_API_BASE;
 const TOTAL_PAGES = 604;
 
 const toArabicNum = (n: number) =>
@@ -22,6 +23,12 @@ interface AyahData {
   surah: { number: number; name: string; englishName: string };
 }
 
+interface QuranWord {
+  id: number;
+  text_uthmani: string;
+  transliteration?: { text: string };
+}
+
 interface QuranComVerse {
   id: number;
   verse_number: number;
@@ -30,14 +37,15 @@ interface QuranComVerse {
   hizb_number: number;
   page_number: number;
   text_uthmani: string;
+  words?: QuranWord[];
 }
 
 function usePageData(pageNumber: number) {
   return useQuery<QuranComVerse[]>({
     queryKey: ["mushaf-page", pageNumber],
     queryFn: async () => {
-      const res = await fetch(
-        `${QURAN_API}/verses/by_page/${pageNumber}?words=false&fields=text_uthmani&per_page=50`
+      const res = await quranFetch(
+        `${QURAN_API}/verses/by_page/${pageNumber}?words=true&word_fields=text_uthmani,transliteration&fields=text_uthmani,juz_number,hizb_number,page_number&per_page=50&word_type=word`
       );
       const json = await res.json();
       return json.verses || [];
@@ -53,7 +61,7 @@ function useSurahNames() {
   return useQuery<Record<number, { name: string; englishName: string }>>({
     queryKey: ["surat-names"],
     queryFn: async () => {
-      const res = await fetch(`${QURAN_API}/chapters?language=en`);
+      const res = await quranFetch(`${QURAN_API}/chapters?language=en`);
       const json = await res.json();
       const map: Record<number, { name: string; englishName: string }> = {};
       (json.chapters || []).forEach(
@@ -167,12 +175,11 @@ function PagePanel({
                   >
                     {verse.text_uthmani}
                   </span>
-                  {/* Inline verse number */}
                   <span
-                    className="inline-flex items-center justify-center w-5 h-5 rounded-full border border-primary/30 text-[9px] font-medium text-primary/60 mx-0.5 align-middle"
-                    style={{ fontFamily: "sans-serif" }}
+                    className="font-mushaf mx-1 align-middle"
+                    style={{ color: "#F4C430", fontSize: "20px" }}
                   >
-                    {toArabicNum(verse.verse_number)}
+                    ﴿{toArabicNum(verse.verse_number)}﴾
                   </span>
                 </span>
               );
