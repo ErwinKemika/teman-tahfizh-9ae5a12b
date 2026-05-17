@@ -21,12 +21,56 @@ type JenisUjian = "harian" | "pekanan" | "bulanan";
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 const PENILAIAN_OPTIONS = ["Kelancaran", "Tajwid", "Makhraj"];
 
+function calcAvg(scores: number[]) {
+  if (!scores.length) return 0;
+  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+}
+
+function ScoreGrid({
+  label,
+  scores,
+  onChange,
+}: {
+  label: string;
+  scores: number[];
+  onChange: (s: number[]) => void;
+}) {
+  const average = calcAvg(scores);
+  return (
+    <div className="space-y-2">
+      <Label>
+        {label}{" "}
+        <span className="text-xs text-muted-foreground font-normal">(rata-rata: {average})</span>
+      </Label>
+      <div className="grid grid-cols-5 gap-2">
+        {scores.map((score, i) => (
+          <div key={i} className="space-y-1">
+            <p className="text-xs text-center text-muted-foreground">S{i + 1}</p>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={score}
+              onChange={(e) => {
+                const next = [...scores];
+                next[i] = Number(e.target.value);
+                onChange(next);
+              }}
+              className="text-center px-1"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function UjianPage() {
   const { user, role } = useAuth();
   const queryClient = useQueryClient();
   const isGuru = role === "guru";
 
-  const [formType, setFormType] = useState<JenisUjian>(isGuru ? "pekanan" : "harian");
+  const [formType, setFormType] = useState<JenisUjian>("harian");
   const [selectedPekan, setSelectedPekan] = useState<string>("semua");
   const [filterBulan, setFilterBulan] = useState<string>("semua");
   const [filterTahun, setFilterTahun] = useState<string>(String(new Date().getFullYear()));
@@ -41,25 +85,26 @@ export default function UjianPage() {
   const [materiSurat, setMateriSurat] = useState("");
   const [ayatStart, setAyatStart] = useState("");
   const [ayatEnd, setAyatEnd] = useState("");
-  const [nilaiHarian, setNilaiHarian] = useState(80);
+  const [hafalanScoresHarian, setHafalanScoresHarian] = useState<number[]>(Array(5).fill(0));
+  const [tajwidScoresHarian, setTajwidScoresHarian] = useState<number[]>(Array(5).fill(0));
   const [jenisPenilaian, setJenisPenilaian] = useState<string[]>([]);
 
-  // Pekanan
+  // Pekanan (10 soal)
   const [pekanKe, setPekanKe] = useState("");
   const [bulan, setBulan] = useState(String(new Date().getMonth() + 1));
   const [tahun, setTahun] = useState(String(new Date().getFullYear()));
   const [juzPekanan, setJuzPekanan] = useState<string[]>([]);
   const [halamanDari, setHalamanDari] = useState("");
   const [halamanHingga, setHalamanHingga] = useState("");
-  const [hafalanScores, setHafalanScores] = useState<number[]>([0, 0, 0, 0, 0]);
-  const [tajwidScores, setTajwidScores] = useState<number[]>([0, 0, 0, 0, 0]);
+  const [hafalanScores, setHafalanScores] = useState<number[]>(Array(10).fill(0));
+  const [tajwidScores, setTajwidScores] = useState<number[]>(Array(10).fill(0));
   const [statusLulus, setStatusLulus] = useState<"true" | "false">("true");
 
-  // Bulanan
+  // Bulanan (20 soal)
   const [juzBulanan, setJuzBulanan] = useState<string[]>([]);
   const [totalJuz, setTotalJuz] = useState("");
-  const [nilaiHafalan, setNilaiHafalan] = useState(80);
-  const [nilaiTajwidBulan, setNilaiTajwidBulan] = useState(80);
+  const [hafalanScoresBulanan, setHafalanScoresBulanan] = useState<number[]>(Array(20).fill(0));
+  const [tajwidScoresBulanan, setTajwidScoresBulanan] = useState<number[]>(Array(20).fill(0));
   const [nilaiAdab, setNilaiAdab] = useState(80);
   const [peringkat, setPeringkat] = useState("");
   const [statusNaikJuz, setStatusNaikJuz] = useState<"true" | "false">("true");
@@ -72,21 +117,25 @@ export default function UjianPage() {
     return 0;
   }, [ayatStart, ayatEnd]);
 
-  const avgHafalanPekan = useMemo(
-    () => Math.round(hafalanScores.reduce((a, b) => a + b, 0) / 5),
-    [hafalanScores]
+  const avgHafalanHarian = useMemo(() => calcAvg(hafalanScoresHarian), [hafalanScoresHarian]);
+  const avgTajwidHarian = useMemo(() => calcAvg(tajwidScoresHarian), [tajwidScoresHarian]);
+  const nilaiTotalHarian = useMemo(
+    () => Math.round((avgHafalanHarian + avgTajwidHarian) / 2),
+    [avgHafalanHarian, avgTajwidHarian]
   );
-  const avgTajwidPekan = useMemo(
-    () => Math.round(tajwidScores.reduce((a, b) => a + b, 0) / 5),
-    [tajwidScores]
-  );
+
+  const avgHafalanPekan = useMemo(() => calcAvg(hafalanScores), [hafalanScores]);
+  const avgTajwidPekan = useMemo(() => calcAvg(tajwidScores), [tajwidScores]);
   const nilaiTotalPekan = useMemo(
     () => Math.round((avgHafalanPekan + avgTajwidPekan) / 2),
     [avgHafalanPekan, avgTajwidPekan]
   );
+
+  const avgHafalanBulanan = useMemo(() => calcAvg(hafalanScoresBulanan), [hafalanScoresBulanan]);
+  const avgTajwidBulanan = useMemo(() => calcAvg(tajwidScoresBulanan), [tajwidScoresBulanan]);
   const nilaiAkhirBulan = useMemo(
-    () => Math.round(nilaiHafalan * 0.5 + nilaiTajwidBulan * 0.3 + nilaiAdab * 0.2),
-    [nilaiHafalan, nilaiTajwidBulan, nilaiAdab]
+    () => Math.round(avgHafalanBulanan * 0.5 + avgTajwidBulanan * 0.3 + nilaiAdab * 0.2),
+    [avgHafalanBulanan, avgTajwidBulanan, nilaiAdab]
   );
 
   const { data: students } = useQuery({
@@ -123,10 +172,12 @@ export default function UjianPage() {
   const resetForm = () => {
     setSelectedStudent("");
     setCatatanGuru("");
-    setMateriSurat(""); setAyatStart(""); setAyatEnd(""); setJenisPenilaian([]); setNilaiHarian(80);
+    setMateriSurat(""); setAyatStart(""); setAyatEnd(""); setJenisPenilaian([]);
+    setHafalanScoresHarian(Array(5).fill(0)); setTajwidScoresHarian(Array(5).fill(0));
     setPekanKe(""); setJuzPekanan([]); setHalamanDari(""); setHalamanHingga("");
-    setHafalanScores([0, 0, 0, 0, 0]); setTajwidScores([0, 0, 0, 0, 0]); setStatusLulus("true");
-    setJuzBulanan([]); setTotalJuz(""); setNilaiHafalan(80); setNilaiTajwidBulan(80);
+    setHafalanScores(Array(10).fill(0)); setTajwidScores(Array(10).fill(0)); setStatusLulus("true");
+    setJuzBulanan([]); setTotalJuz("");
+    setHafalanScoresBulanan(Array(20).fill(0)); setTajwidScoresBulanan(Array(20).fill(0));
     setNilaiAdab(80); setPeringkat(""); setStatusNaikJuz("true"); setRekomendasi("");
   };
 
@@ -155,7 +206,12 @@ export default function UjianPage() {
           ayat_end: ayatEnd ? parseInt(ayatEnd) : null,
           jumlah_ayat: jumlahAyat || null,
           jenis_penilaian: jenisPenilaian.length ? jenisPenilaian : null,
-          nilai: nilaiHarian,
+          hafalan_scores: hafalanScoresHarian,
+          tajwid_scores: tajwidScoresHarian,
+          nilai_kelancaran: avgHafalanHarian,
+          nilai_tajwid: avgTajwidHarian,
+          nilai_total: nilaiTotalHarian,
+          nilai: nilaiTotalHarian,
           juz_tested: materiSurat,
         };
       } else if (formType === "pekanan") {
@@ -178,8 +234,10 @@ export default function UjianPage() {
         payload = {
           ...base,
           juz_diuji: juzBulanan,
-          nilai_kelancaran: null,
-          nilai_tajwid: nilaiTajwidBulan,
+          hafalan_scores: hafalanScoresBulanan,
+          tajwid_scores: tajwidScoresBulanan,
+          nilai_kelancaran: avgHafalanBulanan,
+          nilai_tajwid: avgTajwidBulanan,
           nilai_adab: nilaiAdab,
           nilai_akhir: nilaiAkhirBulan,
           nilai: nilaiAkhirBulan,
@@ -189,8 +247,6 @@ export default function UjianPage() {
           juz_tested: juzBulanan.join(", "),
           jumlah_ayat: totalJuz ? parseInt(totalJuz) : null,
         };
-        // store nilai_hafalan in nilai_kelancaran column for storage reuse
-        payload.nilai_kelancaran = nilaiHafalan;
       }
       const { error } = await supabase.from("ujian").insert(payload);
       if (error) throw error;
@@ -203,7 +259,8 @@ export default function UjianPage() {
     onError: (e: any) => toast.error("Gagal: " + e.message),
   });
 
-  const scoreColor = (n: number) => n >= 80 ? "text-success" : n >= 60 ? "text-warning" : "text-destructive";
+  const scoreColor = (n: number) =>
+    n >= 80 ? "text-success" : n >= 60 ? "text-warning" : "text-destructive";
 
   const pekanList = useMemo(() => {
     const nums = (ujianResults || [])
@@ -219,13 +276,17 @@ export default function UjianPage() {
     return [...new Set(years)].sort((a, b) => b - a);
   }, [ujianResults]);
 
-  const filteredResults = useMemo(() => (ujianResults || []).filter((r: any) => {
-    if (r.jenis_ujian !== "pekanan") return false;
-    if (filterBulan !== "semua" && String(r.bulan) !== filterBulan) return false;
-    if (filterTahun !== "semua" && String(r.tahun) !== filterTahun) return false;
-    if (selectedPekan !== "semua" && String(r.pekan_ke) !== selectedPekan) return false;
-    return true;
-  }), [ujianResults, filterBulan, filterTahun, selectedPekan]);
+  const filteredResults = useMemo(
+    () =>
+      (ujianResults || []).filter((r: any) => {
+        if (r.jenis_ujian !== "pekanan") return false;
+        if (filterBulan !== "semua" && String(r.bulan) !== filterBulan) return false;
+        if (filterTahun !== "semua" && String(r.tahun) !== filterTahun) return false;
+        if (selectedPekan !== "semua" && String(r.pekan_ke) !== selectedPekan) return false;
+        return true;
+      }),
+    [ujianResults, filterBulan, filterTahun, selectedPekan]
+  );
 
   const toggleArr = (arr: string[], v: string, set: (x: string[]) => void) => {
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
@@ -257,13 +318,11 @@ export default function UjianPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Tabs value={formType} onValueChange={(v) => setFormType(v as JenisUjian)}>
-              {!isGuru && (
-                <TabsList className="grid grid-cols-3 w-full">
-                  <TabsTrigger value="harian">Harian</TabsTrigger>
-                  <TabsTrigger value="pekanan">Pekanan</TabsTrigger>
-                  <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
-                </TabsList>
-              )}
+              <TabsList className="grid grid-cols-3 w-full">
+                <TabsTrigger value="harian">Harian</TabsTrigger>
+                <TabsTrigger value="pekanan">Pekanan</TabsTrigger>
+                <TabsTrigger value="bulanan">Bulanan</TabsTrigger>
+              </TabsList>
 
               <div className="space-y-2 mt-4">
                 <Label>Siswa</Label>
@@ -277,6 +336,7 @@ export default function UjianPage() {
                 </Select>
               </div>
 
+              {/* ── HARIAN: 5 soal ── */}
               <TabsContent value="harian" className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>Tanggal</Label>
@@ -285,7 +345,11 @@ export default function UjianPage() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2 col-span-3 sm:col-span-1">
                     <Label>Surat</Label>
-                    <Input placeholder="Al-Baqarah" value={materiSurat} onChange={(e) => setMateriSurat(e.target.value)} />
+                    <Input
+                      placeholder="Al-Baqarah"
+                      value={materiSurat}
+                      onChange={(e) => setMateriSurat(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Ayat dari</Label>
@@ -296,20 +360,26 @@ export default function UjianPage() {
                     <Input type="number" value={ayatEnd} onChange={(e) => setAyatEnd(e.target.value)} />
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Jumlah ayat: <span className="font-semibold text-foreground">{jumlahAyat}</span></p>
-                <div className="space-y-2">
-                  <Label>Nilai: <span className="font-semibold text-primary">{nilaiHarian}</span></Label>
-                  <div className="flex gap-3 items-center">
-                    <Slider value={[nilaiHarian]} onValueChange={(v) => setNilaiHarian(v[0])} min={0} max={100} step={1} className="flex-1" />
-                    <Input type="number" min={0} max={100} value={nilaiHarian} onChange={(e) => setNilaiHarian(Number(e.target.value))} className="w-20" />
-                  </div>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Jumlah ayat: <span className="font-semibold text-foreground">{jumlahAyat}</span>
+                </p>
+                <ScoreGrid label="Hafalan" scores={hafalanScoresHarian} onChange={setHafalanScoresHarian} />
+                <ScoreGrid label="Tajwid" scores={tajwidScoresHarian} onChange={setTajwidScoresHarian} />
+                <p className="text-sm">
+                  Nilai Total:{" "}
+                  <span className={`font-bold text-lg ${scoreColor(nilaiTotalHarian)}`}>
+                    {nilaiTotalHarian}
+                  </span>
+                </p>
                 <div className="space-y-2">
                   <Label>Jenis Penilaian</Label>
                   <div className="flex flex-wrap gap-4">
                     {PENILAIAN_OPTIONS.map((opt) => (
                       <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <Checkbox checked={jenisPenilaian.includes(opt)} onCheckedChange={() => toggleArr(jenisPenilaian, opt, setJenisPenilaian)} />
+                        <Checkbox
+                          checked={jenisPenilaian.includes(opt)}
+                          onCheckedChange={() => toggleArr(jenisPenilaian, opt, setJenisPenilaian)}
+                        />
                         {opt}
                       </label>
                     ))}
@@ -317,6 +387,7 @@ export default function UjianPage() {
                 </div>
               </TabsContent>
 
+              {/* ── PEKANAN: 10 soal ── */}
               <TabsContent value="pekanan" className="space-y-4 mt-4">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2">
@@ -335,7 +406,9 @@ export default function UjianPage() {
                     <Select value={bulan} onValueChange={setBulan}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {monthNames.map((m, i) => (<SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>))}
+                        {monthNames.map((m, i) => (
+                          <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -353,64 +426,38 @@ export default function UjianPage() {
                         variant={juzPekanan.includes(j) ? "default" : "outline"}
                         className="cursor-pointer"
                         onClick={() => toggleArr(juzPekanan, j, setJuzPekanan)}
-                      >Juz {j}</Badge>
+                      >
+                        Juz {j}
+                      </Badge>
                     ))}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Hafalan <span className="text-xs text-muted-foreground font-normal">(rata-rata: {avgHafalanPekan})</span></Label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {hafalanScores.map((score, i) => (
-                      <div key={i} className="space-y-1">
-                        <p className="text-xs text-center text-muted-foreground">Soal {i + 1}</p>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={score}
-                          onChange={(e) => {
-                            const next = [...hafalanScores];
-                            next[i] = Number(e.target.value);
-                            setHafalanScores(next);
-                          }}
-                          className="text-center px-1"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Tajwid <span className="text-xs text-muted-foreground font-normal">(rata-rata: {avgTajwidPekan})</span></Label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {tajwidScores.map((score, i) => (
-                      <div key={i} className="space-y-1">
-                        <p className="text-xs text-center text-muted-foreground">Soal {i + 1}</p>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={score}
-                          onChange={(e) => {
-                            const next = [...tajwidScores];
-                            next[i] = Number(e.target.value);
-                            setTajwidScores(next);
-                          }}
-                          className="text-center px-1"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <p className="text-sm">Nilai Total: <span className={`font-bold text-lg ${scoreColor(nilaiTotalPekan)}`}>{nilaiTotalPekan}</span></p>
+                <ScoreGrid label="Hafalan" scores={hafalanScores} onChange={setHafalanScores} />
+                <ScoreGrid label="Tajwid" scores={tajwidScores} onChange={setTajwidScores} />
+                <p className="text-sm">
+                  Nilai Total:{" "}
+                  <span className={`font-bold text-lg ${scoreColor(nilaiTotalPekan)}`}>
+                    {nilaiTotalPekan}
+                  </span>
+                </p>
                 <div className="space-y-2">
                   <Label>Status</Label>
-                  <RadioGroup value={statusLulus} onValueChange={(v) => setStatusLulus(v as any)} className="flex gap-4">
-                    <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="true" /> Lulus</label>
-                    <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="false" /> Mengulang</label>
+                  <RadioGroup
+                    value={statusLulus}
+                    onValueChange={(v) => setStatusLulus(v as any)}
+                    className="flex gap-4"
+                  >
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <RadioGroupItem value="true" /> Lulus
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <RadioGroupItem value="false" /> Mengulang
+                    </label>
                   </RadioGroup>
                 </div>
               </TabsContent>
 
+              {/* ── BULANAN: 20 soal ── */}
               <TabsContent value="bulanan" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
@@ -418,7 +465,9 @@ export default function UjianPage() {
                     <Select value={bulan} onValueChange={setBulan}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {monthNames.map((m, i) => (<SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>))}
+                        {monthNames.map((m, i) => (
+                          <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -440,32 +489,53 @@ export default function UjianPage() {
                         variant={juzBulanan.includes(j) ? "default" : "outline"}
                         className="cursor-pointer"
                         onClick={() => toggleArr(juzBulanan, j, setJuzBulanan)}
-                      >Juz {j}</Badge>
+                      >
+                        Juz {j}
+                      </Badge>
                     ))}
                   </div>
                 </div>
+                <ScoreGrid label="Hafalan" scores={hafalanScoresBulanan} onChange={setHafalanScoresBulanan} />
+                <ScoreGrid label="Tajwid" scores={tajwidScoresBulanan} onChange={setTajwidScoresBulanan} />
                 <div className="space-y-2">
-                  <Label>Nilai Hafalan: <span className="font-semibold text-primary">{nilaiHafalan}</span></Label>
-                  <Slider value={[nilaiHafalan]} onValueChange={(v) => setNilaiHafalan(v[0])} min={0} max={100} step={1} />
+                  <Label>
+                    Nilai Adab & Akhlak:{" "}
+                    <span className="font-semibold text-primary">{nilaiAdab}</span>
+                  </Label>
+                  <Slider
+                    value={[nilaiAdab]}
+                    onValueChange={(v) => setNilaiAdab(v[0])}
+                    min={0}
+                    max={100}
+                    step={1}
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label>Nilai Tajwid: <span className="font-semibold text-primary">{nilaiTajwidBulan}</span></Label>
-                  <Slider value={[nilaiTajwidBulan]} onValueChange={(v) => setNilaiTajwidBulan(v[0])} min={0} max={100} step={1} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Nilai Adab & Akhlak: <span className="font-semibold text-primary">{nilaiAdab}</span></Label>
-                  <Slider value={[nilaiAdab]} onValueChange={(v) => setNilaiAdab(v[0])} min={0} max={100} step={1} />
-                </div>
-                <p className="text-sm">Nilai Akhir: <span className={`font-bold text-lg ${scoreColor(nilaiAkhirBulan)}`}>{nilaiAkhirBulan}</span> <span className="text-xs text-muted-foreground">(50% Hafalan + 30% Tajwid + 20% Adab)</span></p>
+                <p className="text-sm">
+                  Nilai Akhir:{" "}
+                  <span className={`font-bold text-lg ${scoreColor(nilaiAkhirBulan)}`}>
+                    {nilaiAkhirBulan}
+                  </span>{" "}
+                  <span className="text-xs text-muted-foreground">
+                    (50% Hafalan + 30% Tajwid + 20% Adab)
+                  </span>
+                </p>
                 <div className="space-y-2">
                   <Label>Peringkat di Kelas (opsional)</Label>
                   <Input type="number" value={peringkat} onChange={(e) => setPeringkat(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Status Naik Juz</Label>
-                  <RadioGroup value={statusNaikJuz} onValueChange={(v) => setStatusNaikJuz(v as any)} className="flex gap-4">
-                    <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="true" /> Ya</label>
-                    <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="false" /> Belum</label>
+                  <RadioGroup
+                    value={statusNaikJuz}
+                    onValueChange={(v) => setStatusNaikJuz(v as any)}
+                    className="flex gap-4"
+                  >
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <RadioGroupItem value="true" /> Ya
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <RadioGroupItem value="false" /> Belum
+                    </label>
                   </RadioGroup>
                 </div>
                 <div className="space-y-2">
@@ -530,14 +600,18 @@ export default function UjianPage() {
                   variant={selectedPekan === "semua" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedPekan("semua")}
-                >Semua</Button>
+                >
+                  Semua
+                </Button>
                 {pekanList.map((p) => (
                   <Button
                     key={p}
                     variant={selectedPekan === String(p) ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedPekan(String(p))}
-                  >Pekan {p}</Button>
+                  >
+                    Pekan {p}
+                  </Button>
                 ))}
               </div>
             )}
@@ -548,6 +622,8 @@ export default function UjianPage() {
               <div className="space-y-3">
                 {filteredResults.map((r: any) => {
                   const score = r.nilai_total ?? r.nilai;
+                  const hafalanLen = r.hafalan_scores?.length || 5;
+                  const tajwidLen = r.tajwid_scores?.length || 5;
                   return (
                     <div key={r.id} className="p-3 rounded-xl border border-border/50 space-y-2">
                       <div className="flex items-start gap-3">
@@ -556,7 +632,8 @@ export default function UjianPage() {
                             <Badge variant="outline" className="text-[10px]">Pekan {r.pekan_ke}</Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            {monthNames[(r.bulan || 1) - 1]} {r.tahun} — Juz {(r.juz_diuji || []).join(", ")}
+                            {monthNames[(r.bulan || 1) - 1]} {r.tahun} — Juz{" "}
+                            {(r.juz_diuji || []).join(", ")}
                             {" • "}
                             <span className={r.status_lulus ? "text-success" : "text-warning"}>
                               {r.status_lulus ? "Lulus" : "Mengulang"}
@@ -573,11 +650,16 @@ export default function UjianPage() {
                       </div>
                       <div className="pt-2 border-t border-border/40 space-y-2">
                         <div className="space-y-1">
-                          <p className="text-[10px] font-medium text-muted-foreground">Hafalan — rata-rata: <span className={`font-bold ${scoreColor(r.nilai_kelancaran || 0)}`}>{r.nilai_kelancaran ?? "-"}</span></p>
-                          <div className="grid grid-cols-5 gap-1.5">
-                            {(r.hafalan_scores && r.hafalan_scores.length === 5
+                          <p className="text-[10px] font-medium text-muted-foreground">
+                            Hafalan — rata-rata:{" "}
+                            <span className={`font-bold ${scoreColor(r.nilai_kelancaran || 0)}`}>
+                              {r.nilai_kelancaran ?? "-"}
+                            </span>
+                          </p>
+                          <div className={`grid grid-cols-5 gap-1.5`}>
+                            {(r.hafalan_scores && r.hafalan_scores.length
                               ? r.hafalan_scores
-                              : [null, null, null, null, null]
+                              : Array(hafalanLen).fill(null)
                             ).map((s: number | null, i: number) => (
                               <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
                                 <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
@@ -589,11 +671,16 @@ export default function UjianPage() {
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] font-medium text-muted-foreground">Tajwid — rata-rata: <span className={`font-bold ${scoreColor(r.nilai_tajwid || 0)}`}>{r.nilai_tajwid ?? "-"}</span></p>
-                          <div className="grid grid-cols-5 gap-1.5">
-                            {(r.tajwid_scores && r.tajwid_scores.length === 5
+                          <p className="text-[10px] font-medium text-muted-foreground">
+                            Tajwid — rata-rata:{" "}
+                            <span className={`font-bold ${scoreColor(r.nilai_tajwid || 0)}`}>
+                              {r.nilai_tajwid ?? "-"}
+                            </span>
+                          </p>
+                          <div className={`grid grid-cols-5 gap-1.5`}>
+                            {(r.tajwid_scores && r.tajwid_scores.length
                               ? r.tajwid_scores
-                              : [null, null, null, null, null]
+                              : Array(tajwidLen).fill(null)
                             ).map((s: number | null, i: number) => (
                               <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
                                 <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
