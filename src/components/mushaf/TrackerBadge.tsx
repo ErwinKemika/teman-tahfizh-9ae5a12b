@@ -12,7 +12,7 @@ import {
 
 const STATUS_MAP = {
   mutqin: { label: "✓ Sudah Hafal", className: "bg-success/10 text-success border-success/20" },
-  tasmi_done: { label: "✓ Tasmi' Done", className: "bg-success/10 text-success border-success/20" },
+  tasmi_done: { label: "✓ Sudah Hafal", className: "bg-success/10 text-success border-success/20" },
   murajaah: { label: "📖 Sedang Dihafal", className: "bg-warning/10 text-warning border-warning/20" },
   belum_dihafalkan: { label: "Belum Dihafal", className: "bg-muted text-muted-foreground" },
 } as const;
