@@ -48,8 +48,8 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
   const { data: verseDetail, isLoading: loadingDetail } = useQuery({
     queryKey: ["verse-detail", surahNumber, ayah.numberInSurah],
     queryFn: async () => {
-      const res = await quranFetch(
-        `${QURAN_API}/verses/by_key/${verseKey}?translations=134&words=true&word_fields=text_uthmani,translation_text,transliteration&language=id`
+      const res = await fetch(
+        `${QURAN_API}/verses/by_key/${verseKey}?translations=33&words=true&word_fields=text_uthmani,translation_text,transliteration&language=id`
       );
       const json = await res.json();
       const v = json.verse;
@@ -91,11 +91,13 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
     retry: 2,
   });
 
-  // Tafsir Ringkas Kemenag (ID 126, Indonesian)
+  // Tafsir Ringkas — Al-Muyassar (ID 16, ringkas Arabic)
   const { data: tafsirRingkas, isLoading: loadingRingkas } = useQuery({
     queryKey: ["tafsir-ringkas", surahNumber, ayah.numberInSurah],
     queryFn: async () => {
-      const res = await quranFetch(`${QURAN_API}/tafsirs/126/by_ayah/${verseKey}`);
+      const res = await fetch(`${QURAN_API}/tafsirs/16/by_ayah/${verseKey}`, {
+        headers: { Accept: "application/json" },
+      });
       const json = await res.json();
       return (json.tafsir?.text || "").replace(/<[^>]+>/g, "").trim();
     },
@@ -271,7 +273,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
               ) : (
                 <div
                   className="p-3 rounded-xl bg-muted/30 text-sm text-foreground/80 leading-relaxed"
-                  dir="ltr"
+                  dir={tafsirSource === "ringkas" ? "rtl" : "ltr"}
                 >
                   {activeTafsirText || "Tafsir tidak tersedia untuk ayat ini."}
                 </div>
