@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import AudioPlayer from "./AudioPlayer";
 import AudioTafsirPlayer from "./AudioTafsirPlayer";
 import TrackerBadge from "./TrackerBadge";
-import { quranFetch, QURAN_API_BASE } from "@/services/quranAuth";
+import { QURAN_API_BASE } from "@/services/quranAuth";
 
 const QURAN_API = QURAN_API_BASE;
 
@@ -44,67 +44,60 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
 
   const verseKey = `${surahNumber}:${ayah.numberInSurah}`;
 
-  // Fetch translation + word-by-word (language=id for Indonesian words)
-  const { data: verseDetail, isLoading: loadingDetail } = useQuery({
-    queryKey: ["verse-detail", surahNumber, ayah.numberInSurah],
+  // Fetch translation only (simple request, no word complexity)
+  const { data: translationText, isLoading: loadingTranslation, isError: errorTranslation } = useQuery({
+    queryKey: ["verse-translation", surahNumber, ayah.numberInSurah],
     queryFn: async () => {
-      const res = await quranFetch(
-        `${QURAN_API}/verses/by_key/${verseKey}?translations=33&words=true&word_fields=text_uthmani,translation,transliteration&language=id`
+      const res = await fetch(
+        `${QURAN_API}/verses/by_key/${verseKey}?translations=33`
       );
+      if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
-      const v = json.verse;
-      const wordList = (v?.words || []).filter(
-        (w: { char_type_name: string }) => w.char_type_name === "word"
-      );
-      return {
-        translation: (v?.translations?.[0]?.text || "").replace(/<[^>]+>/g, "").trim(),
-        transliteration: wordList
-          .map((w: { transliteration?: { text: string } }) => w.transliteration?.text || "")
-          .filter(Boolean)
-          .join(" "),
-        words: wordList.map(
-          (w: { text_uthmani: string; translation?: { text: string }; transliteration?: { text: string } }) => ({
-            ar: w.text_uthmani,
-            id: w.translation?.text || "",
-            tr: w.transliteration?.text || "",
-          })
-        ),
-      };
+      return (json.verse?.translations?.[0]?.text || "").replace(/<[^>]+>/g, "").trim();
     },
     enabled: open,
-    staleTime: 1000 * 60 * 60,
-    retry: 2,
+    staleTime: Infinity,
+    retry: 1,
   });
+
+  // Get kata-per-kata from cached page data (already fetched by MushafPageView)
+  const pageVerses: any[] = queryClient.getQueryData(["mushaf-page", ayah.page]) || [];
+  const cachedVerse = pageVerses.find((v: any) => v.verse_key === verseKey);
+  const wordByWord = (cachedVerse?.words || [])
+    .filter((w: any) => w.char_type_name === "word")
+    .map((w: any) => ({
+      ar: w.text_uthmani || "",
+      tr: w.transliteration?.text || "",
+    }));
+  const transliteration = wordByWord.map((w: any) => w.tr).filter(Boolean).join(" ");
 
   // Tafsir Ibnu Katsir (ID 169, English abridged)
   const { data: tafsirIbnuKatsir, isLoading: loadingIbnuKatsir } = useQuery({
     queryKey: ["tafsir-ibnu-katsir", surahNumber, ayah.numberInSurah],
     queryFn: async () => {
-      const res = await quranFetch(`${QURAN_API}/tafsirs/169/by_ayah/${verseKey}`);
+      const res = await fetch(`${QURAN_API}/tafsirs/169/by_ayah/${verseKey}`);
+      if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
       return (json.tafsir?.text || "").replace(/<[^>]+>/g, "").trim();
     },
     enabled: open,
-    staleTime: 1000 * 60 * 60,
+    staleTime: Infinity,
     retry: 2,
   });
 
-  // Tafsir Ringkas — Al-Muyassar (ID 16, ringkas Arabic)
+  // Tafsir Ringkas — Al-Muyassar (ID 16, Arabic)
   const { data: tafsirRingkas, isLoading: loadingRingkas } = useQuery({
     queryKey: ["tafsir-ringkas", surahNumber, ayah.numberInSurah],
     queryFn: async () => {
-      const res = await quranFetch(`${QURAN_API}/tafsirs/16/by_ayah/${verseKey}`);
+      const res = await fetch(`${QURAN_API}/tafsirs/16/by_ayah/${verseKey}`);
+      if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
       return (json.tafsir?.text || "").replace(/<[^>]+>/g, "").trim();
     },
     enabled: open,
-    staleTime: 1000 * 60 * 60,
+    staleTime: Infinity,
     retry: 2,
   });
-
-  const translation = verseDetail?.translation;
-  const transliteration = verseDetail?.transliteration;
-  const wordByWord = verseDetail?.words;
 
   // Bookmark check
   const { data: isBookmarked } = useQuery({
@@ -183,10 +176,12 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
             <AccordionItem value="terjemahan">
               <AccordionTrigger className="text-sm font-semibold">Terjemahan</AccordionTrigger>
               <AccordionContent>
-                {loadingDetail ? (
+                {loadingTranslation ? (
                   <Skeleton className="h-16" />
+                ) : errorTranslation ? (
+                  <p className="text-sm text-muted-foreground">Gagal memuat terjemahan</p>
                 ) : (
-                  <p className="text-sm text-foreground/80 leading-relaxed">{translation}</p>
+                  <p className="text-sm text-foreground/80 leading-relaxed">{translationText}</p>
                 )}
               </AccordionContent>
             </AccordionItem>
@@ -194,9 +189,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
             <AccordionItem value="transliterasi">
               <AccordionTrigger className="text-sm font-semibold">Transliterasi</AccordionTrigger>
               <AccordionContent>
-                {loadingDetail ? (
-                  <Skeleton className="h-10" />
-                ) : transliteration ? (
+                {transliteration ? (
                   <p className="text-sm text-foreground/80 leading-relaxed italic">{transliteration}</p>
                 ) : (
                   <p className="text-sm text-muted-foreground">Data transliterasi tidak tersedia</p>
@@ -207,15 +200,13 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
             <AccordionItem value="kata-per-kata">
               <AccordionTrigger className="text-sm font-semibold">Kata per Kata</AccordionTrigger>
               <AccordionContent>
-                {loadingDetail ? (
-                  <Skeleton className="h-24" />
-                ) : wordByWord?.length ? (
+                {wordByWord?.length ? (
                   <div className="grid grid-cols-3 gap-2" dir="rtl">
                     {wordByWord.map((w: any, i: number) => (
                       <div key={i} className="text-center p-2 rounded-lg bg-muted/50">
                         <p className="font-arabic text-base" style={{ color: "#F4C430" }}>{w.ar}</p>
                         <p className="text-[10px] text-muted-foreground mt-1" dir="ltr">
-                          {w.id}
+                          {w.tr}
                         </p>
                       </div>
                     ))}
