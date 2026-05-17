@@ -12,10 +12,9 @@ dist
 dist-ssr
 *.local
 
-# Environment variables — NEVER commit credentials
-.env
-.env.*
-!.env.example
+# Local-only env overrides (never commit)
+.env.local
+.env.*.local
 
 # Editor directories and files
 .vscode/*
