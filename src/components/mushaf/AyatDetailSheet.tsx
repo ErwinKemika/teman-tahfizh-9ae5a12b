@@ -68,6 +68,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
     .map((w: any) => ({
       ar: w.text_uthmani || "",
       tr: w.transliteration?.text || "",
+      id: w.translation?.text || "",
     }));
   const transliteration = wordByWord.map((w: any) => w.tr).filter(Boolean).join(" ");
 
@@ -204,9 +205,9 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
                   <div className="grid grid-cols-3 gap-2" dir="rtl">
                     {wordByWord.map((w: any, i: number) => (
                       <div key={i} className="text-center p-2 rounded-lg bg-muted/50">
-                        <p className="font-arabic text-base" style={{ color: "#F4C430" }}>{w.ar}</p>
+                        <p className="font-arabic text-base text-amber-700 dark:text-amber-400">{w.ar}</p>
                         <p className="text-[10px] text-muted-foreground mt-1" dir="ltr">
-                          {w.tr}
+                          {w.id || w.tr}
                         </p>
                       </div>
                     ))}

@@ -45,7 +45,7 @@ function usePageData(pageNumber: number) {
     queryKey: ["mushaf-page", pageNumber],
     queryFn: async () => {
       const res = await quranFetch(
-        `${QURAN_API}/verses/by_page/${pageNumber}?words=true&word_fields=text_uthmani,transliteration&fields=text_uthmani,juz_number,hizb_number,page_number&per_page=50&word_type=word`
+        `${QURAN_API}/verses/by_page/${pageNumber}?words=true&word_fields=text_uthmani,transliteration,translation&fields=text_uthmani,juz_number,hizb_number,page_number&per_page=50&word_type=word`
       );
       const json = await res.json();
       return json.verses || [];
