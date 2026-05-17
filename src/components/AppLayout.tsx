@@ -11,24 +11,18 @@ import {
   Trophy,
   LogOut,
   Menu,
-  MessageSquare,
-  Calendar,
-  Megaphone,
-  Mic,
   ClipboardList,
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 
 interface NavItem {
   label: string;
   icon: React.ElementType;
   path: string;
-  comingSoon?: boolean;
   subItems?: NavItem[];
 }
 
@@ -41,35 +35,20 @@ const mainNavItems: NavItem[] = [
   { label: "Mushaf", icon: BookMarked, path: "/mushaf" },
 ];
 
-const comingSoonItems: NavItem[] = [
-  { label: "Leaderboard", icon: Trophy, path: "#", comingSoon: true },
-  { label: "Jadwal", icon: Calendar, path: "#", comingSoon: true },
-  { label: "Pesan", icon: MessageSquare, path: "#", comingSoon: true },
-  { label: "Notifikasi", icon: Megaphone, path: "#", comingSoon: true },
-  { label: "Rekaman Suara", icon: Mic, path: "#", comingSoon: true },
-];
 
 function NavItemButton({ item, active, onClick }: { item: NavItem; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      disabled={item.comingSoon}
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all w-full text-left",
         active
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
-          : item.comingSoon
-          ? "text-sidebar-foreground/40 cursor-not-allowed"
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
       )}
     >
       <item.icon className="w-5 h-5 shrink-0" />
       <span className="truncate">{item.label}</span>
-      {item.comingSoon && (
-        <Badge variant="outline" className="ml-auto text-[10px] px-1.5 py-0 border-sidebar-foreground/20 text-sidebar-foreground/40">
-          Segera
-        </Badge>
-      )}
     </button>
   );
 }
@@ -168,17 +147,6 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
           );
         })}
 
-        <p className="px-3 py-1.5 mt-4 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
-          Segera Hadir
-        </p>
-        {comingSoonItems.map((item) => (
-          <NavItemButton
-            key={item.label}
-            item={item}
-            active={false}
-            onClick={() => {}}
-          />
-        ))}
       </nav>
 
       {/* User section */}
