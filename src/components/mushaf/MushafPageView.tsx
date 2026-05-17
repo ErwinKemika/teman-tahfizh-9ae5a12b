@@ -190,7 +190,7 @@ function PagePanel({
 
       {/* Page number footer */}
       <div className="shrink-0 py-1.5 text-center border-t border-primary/10">
-        <span className="text-xs font-medium text-primary/50">{page}</span>
+        <span className="font-mushaf text-sm text-primary/50">{toArabicNum(page)}</span>
       </div>
     </div>
   );
@@ -332,7 +332,7 @@ export default function MushafPageView({
         const diffX = touchStart.current.x - e.changedTouches[0].clientX;
         const diffY = touchStart.current.y - e.changedTouches[0].clientY;
         if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
-          if (diffX > 0) goNext();
+          if (diffX < 0) goNext();
           else goPrev();
         }
         return;
@@ -344,15 +344,15 @@ export default function MushafPageView({
       if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
         const w = window.innerWidth;
         setIsTransitioning(true);
-        if (diffX > 0 && page < TOTAL_PAGES) {
-          setSwipeOffset(-w);
+        if (diffX < 0 && page < TOTAL_PAGES) {
+          setSwipeOffset(w);
           setTimeout(() => {
             goNext();
             setSwipeOffset(0);
             setIsTransitioning(false);
           }, 280);
-        } else if (diffX < 0 && page > 1) {
-          setSwipeOffset(w);
+        } else if (diffX > 0 && page > 1) {
+          setSwipeOffset(-w);
           setTimeout(() => {
             goPrev();
             setSwipeOffset(0);
@@ -373,8 +373,8 @@ export default function MushafPageView({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") goNext();
-      if (e.key === "ArrowRight") goPrev();
+      if (e.key === "ArrowRight") goNext();
+      if (e.key === "ArrowLeft") goPrev();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -384,9 +384,9 @@ export default function MushafPageView({
     const px = `${swipeOffset}px`;
     const transform =
       slot === "prev"
-        ? `translateX(calc(${px} - 100%))`
-        : slot === "next"
         ? `translateX(calc(${px} + 100%))`
+        : slot === "next"
+        ? `translateX(calc(${px} - 100%))`
         : `translateX(${px})`;
     return {
       transform,
