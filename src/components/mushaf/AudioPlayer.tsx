@@ -6,8 +6,8 @@ import { Play, Pause, RotateCcw } from "lucide-react";
 
 const RECITERS = [
   { id: "ar.alafasy", name: "Mishary Alafasy" },
+  { id: "ar.abdulbasitmurattal", name: "Abdul Basit (Murattal)" },
   { id: "ar.abdurrahmaansudais", name: "Abdurrahman As-Sudais" },
-  { id: "ar.husary", name: "Mahmoud Khalil Al-Husary" },
 ];
 
 const CDN = "https://cdn.islamic.network/quran/audio/128";

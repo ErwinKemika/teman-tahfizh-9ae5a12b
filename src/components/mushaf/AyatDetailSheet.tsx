@@ -18,8 +18,9 @@ import { toast } from "sonner";
 import AudioPlayer from "./AudioPlayer";
 import AudioTafsirPlayer from "./AudioTafsirPlayer";
 import TrackerBadge from "./TrackerBadge";
+import { quranFetch, QURAN_API_BASE } from "@/services/quranAuth";
 
-const QURAN_API = "https://api.quran.com/api/v4";
+const QURAN_API = QURAN_API_BASE;
 
 interface AyatDetailSheetProps {
   ayah: {
@@ -39,7 +40,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const ayatRef = `${surahNumber}:${ayah.numberInSurah}`;
-  const [tafsirSource, setTafsirSource] = useState<"ibnu-katsir" | "al-muyassar">("ibnu-katsir");
+  const [tafsirSource, setTafsirSource] = useState<"ibnu-katsir" | "ringkas">("ibnu-katsir");
 
   const verseKey = `${surahNumber}:${ayah.numberInSurah}`;
 
@@ -47,19 +48,27 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
   const { data: verseDetail, isLoading: loadingDetail } = useQuery({
     queryKey: ["verse-detail", surahNumber, ayah.numberInSurah],
     queryFn: async () => {
-      const res = await fetch(
-        `${QURAN_API}/verses/by_key/${verseKey}?translations=33&words=true&word_fields=text_uthmani,translation_text&language=id`
+      const res = await quranFetch(
+        `${QURAN_API}/verses/by_key/${verseKey}?translations=134&words=true&word_fields=text_uthmani,translation_text,transliteration&language=id`
       );
       const json = await res.json();
       const v = json.verse;
+      const wordList = (v?.words || []).filter(
+        (w: { char_type_name: string }) => w.char_type_name === "word"
+      );
       return {
         translation: (v?.translations?.[0]?.text || "").replace(/<[^>]+>/g, "").trim(),
-        words: (v?.words || [])
-          .filter((w: { char_type_name: string }) => w.char_type_name === "word")
-          .map((w: { text_uthmani: string; translation?: { text: string } }) => ({
+        transliteration: wordList
+          .map((w: { transliteration?: { text: string } }) => w.transliteration?.text || "")
+          .filter(Boolean)
+          .join(" "),
+        words: wordList.map(
+          (w: { text_uthmani: string; translation?: { text: string }; transliteration?: { text: string } }) => ({
             ar: w.text_uthmani,
             id: w.translation?.text || "",
-          })),
+            tr: w.transliteration?.text || "",
+          })
+        ),
       };
     },
     enabled: open,
@@ -82,13 +91,11 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
     retry: 2,
   });
 
-  // Tafsir Al-Muyassar (ID 16, Arabic)
-  const { data: tafsirMuyassar, isLoading: loadingMuyassar } = useQuery({
-    queryKey: ["tafsir-muyassar", surahNumber, ayah.numberInSurah],
+  // Tafsir Ringkas Kemenag (ID 126, Indonesian)
+  const { data: tafsirRingkas, isLoading: loadingRingkas } = useQuery({
+    queryKey: ["tafsir-ringkas", surahNumber, ayah.numberInSurah],
     queryFn: async () => {
-      const res = await fetch(`${QURAN_API}/tafsirs/16/by_ayah/${verseKey}`, {
-        headers: { Accept: "application/json" },
-      });
+      const res = await quranFetch(`${QURAN_API}/tafsirs/126/by_ayah/${verseKey}`);
       const json = await res.json();
       return (json.tafsir?.text || "").replace(/<[^>]+>/g, "").trim();
     },
@@ -98,6 +105,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
   });
 
   const translation = verseDetail?.translation;
+  const transliteration = verseDetail?.transliteration;
   const wordByWord = verseDetail?.words;
 
   // Bookmark check
@@ -136,8 +144,8 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
     },
   });
 
-  const activeTafsirText = tafsirSource === "ibnu-katsir" ? tafsirIbnuKatsir : tafsirMuyassar;
-  const activeTafsirLoading = tafsirSource === "ibnu-katsir" ? loadingIbnuKatsir : loadingMuyassar;
+  const activeTafsirText = tafsirSource === "ibnu-katsir" ? tafsirIbnuKatsir : tafsirRingkas;
+  const activeTafsirLoading = tafsirSource === "ibnu-katsir" ? loadingIbnuKatsir : loadingRingkas;
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -185,6 +193,19 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
               </AccordionContent>
             </AccordionItem>
 
+            <AccordionItem value="transliterasi">
+              <AccordionTrigger className="text-sm font-semibold">Transliterasi</AccordionTrigger>
+              <AccordionContent>
+                {loadingDetail ? (
+                  <Skeleton className="h-10" />
+                ) : transliteration ? (
+                  <p className="text-sm text-foreground/80 leading-relaxed italic">{transliteration}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Data transliterasi tidak tersedia</p>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+
             <AccordionItem value="kata-per-kata">
               <AccordionTrigger className="text-sm font-semibold">Kata per Kata</AccordionTrigger>
               <AccordionContent>
@@ -194,7 +215,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
                   <div className="grid grid-cols-3 gap-2" dir="rtl">
                     {wordByWord.map((w: any, i: number) => (
                       <div key={i} className="text-center p-2 rounded-lg bg-muted/50">
-                        <p className="font-arabic text-base text-foreground">{w.ar}</p>
+                        <p className="font-arabic text-base" style={{ color: "#F4C430" }}>{w.ar}</p>
                         <p className="text-[10px] text-muted-foreground mt-1" dir="ltr">
                           {w.id}
                         </p>
@@ -234,14 +255,14 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
                   Ibnu Katsir
                 </button>
                 <button
-                  onClick={() => setTafsirSource("al-muyassar")}
+                  onClick={() => setTafsirSource("ringkas")}
                   className={`flex-1 py-1.5 text-xs font-medium transition-colors ${
-                    tafsirSource === "al-muyassar"
+                    tafsirSource === "ringkas"
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-muted/50"
                   }`}
                 >
-                  Al-Muyassar
+                  Ringkas
                 </button>
               </div>
 
@@ -250,7 +271,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
               ) : (
                 <div
                   className="p-3 rounded-xl bg-muted/30 text-sm text-foreground/80 leading-relaxed"
-                  dir={tafsirSource === "al-muyassar" ? "rtl" : "ltr"}
+                  dir="ltr"
                 >
                   {activeTafsirText || "Tafsir tidak tersedia untuk ayat ini."}
                 </div>
