@@ -48,8 +48,8 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
   const { data: verseDetail, isLoading: loadingDetail } = useQuery({
     queryKey: ["verse-detail", surahNumber, ayah.numberInSurah],
     queryFn: async () => {
-      const res = await fetch(
-        `${QURAN_API}/verses/by_key/${verseKey}?translations=33&words=true&word_fields=text_uthmani,translation_text,transliteration&language=id`
+      const res = await quranFetch(
+        `${QURAN_API}/verses/by_key/${verseKey}?translations=33&words=true&word_fields=text_uthmani,translation,transliteration&language=id`
       );
       const json = await res.json();
       const v = json.verse;
@@ -80,9 +80,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
   const { data: tafsirIbnuKatsir, isLoading: loadingIbnuKatsir } = useQuery({
     queryKey: ["tafsir-ibnu-katsir", surahNumber, ayah.numberInSurah],
     queryFn: async () => {
-      const res = await fetch(`${QURAN_API}/tafsirs/169/by_ayah/${verseKey}`, {
-        headers: { Accept: "application/json" },
-      });
+      const res = await quranFetch(`${QURAN_API}/tafsirs/169/by_ayah/${verseKey}`);
       const json = await res.json();
       return (json.tafsir?.text || "").replace(/<[^>]+>/g, "").trim();
     },
@@ -95,9 +93,7 @@ export default function AyatDetailSheet({ ayah, surahNumber, surahName, open, on
   const { data: tafsirRingkas, isLoading: loadingRingkas } = useQuery({
     queryKey: ["tafsir-ringkas", surahNumber, ayah.numberInSurah],
     queryFn: async () => {
-      const res = await fetch(`${QURAN_API}/tafsirs/16/by_ayah/${verseKey}`, {
-        headers: { Accept: "application/json" },
-      });
+      const res = await quranFetch(`${QURAN_API}/tafsirs/16/by_ayah/${verseKey}`);
       const json = await res.json();
       return (json.tafsir?.text || "").replace(/<[^>]+>/g, "").trim();
     },
