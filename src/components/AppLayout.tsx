@@ -234,7 +234,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Top bar (mobile) */}
-        <header className="lg:hidden flex items-center justify-between px-4 h-14 border-b border-border bg-card">
+        <header
+          className="lg:hidden flex items-center justify-between px-4 border-b border-border bg-card"
+          style={{
+            paddingTop: "env(safe-area-inset-top)",
+            height: "calc(3.5rem + env(safe-area-inset-top))",
+          }}
+        >
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
               <BookOpen className="w-4 h-4 text-primary-foreground" />
