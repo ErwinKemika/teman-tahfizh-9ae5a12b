@@ -99,7 +99,7 @@ function PagePanel({
     .join(" • ");
 
   return (
-    <div className="w-full h-full flex flex-col" style={{ backgroundColor: "#f8f4eb" }}>
+    <div className="w-full h-full flex flex-col bg-[#f8f4eb] dark:bg-[#1c1917]">
       {/* Page header */}
       <div className="shrink-0 flex items-center justify-between px-5 pt-2 pb-1.5 border-b border-primary/15">
         <span className="text-[11px] font-bold tracking-widest text-primary/70 uppercase truncate max-w-[60%]">
@@ -399,9 +399,8 @@ export default function MushafPageView({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex flex-col select-none"
+      className="fixed inset-0 z-[60] flex flex-col select-none bg-[#f8f4eb] dark:bg-[#1c1917]"
       style={{
-        backgroundColor: "#f8f4eb",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
