@@ -441,7 +441,7 @@ export default function MushafPageView({
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden pt-[52px]">
+      <div className="flex-1 flex overflow-hidden pt-[52px]" onClick={resetHideTimer}>
         {isLandscape ? (
           /* ── Landscape: two-page spread ── */
           <div className="flex-1 flex overflow-hidden">
