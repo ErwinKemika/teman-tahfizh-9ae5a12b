@@ -186,15 +186,15 @@ export default function GuruDashboard() {
                   key={student.id}
                   className="flex items-center gap-3 p-3 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm flex-shrink-0">
                     {student.full_name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{student.full_name}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-foreground truncate">{student.full_name}</p>
+                      <p className="text-xs font-medium text-foreground flex-shrink-0">{pct}%</p>
+                    </div>
                     {student.class && <p className="text-xs text-muted-foreground">{student.class}</p>}
-                  </div>
-                  <div className="w-24 text-right">
-                    <p className="text-xs font-medium text-foreground">{pct}%</p>
                     <Progress value={pct} className="h-1.5 mt-1" />
                   </div>
                 </div>
