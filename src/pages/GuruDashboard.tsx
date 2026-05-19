@@ -2,10 +2,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Users, Activity, BookOpen, TrendingUp, ClipboardCheck } from "lucide-react";
+import { Users, Activity, BookOpen, TrendingUp, ClipboardCheck, ChevronDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 const statusConfig = {
@@ -18,6 +19,7 @@ const statusConfig = {
 export default function GuruDashboard() {
   const { profile } = useAuth();
   const [search, setSearch] = useState("");
+  const [showStudents, setShowStudents] = useState(false);
 
   const { data: students } = useQuery({
     queryKey: ["all-students"],
@@ -89,34 +91,34 @@ export default function GuruDashboard() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="shadow-card">
-          <CardContent className="py-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Users className="w-5 h-5 text-primary" />
+          <CardContent className="p-3 flex items-center gap-2">
+            <div className="w-9 h-9 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Users className="w-4 h-4 text-primary" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total Siswa</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground truncate">Total Siswa</p>
               <p className="text-lg font-bold text-foreground">{students?.length || 0}</p>
             </div>
           </CardContent>
         </Card>
         <Card className="shadow-card">
-          <CardContent className="py-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
-              <Activity className="w-5 h-5 text-success" />
+          <CardContent className="p-3 flex items-center gap-2">
+            <div className="w-9 h-9 shrink-0 rounded-xl bg-success/10 flex items-center justify-center">
+              <Activity className="w-4 h-4 text-success" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Aktif Hari Ini</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground truncate">Aktif Hari Ini</p>
               <p className="text-lg font-bold text-foreground">{todayActivity}</p>
             </div>
           </CardContent>
         </Card>
         <Card className="shadow-card">
-          <CardContent className="py-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-secondary" />
+          <CardContent className="p-3 flex items-center gap-2">
+            <div className="w-9 h-9 shrink-0 rounded-xl bg-secondary/10 flex items-center justify-center">
+              <BookOpen className="w-4 h-4 text-secondary" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Rata-rata Progress</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground truncate">Rata-rata</p>
               <p className="text-lg font-bold text-foreground">
                 {students?.length
                   ? Math.round(
@@ -131,12 +133,12 @@ export default function GuruDashboard() {
           </CardContent>
         </Card>
         <Card className="shadow-card">
-          <CardContent className="py-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-highlight/10 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-highlight" />
+          <CardContent className="p-3 flex items-center gap-2">
+            <div className="w-9 h-9 shrink-0 rounded-xl bg-highlight/10 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-highlight" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Partisipasi</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground truncate">Partisipasi</p>
               <p className="text-lg font-bold text-foreground">
                 {students?.length ? Math.round((todayActivity || 0) / students.length * 100) : 0}%
               </p>
@@ -150,43 +152,56 @@ export default function GuruDashboard() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Daftar Siswa</CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground gap-1"
+              onClick={() => setShowStudents((v) => !v)}
+            >
+              {showStudents ? "Sembunyikan" : `Tampilkan (${students?.length || 0})`}
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showStudents ? "rotate-180" : ""}`} />
+            </Button>
           </div>
-          <Input
-            placeholder="Cari siswa..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="mt-2"
-          />
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {filteredStudents?.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Belum ada siswa terdaftar
-            </p>
+          {showStudents && (
+            <Input
+              placeholder="Cari siswa..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="mt-2"
+            />
           )}
-          {filteredStudents?.map((student) => {
-            const mutqin = studentProgress?.[student.user_id] || 0;
-            const pct = Math.round((mutqin / 604) * 100);
-            return (
-              <div
-                key={student.id}
-                className="flex items-center gap-3 p-3 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors"
-              >
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
-                  {student.full_name.charAt(0)}
+        </CardHeader>
+        {showStudents && (
+          <CardContent className="space-y-2 pt-0">
+            {filteredStudents?.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Belum ada siswa terdaftar
+              </p>
+            )}
+            {filteredStudents?.map((student) => {
+              const mutqin = studentProgress?.[student.user_id] || 0;
+              const pct = Math.round((mutqin / 604) * 100);
+              return (
+                <div
+                  key={student.id}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+                    {student.full_name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{student.full_name}</p>
+                    {student.class && <p className="text-xs text-muted-foreground">{student.class}</p>}
+                  </div>
+                  <div className="w-24 text-right">
+                    <p className="text-xs font-medium text-foreground">{pct}%</p>
+                    <Progress value={pct} className="h-1.5 mt-1" />
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{student.full_name}</p>
-                  {student.class && <p className="text-xs text-muted-foreground">{student.class}</p>}
-                </div>
-                <div className="w-24 text-right">
-                  <p className="text-xs font-medium text-foreground">{pct}%</p>
-                  <Progress value={pct} className="h-1.5 mt-1" />
-                </div>
-              </div>
-            );
-          })}
-        </CardContent>
+              );
+            })}
+          </CardContent>
+        )}
       </Card>
 
       {/* Today's Mutabaah Review */}
