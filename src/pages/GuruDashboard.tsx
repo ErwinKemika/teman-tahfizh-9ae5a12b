@@ -177,7 +177,7 @@ export default function GuruDashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{student.full_name}</p>
-                  <p className="text-xs text-muted-foreground">{student.class || "Tanpa kelas"}</p>
+                  {student.class && <p className="text-xs text-muted-foreground">{student.class}</p>}
                 </div>
                 <div className="w-24 text-right">
                   <p className="text-xs font-medium text-foreground">{pct}%</p>
