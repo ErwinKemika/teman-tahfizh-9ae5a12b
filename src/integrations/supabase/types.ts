@@ -278,6 +278,7 @@ export type Database = {
           catatan_guru: string | null
           created_at: string
           created_by: string | null
+          hafalan_scores: number[] | null
           id: string
           jenis_penilaian: string[] | null
           jenis_ujian: Database["public"]["Enums"]["jenis_ujian_enum"]
@@ -298,6 +299,7 @@ export type Database = {
           status_naik_juz: boolean | null
           student_id: string
           tahun: number
+          tajwid_scores: number[] | null
           tanggal: string | null
         }
         Insert: {
@@ -307,6 +309,7 @@ export type Database = {
           catatan_guru?: string | null
           created_at?: string
           created_by?: string | null
+          hafalan_scores?: number[] | null
           id?: string
           jenis_penilaian?: string[] | null
           jenis_ujian?: Database["public"]["Enums"]["jenis_ujian_enum"]
@@ -327,6 +330,7 @@ export type Database = {
           status_naik_juz?: boolean | null
           student_id: string
           tahun: number
+          tajwid_scores?: number[] | null
           tanggal?: string | null
         }
         Update: {
@@ -336,6 +340,7 @@ export type Database = {
           catatan_guru?: string | null
           created_at?: string
           created_by?: string | null
+          hafalan_scores?: number[] | null
           id?: string
           jenis_penilaian?: string[] | null
           jenis_ujian?: Database["public"]["Enums"]["jenis_ujian_enum"]
@@ -356,6 +361,7 @@ export type Database = {
           status_naik_juz?: boolean | null
           student_id?: string
           tahun?: number
+          tajwid_scores?: number[] | null
           tanggal?: string | null
         }
         Relationships: []
