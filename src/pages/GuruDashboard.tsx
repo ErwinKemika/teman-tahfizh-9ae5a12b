@@ -91,34 +91,34 @@ export default function GuruDashboard() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="shadow-card">
-          <CardContent className="p-3 flex items-center gap-2">
+          <div className="p-3 flex flex-col items-center gap-2">
             <div className="w-9 h-9 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center">
               <Users className="w-4 h-4 text-primary" />
             </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground truncate">Total Siswa</p>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Total Siswa</p>
               <p className="text-lg font-bold text-foreground">{students?.length || 0}</p>
             </div>
-          </CardContent>
+          </div>
         </Card>
         <Card className="shadow-card">
-          <CardContent className="p-3 flex items-center gap-2">
+          <div className="p-3 flex flex-col items-center gap-2">
             <div className="w-9 h-9 shrink-0 rounded-xl bg-success/10 flex items-center justify-center">
               <Activity className="w-4 h-4 text-success" />
             </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground truncate">Aktif Hari Ini</p>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Aktif Hari Ini</p>
               <p className="text-lg font-bold text-foreground">{todayActivity}</p>
             </div>
-          </CardContent>
+          </div>
         </Card>
         <Card className="shadow-card">
-          <CardContent className="p-3 flex items-center gap-2">
+          <div className="p-3 flex flex-col items-center gap-2">
             <div className="w-9 h-9 shrink-0 rounded-xl bg-secondary/10 flex items-center justify-center">
               <BookOpen className="w-4 h-4 text-secondary" />
             </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground truncate">Rata-rata</p>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Rata-rata</p>
               <p className="text-lg font-bold text-foreground">
                 {students?.length
                   ? Math.round(
@@ -130,20 +130,20 @@ export default function GuruDashboard() {
                   : 0}%
               </p>
             </div>
-          </CardContent>
+          </div>
         </Card>
         <Card className="shadow-card">
-          <CardContent className="p-3 flex items-center gap-2">
+          <div className="p-3 flex flex-col items-center gap-2">
             <div className="w-9 h-9 shrink-0 rounded-xl bg-highlight/10 flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-highlight" />
             </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground truncate">Partisipasi</p>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Partisipasi</p>
               <p className="text-lg font-bold text-foreground">
                 {students?.length ? Math.round((todayActivity || 0) / students.length * 100) : 0}%
               </p>
             </div>
-          </CardContent>
+          </div>
         </Card>
       </div>
 
