@@ -80,7 +80,7 @@ export default function GuruDashboard() {
   );
 
   return (
-    <div className="p-4 lg:p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="p-4 lg:p-6 space-y-6 max-w-6xl mx-auto overflow-x-hidden">
       <div className="space-y-1">
         <h1 className="text-xl lg:text-2xl font-bold text-foreground">
           Assalamu'alaikum, Ustadz {profile?.full_name?.split(" ")[0] || ""} 👋
@@ -172,7 +172,7 @@ export default function GuruDashboard() {
           )}
         </CardHeader>
         {showStudents && (
-          <CardContent className="space-y-2 pt-0">
+          <CardContent className="space-y-2 pt-0 px-3">
             {filteredStudents?.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-8">
                 Belum ada siswa terdaftar
