@@ -124,7 +124,7 @@ function PagePanel({
           </div>
         ) : (
           <p
-            className="font-mushaf text-[22px] leading-[2.4] text-foreground"
+            className="font-mushaf text-[20px] leading-[2.0] text-foreground"
             dir="rtl"
             style={{ textAlign: "justify", textAlignLast: "right" }}
           >
