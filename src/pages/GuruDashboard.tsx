@@ -184,7 +184,7 @@ export default function GuruDashboard() {
               return (
                 <div
                   key={student.id}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors overflow-hidden"
                 >
                   <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm flex-shrink-0">
                     {student.full_name.charAt(0)}
