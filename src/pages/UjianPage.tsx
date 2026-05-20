@@ -82,9 +82,7 @@ export default function UjianPage() {
 
   // Harian
   const [tanggal, setTanggal] = useState(todayStr);
-  const [materiSurat, setMateriSurat] = useState("");
-  const [ayatStart, setAyatStart] = useState("");
-  const [ayatEnd, setAyatEnd] = useState("");
+  const [juzHarian, setJuzHarian] = useState<string[]>([]);
   const [hafalanScoresHarian, setHafalanScoresHarian] = useState<number[]>(Array(5).fill(0));
   const [tajwidScoresHarian, setTajwidScoresHarian] = useState<number[]>(Array(5).fill(0));
   const [jenisPenilaian, setJenisPenilaian] = useState<string[]>([]);
@@ -109,13 +107,6 @@ export default function UjianPage() {
   const [peringkat, setPeringkat] = useState("");
   const [statusNaikJuz, setStatusNaikJuz] = useState<"true" | "false">("true");
   const [rekomendasi, setRekomendasi] = useState("");
-
-  const jumlahAyat = useMemo(() => {
-    const s = parseInt(ayatStart);
-    const e = parseInt(ayatEnd);
-    if (!isNaN(s) && !isNaN(e) && e >= s) return e - s + 1;
-    return 0;
-  }, [ayatStart, ayatEnd]);
 
   const avgHafalanHarian = useMemo(() => calcAvg(hafalanScoresHarian), [hafalanScoresHarian]);
   const avgTajwidHarian = useMemo(() => calcAvg(tajwidScoresHarian), [tajwidScoresHarian]);
@@ -172,7 +163,7 @@ export default function UjianPage() {
   const resetForm = () => {
     setSelectedStudent("");
     setCatatanGuru("");
-    setMateriSurat(""); setAyatStart(""); setAyatEnd(""); setJenisPenilaian([]);
+    setJuzHarian([]); setJenisPenilaian([]);
     setHafalanScoresHarian(Array(5).fill(0)); setTajwidScoresHarian(Array(5).fill(0));
     setPekanKe(""); setJuzPekanan([]); setHalamanDari(""); setHalamanHingga("");
     setHafalanScores(Array(10).fill(0)); setTajwidScores(Array(10).fill(0)); setStatusLulus("true");
@@ -201,10 +192,7 @@ export default function UjianPage() {
           bulan: d.getMonth() + 1,
           tahun: d.getFullYear(),
           tanggal,
-          materi_surat: materiSurat,
-          ayat_start: ayatStart ? parseInt(ayatStart) : null,
-          ayat_end: ayatEnd ? parseInt(ayatEnd) : null,
-          jumlah_ayat: jumlahAyat || null,
+          juz_diuji: juzHarian,
           jenis_penilaian: jenisPenilaian.length ? jenisPenilaian : null,
           hafalan_scores: hafalanScoresHarian,
           tajwid_scores: tajwidScoresHarian,
@@ -212,7 +200,7 @@ export default function UjianPage() {
           nilai_tajwid: avgTajwidHarian,
           nilai_total: nilaiTotalHarian,
           nilai: nilaiTotalHarian,
-          juz_tested: materiSurat,
+          juz_tested: juzHarian.join(", "),
         };
       } else if (formType === "pekanan") {
         payload = {
@@ -294,7 +282,7 @@ export default function UjianPage() {
 
   const canSubmit = () => {
     if (!selectedStudent) return false;
-    if (formType === "harian") return !!materiSurat;
+    if (formType === "harian") return juzHarian.length > 0;
     if (formType === "pekanan") return !!pekanKe;
     if (formType === "bulanan") return juzBulanan.length > 0;
     return false;
@@ -342,27 +330,21 @@ export default function UjianPage() {
                   <Label>Tanggal</Label>
                   <Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} />
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-2 col-span-3 sm:col-span-1">
-                    <Label>Surat</Label>
-                    <Input
-                      placeholder="Al-Baqarah"
-                      value={materiSurat}
-                      onChange={(e) => setMateriSurat(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Ayat dari</Label>
-                    <Input type="number" value={ayatStart} onChange={(e) => setAyatStart(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Ayat hingga</Label>
-                    <Input type="number" value={ayatEnd} onChange={(e) => setAyatEnd(e.target.value)} />
+                <div className="space-y-2">
+                  <Label>Juz yang diuji</Label>
+                  <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 rounded-md border border-border">
+                    {Array.from({ length: 30 }, (_, i) => String(i + 1)).map((j) => (
+                      <Badge
+                        key={j}
+                        variant={juzHarian.includes(j) ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => toggleArr(juzHarian, j, setJuzHarian)}
+                      >
+                        Juz {j}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Jumlah ayat: <span className="font-semibold text-foreground">{jumlahAyat}</span>
-                </p>
                 <ScoreGrid label="Hafalan" scores={hafalanScoresHarian} onChange={setHafalanScoresHarian} />
                 <ScoreGrid label="Tajwid" scores={tajwidScoresHarian} onChange={setTajwidScoresHarian} />
                 <p className="text-sm">
