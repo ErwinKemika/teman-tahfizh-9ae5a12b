@@ -72,6 +72,7 @@ export default function UjianPage() {
 
   const [formType, setFormType] = useState<JenisUjian>("harian");
   const [selectedPekan, setSelectedPekan] = useState<string>("semua");
+  const [filterJenis, setFilterJenis] = useState<string>("semua");
   const [filterBulan, setFilterBulan] = useState<string>("semua");
   const [filterTahun, setFilterTahun] = useState<string>(String(new Date().getFullYear()));
 
@@ -259,7 +260,7 @@ export default function UjianPage() {
 
   const yearList = useMemo(() => {
     const years = (ujianResults || [])
-      .filter((r: any) => r.jenis_ujian === "pekanan" && r.tahun != null)
+      .filter((r: any) => r.tahun != null)
       .map((r: any) => r.tahun as number);
     return [...new Set(years)].sort((a, b) => b - a);
   }, [ujianResults]);
@@ -267,13 +268,13 @@ export default function UjianPage() {
   const filteredResults = useMemo(
     () =>
       (ujianResults || []).filter((r: any) => {
-        if (r.jenis_ujian !== "pekanan") return false;
+        if (filterJenis !== "semua" && r.jenis_ujian !== filterJenis) return false;
         if (filterBulan !== "semua" && String(r.bulan) !== filterBulan) return false;
         if (filterTahun !== "semua" && String(r.tahun) !== filterTahun) return false;
-        if (selectedPekan !== "semua" && String(r.pekan_ke) !== selectedPekan) return false;
+        if (selectedPekan !== "semua" && r.jenis_ujian === "pekanan" && String(r.pekan_ke) !== selectedPekan) return false;
         return true;
       }),
-    [ujianResults, filterBulan, filterTahun, selectedPekan]
+    [ujianResults, filterJenis, filterBulan, filterTahun, selectedPekan]
   );
 
   const toggleArr = (arr: string[], v: string, set: (x: string[]) => void) => {
@@ -546,10 +547,19 @@ export default function UjianPage() {
       {!isGuru && (
         <Card className="shadow-card">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Hasil Ujian Pekanan</CardTitle>
+            <CardTitle className="text-base">Hasil Ujian</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-2 mb-3">
+          <CardContent className="space-y-3">
+            <Tabs value={filterJenis} onValueChange={setFilterJenis}>
+              <TabsList className="grid grid-cols-4 w-full">
+                <TabsTrigger value="semua" className="text-xs">Semua</TabsTrigger>
+                <TabsTrigger value="harian" className="text-xs">Harian</TabsTrigger>
+                <TabsTrigger value="pekanan" className="text-xs">Pekanan</TabsTrigger>
+                <TabsTrigger value="bulanan" className="text-xs">Bulanan</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">Bulan</Label>
                 <Select value={filterBulan} onValueChange={setFilterBulan}>
@@ -576,24 +586,11 @@ export default function UjianPage() {
               </div>
             </div>
 
-            {pekanList.length > 0 && (
-              <div className="flex gap-2 flex-wrap mb-4">
-                <Button
-                  variant={selectedPekan === "semua" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedPekan("semua")}
-                >
-                  Semua
-                </Button>
+            {(filterJenis === "pekanan" || filterJenis === "semua") && pekanList.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                <Button variant={selectedPekan === "semua" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setSelectedPekan("semua")}>Semua Pekan</Button>
                 {pekanList.map((p) => (
-                  <Button
-                    key={p}
-                    variant={selectedPekan === String(p) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedPekan(String(p))}
-                  >
-                    Pekan {p}
-                  </Button>
+                  <Button key={p} variant={selectedPekan === String(p) ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setSelectedPekan(String(p))}>Pekan {p}</Button>
                 ))}
               </div>
             )}
@@ -603,76 +600,78 @@ export default function UjianPage() {
             ) : (
               <div className="space-y-3">
                 {filteredResults.map((r: any) => {
-                  const score = r.nilai_total ?? r.nilai;
-                  const hafalanLen = r.hafalan_scores?.length || 5;
-                  const tajwidLen = r.tajwid_scores?.length || 5;
+                  const jenis = r.jenis_ujian as string;
+                  const score = jenis === "bulanan" ? (r.nilai_akhir ?? r.nilai) : (r.nilai_total ?? r.nilai);
+                  const jenisLabel = jenis === "harian" ? "Harian" : jenis === "pekanan" ? "Pekanan" : "Bulanan";
+                  const jenisClass = jenis === "harian" ? "bg-primary/10 text-primary border-primary/20" : jenis === "pekanan" ? "bg-secondary/10 text-secondary border-secondary/20" : "bg-highlight/10 text-highlight border-highlight/20";
+
+                  let meta = "";
+                  if (jenis === "harian") {
+                    meta = r.tanggal ? new Date(r.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "";
+                  } else {
+                    meta = `${monthNames[(r.bulan || 1) - 1]} ${r.tahun}`;
+                    if (jenis === "pekanan" && r.pekan_ke) meta = `Pekan ${r.pekan_ke} · ${meta}`;
+                  }
+                  const juzLabel = (r.juz_diuji || []).length ? `Juz ${(r.juz_diuji || []).join(", ")}` : r.juz_tested || "";
+                  const scores_h = r.hafalan_scores?.length ? r.hafalan_scores : Array(r.hafalan_scores?.length || 5).fill(null);
+                  const scores_t = r.tajwid_scores?.length ? r.tajwid_scores : Array(r.tajwid_scores?.length || 5).fill(null);
+
                   return (
                     <div key={r.id} className="p-3 rounded-xl border border-border/50 space-y-2">
                       <div className="flex items-start gap-3">
                         <div className="flex-1 min-w-0 space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className="text-[10px]">Pekan {r.pekan_ke}</Badge>
-                          </div>
+                          <Badge variant="outline" className={`text-[10px] ${jenisClass}`}>{jenisLabel}</Badge>
                           <p className="text-xs text-muted-foreground">
-                            {monthNames[(r.bulan || 1) - 1]} {r.tahun} — Juz{" "}
-                            {(r.juz_diuji || []).join(", ")}
-                            {" • "}
-                            <span className={r.status_lulus ? "text-success" : "text-warning"}>
-                              {r.status_lulus ? "Lulus" : "Mengulang"}
-                            </span>
+                            {meta}{juzLabel ? ` — ${juzLabel}` : ""}
+                            {jenis === "pekanan" && (
+                              <span className={r.status_lulus ? " text-success" : " text-warning"}>
+                                {" • "}{r.status_lulus ? "Lulus" : "Mengulang"}
+                              </span>
+                            )}
+                            {jenis === "bulanan" && r.status_naik_juz != null && (
+                              <span className={r.status_naik_juz ? " text-success" : " text-warning"}>
+                                {" • "}{r.status_naik_juz ? "Naik Juz" : "Belum Naik"}
+                              </span>
+                            )}
                           </p>
                           {r.catatan_guru && (
                             <p className="text-xs text-muted-foreground italic">"{r.catatan_guru}"</p>
                           )}
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-[10px] text-muted-foreground">Total</p>
+                          <p className="text-[10px] text-muted-foreground">{jenis === "bulanan" ? "Akhir" : "Total"}</p>
                           <div className={`text-xl font-bold ${scoreColor(score || 0)}`}>{score || 0}</div>
                         </div>
                       </div>
                       <div className="pt-2 border-t border-border/40 space-y-2">
                         <div className="space-y-1">
-                          <p className="text-[10px] font-medium text-muted-foreground">
-                            Hafalan — rata-rata:{" "}
-                            <span className={`font-bold ${scoreColor(r.nilai_kelancaran || 0)}`}>
-                              {r.nilai_kelancaran ?? "-"}
-                            </span>
-                          </p>
-                          <div className={`grid grid-cols-5 gap-1.5`}>
-                            {(r.hafalan_scores && r.hafalan_scores.length
-                              ? r.hafalan_scores
-                              : Array(hafalanLen).fill(null)
-                            ).map((s: number | null, i: number) => (
+                          <p className="text-[10px] font-medium text-muted-foreground">Hafalan — rata-rata: {r.nilai_kelancaran ?? "-"}</p>
+                          <div className="grid grid-cols-5 gap-1.5">
+                            {scores_h.map((s: number | null, i: number) => (
                               <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
                                 <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
-                                <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>
-                                  {s ?? "-"}
-                                </p>
+                                <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>{s ?? "-"}</p>
                               </div>
                             ))}
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] font-medium text-muted-foreground">
-                            Tajwid — rata-rata:{" "}
-                            <span className={`font-bold ${scoreColor(r.nilai_tajwid || 0)}`}>
-                              {r.nilai_tajwid ?? "-"}
-                            </span>
-                          </p>
-                          <div className={`grid grid-cols-5 gap-1.5`}>
-                            {(r.tajwid_scores && r.tajwid_scores.length
-                              ? r.tajwid_scores
-                              : Array(tajwidLen).fill(null)
-                            ).map((s: number | null, i: number) => (
+                          <p className="text-[10px] font-medium text-muted-foreground">Tajwid — rata-rata: {r.nilai_tajwid ?? "-"}</p>
+                          <div className="grid grid-cols-5 gap-1.5">
+                            {scores_t.map((s: number | null, i: number) => (
                               <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
                                 <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
-                                <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>
-                                  {s ?? "-"}
-                                </p>
+                                <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>{s ?? "-"}</p>
                               </div>
                             ))}
                           </div>
                         </div>
+                        {jenis === "bulanan" && r.nilai_adab != null && (
+                          <p className="text-xs text-muted-foreground">
+                            Adab & Akhlak: <span className={`font-bold ${scoreColor(r.nilai_adab)}`}>{r.nilai_adab}</span>
+                            {r.peringkat ? ` · Peringkat ke-${r.peringkat}` : ""}
+                          </p>
+                        )}
                       </div>
                     </div>
                   );
