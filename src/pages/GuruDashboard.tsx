@@ -190,7 +190,7 @@ export default function GuruDashboard() {
                     {student.full_name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{student.full_name}</p>
                       <p className="text-xs font-medium text-foreground flex-shrink-0">{pct}%</p>
                     </div>
