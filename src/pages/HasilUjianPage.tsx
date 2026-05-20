@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -15,14 +16,39 @@ const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep
 const scoreColor = (n: number) =>
   n >= 80 ? "text-success" : n >= 60 ? "text-warning" : "text-destructive";
 
+const jenisConfig = {
+  harian:  { label: "Harian",  className: "bg-primary/10 text-primary border-primary/20" },
+  pekanan: { label: "Pekanan", className: "bg-secondary/10 text-secondary border-secondary/20" },
+  bulanan: { label: "Bulanan", className: "bg-highlight/10 text-highlight border-highlight/20" },
+} as const;
+
+function ScoreRow({ scores, label }: { scores: number[] | null; label: string }) {
+  const list = scores && scores.length ? scores : Array(5).fill(null);
+  return (
+    <div className="space-y-1">
+      <p className="text-[10px] font-medium text-muted-foreground">{label}</p>
+      <div className="grid grid-cols-5 gap-1.5">
+        {list.map((s: number | null, i: number) => (
+          <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
+            <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
+            <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>
+              {s ?? "-"}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function HasilUjianPage() {
   const { user, role } = useAuth();
   const queryClient = useQueryClient();
   const isGuru = role === "guru";
 
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
 
+  const [filterJenis, setFilterJenis] = useState<string>("semua");
   const [filterBulan, setFilterBulan] = useState<string>("semua");
   const [filterTahun, setFilterTahun] = useState<string>(String(currentYear));
   const [filterSiswa, setFilterSiswa] = useState<string>("semua");
@@ -40,7 +66,7 @@ export default function HasilUjianPage() {
   const { data: ujianResults } = useQuery({
     queryKey: ["hasil-ujian-results", user?.id, role],
     queryFn: async () => {
-      let query = supabase.from("ujian").select("*").eq("jenis_ujian", "pekanan");
+      let query = supabase.from("ujian").select("*");
       if (role === "siswa") query = query.eq("student_id", user!.id);
       const { data } = await query.order("created_at", { ascending: false });
       if (!data) return [];
@@ -73,25 +99,25 @@ export default function HasilUjianPage() {
 
   const pekanList = useMemo(() => {
     const nums = (ujianResults || [])
-      .filter((r: any) => r.pekan_ke != null)
+      .filter((r: any) => r.jenis_ujian === "pekanan" && r.pekan_ke != null)
       .map((r: any) => r.pekan_ke as number);
     return [...new Set(nums)].sort((a, b) => a - b);
   }, [ujianResults]);
 
   const filteredResults = useMemo(() => {
     return (ujianResults || []).filter((r: any) => {
+      if (filterJenis !== "semua" && r.jenis_ujian !== filterJenis) return false;
       if (filterBulan !== "semua" && String(r.bulan) !== filterBulan) return false;
       if (filterTahun !== "semua" && String(r.tahun) !== filterTahun) return false;
       if (filterSiswa !== "semua" && r.student_id !== filterSiswa) return false;
-      if (selectedPekan !== "semua" && String(r.pekan_ke) !== selectedPekan) return false;
+      if (selectedPekan !== "semua" && r.jenis_ujian === "pekanan" && String(r.pekan_ke) !== selectedPekan) return false;
       return true;
     });
-  }, [ujianResults, filterBulan, filterTahun, filterSiswa, selectedPekan]);
+  }, [ujianResults, filterJenis, filterBulan, filterTahun, filterSiswa, selectedPekan]);
 
   const yearOptions = useMemo(() => {
     const years = (ujianResults || []).map((r: any) => r.tahun).filter(Boolean);
-    const unique = [...new Set([...years, currentYear])].sort((a, b) => b - a);
-    return unique;
+    return [...new Set([...years, currentYear])].sort((a: number, b: number) => b - a);
   }, [ujianResults]);
 
   return (
@@ -101,14 +127,24 @@ export default function HasilUjianPage() {
           <ClipboardList className="w-5 h-5 text-primary" /> Hasil Ujian
         </h1>
         <p className="text-sm text-muted-foreground">
-          {isGuru ? "Rekap hasil ujian pekanan seluruh siswa" : "Rekap hasil ujian pekanan Anda"}
+          {isGuru ? "Rekap hasil ujian seluruh siswa" : "Rekap hasil ujian Anda"}
         </p>
       </div>
 
       {/* Filters */}
       <Card className="shadow-card">
         <CardContent className="py-4 space-y-3">
-          <div className={`grid gap-3 ${isGuru ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-3"}`}>
+          {/* Jenis tabs */}
+          <Tabs value={filterJenis} onValueChange={setFilterJenis}>
+            <TabsList className="grid grid-cols-4 w-full">
+              <TabsTrigger value="semua" className="text-xs">Semua</TabsTrigger>
+              <TabsTrigger value="harian" className="text-xs">Harian</TabsTrigger>
+              <TabsTrigger value="pekanan" className="text-xs">Pekanan</TabsTrigger>
+              <TabsTrigger value="bulanan" className="text-xs">Bulanan</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className={`grid gap-3 ${isGuru ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2"}`}>
             <div className="space-y-1">
               <Label className="text-xs">Bulan</Label>
               <Select value={filterBulan} onValueChange={setFilterBulan}>
@@ -127,14 +163,14 @@ export default function HasilUjianPage() {
                 <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="semua">Semua Tahun</SelectItem>
-                  {yearOptions.map((y) => (
+                  {yearOptions.map((y: number) => (
                     <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             {isGuru && (
-              <div className="space-y-1 col-span-2 sm:col-span-2">
+              <div className="space-y-1 col-span-2">
                 <Label className="text-xs">Nama Siswa</Label>
                 <Select value={filterSiswa} onValueChange={setFilterSiswa}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
@@ -149,8 +185,8 @@ export default function HasilUjianPage() {
             )}
           </div>
 
-          {/* Pekan filter */}
-          {pekanList.length > 0 && (
+          {/* Pekan filter — hanya muncul kalau filter pekanan aktif */}
+          {(filterJenis === "pekanan" || filterJenis === "semua") && pekanList.length > 0 && (
             <div className="flex gap-2 flex-wrap pt-1">
               <Button
                 variant={selectedPekan === "semua" ? "default" : "outline"}
@@ -175,15 +211,13 @@ export default function HasilUjianPage() {
       {/* Results */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {filteredResults.length} hasil ditemukan
-          </p>
-          {(filterBulan !== "semua" || filterSiswa !== "semua" || selectedPekan !== "semua") && (
+          <p className="text-sm text-muted-foreground">{filteredResults.length} hasil ditemukan</p>
+          {(filterJenis !== "semua" || filterBulan !== "semua" || filterSiswa !== "semua" || selectedPekan !== "semua") && (
             <Button
               variant="ghost"
               size="sm"
               className="text-xs h-7"
-              onClick={() => { setFilterBulan("semua"); setFilterSiswa("semua"); setSelectedPekan("semua"); }}
+              onClick={() => { setFilterJenis("semua"); setFilterBulan("semua"); setFilterSiswa("semua"); setSelectedPekan("semua"); }}
             >Reset filter</Button>
           )}
         </div>
@@ -196,23 +230,47 @@ export default function HasilUjianPage() {
           </Card>
         ) : (
           filteredResults.map((r: any) => {
-            const score = r.nilai_total ?? r.nilai;
+            const jenis = r.jenis_ujian as keyof typeof jenisConfig;
+            const jenisCfg = jenisConfig[jenis] ?? jenisConfig.harian;
+            const score = jenis === "bulanan" ? (r.nilai_akhir ?? r.nilai) : (r.nilai_total ?? r.nilai);
+
+            // Metadata line
+            let meta = "";
+            if (jenis === "harian") {
+              meta = r.tanggal ? new Date(r.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "";
+            } else {
+              meta = `${monthNames[(r.bulan || 1) - 1]} ${r.tahun}`;
+              if (jenis === "pekanan" && r.pekan_ke) meta = `Pekan ${r.pekan_ke} · ${meta}`;
+            }
+
+            const juzLabel = (r.juz_diuji || []).length
+              ? `Juz ${(r.juz_diuji || []).join(", ")}`
+              : r.juz_tested || "";
+
             return (
               <div key={r.id} className="p-3 rounded-xl border border-border/50 bg-card shadow-card space-y-2">
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-[10px]">Pekan {r.pekan_ke}</Badge>
+                      <Badge variant="outline" className={`text-[10px] ${jenisCfg.className}`}>
+                        {jenisCfg.label}
+                      </Badge>
                       {isGuru && r.student_name && (
                         <p className="text-sm font-medium text-foreground">{r.student_name}</p>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {monthNames[(r.bulan || 1) - 1]} {r.tahun} — Juz {(r.juz_diuji || []).join(", ")}
-                      {" • "}
-                      <span className={r.status_lulus ? "text-success" : "text-warning"}>
-                        {r.status_lulus ? "Lulus" : "Mengulang"}
-                      </span>
+                      {meta}{juzLabel ? ` — ${juzLabel}` : ""}
+                      {jenis === "pekanan" && (
+                        <span className={r.status_lulus ? " • text-success" : " • text-warning"}>
+                          {" "}{r.status_lulus ? "Lulus" : "Mengulang"}
+                        </span>
+                      )}
+                      {jenis === "bulanan" && r.status_naik_juz != null && (
+                        <span className={r.status_naik_juz ? " • text-success" : " • text-warning"}>
+                          {" "}{r.status_naik_juz ? "Naik Juz" : "Belum Naik"}
+                        </span>
+                      )}
                     </p>
                     {r.catatan_guru && (
                       <p className="text-xs text-muted-foreground italic">"{r.catatan_guru}"</p>
@@ -220,7 +278,9 @@ export default function HasilUjianPage() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="text-right">
-                      <p className="text-[10px] text-muted-foreground">Total</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {jenis === "bulanan" ? "Akhir" : "Total"}
+                      </p>
                       <div className={`text-xl font-bold ${scoreColor(score || 0)}`}>{score || 0}</div>
                     </div>
                     {isGuru && (
@@ -232,48 +292,20 @@ export default function HasilUjianPage() {
                 </div>
 
                 <div className="pt-2 border-t border-border/40 space-y-2">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-medium text-muted-foreground">
-                      Hafalan — rata-rata:{" "}
-                      <span className={`font-bold ${scoreColor(r.nilai_kelancaran || 0)}`}>
-                        {r.nilai_kelancaran ?? "-"}
-                      </span>
+                  <ScoreRow
+                    scores={r.hafalan_scores}
+                    label={`Hafalan — rata-rata: ${r.nilai_kelancaran ?? "-"}`}
+                  />
+                  <ScoreRow
+                    scores={r.tajwid_scores}
+                    label={`Tajwid — rata-rata: ${r.nilai_tajwid ?? "-"}`}
+                  />
+                  {jenis === "bulanan" && r.nilai_adab != null && (
+                    <p className="text-xs text-muted-foreground">
+                      Adab & Akhlak: <span className={`font-bold ${scoreColor(r.nilai_adab)}`}>{r.nilai_adab}</span>
+                      {r.peringkat ? ` · Peringkat ke-${r.peringkat}` : ""}
                     </p>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {(r.hafalan_scores && r.hafalan_scores.length === 5
-                        ? r.hafalan_scores
-                        : [null, null, null, null, null]
-                      ).map((s: number | null, i: number) => (
-                        <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
-                          <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
-                          <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>
-                            {s ?? "-"}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-medium text-muted-foreground">
-                      Tajwid — rata-rata:{" "}
-                      <span className={`font-bold ${scoreColor(r.nilai_tajwid || 0)}`}>
-                        {r.nilai_tajwid ?? "-"}
-                      </span>
-                    </p>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {(r.tajwid_scores && r.tajwid_scores.length === 5
-                        ? r.tajwid_scores
-                        : [null, null, null, null, null]
-                      ).map((s: number | null, i: number) => (
-                        <div key={i} className="bg-muted/30 rounded-lg py-1.5 text-center">
-                          <p className="text-[9px] text-muted-foreground">S{i + 1}</p>
-                          <p className={`text-sm font-bold ${s != null ? scoreColor(s) : "text-muted-foreground"}`}>
-                            {s ?? "-"}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             );
