@@ -3,7 +3,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Brain } from "lucide-react";
 import AyatDetailSheet from "./AyatDetailSheet";
 import { quranFetch, QURAN_API_BASE } from "@/services/quranAuth";
 
@@ -84,12 +84,18 @@ function PagePanel({
   surahNames,
   isLoading,
   onAyatTap,
+  hafalanMode,
+  revealedVerses,
+  onRevealVerse,
 }: {
   page: number;
   verses: QuranComVerse[];
   surahNames: Record<number, { name: string; englishName: string }>;
   isLoading: boolean;
   onAyatTap?: (ayah: AyahData) => void;
+  hafalanMode?: boolean;
+  revealedVerses?: Set<number>;
+  onRevealVerse?: (verseId: number) => void;
 }) {
   const juz = verses[0]?.juz_number;
   const surahNums = [...new Set(verses.map((v) => parseInt(v.verse_key.split(":")[0])))];
@@ -151,27 +157,33 @@ function PagePanel({
                     </span>
                   )}
                   <span
-                    onClick={() =>
-                      onAyatTap?.({
-                        number: verse.id,
-                        text: verse.text_uthmani,
-                        numberInSurah: verse.verse_number,
-                        juz: verse.juz_number,
-                        hizbQuarter: verse.hizb_number * 4,
-                        page: verse.page_number,
-                        surah: {
-                          number: surahNum,
-                          name: surahNames[surahNum]?.name || "",
-                          englishName:
-                            surahNames[surahNum]?.englishName || `Surah ${surahNum}`,
-                        },
-                      })
-                    }
-                    className={
-                      onAyatTap
+                    onClick={() => {
+                      if (hafalanMode && !revealedVerses?.has(verse.id)) {
+                        onRevealVerse?.(verse.id);
+                      } else {
+                        onAyatTap?.({
+                          number: verse.id,
+                          text: verse.text_uthmani,
+                          numberInSurah: verse.verse_number,
+                          juz: verse.juz_number,
+                          hizbQuarter: verse.hizb_number * 4,
+                          page: verse.page_number,
+                          surah: {
+                            number: surahNum,
+                            name: surahNames[surahNum]?.name || "",
+                            englishName:
+                              surahNames[surahNum]?.englishName || `Surah ${surahNum}`,
+                          },
+                        });
+                      }
+                    }}
+                    className={`transition-[filter] duration-300 ${
+                      hafalanMode && !revealedVerses?.has(verse.id)
+                        ? "blur-[6px] cursor-pointer select-none"
+                        : onAyatTap
                         ? "cursor-pointer hover:bg-primary/10 active:bg-primary/20 rounded-sm transition-colors"
                         : ""
-                    }
+                    }`}
                   >
                     {verse.text_uthmani}
                   </span>
@@ -213,6 +225,8 @@ export default function MushafPageView({
   const [selectedAyat, setSelectedAyat] = useState<AyahData | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [hafalanMode, setHafalanMode] = useState(false);
+  const [revealedVerses, setRevealedVerses] = useState<Set<number>>(new Set());
 
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -270,6 +284,21 @@ export default function MushafPageView({
   useEffect(() => {
     saveProgress.mutate(page);
     queryClient.invalidateQueries({ queryKey: ["reading-progress"] });
+  }, [page]);
+
+  const revealVerse = useCallback((verseId: number) => {
+    setRevealedVerses((prev) => new Set([...prev, verseId]));
+  }, []);
+
+  const revealAll = useCallback(() => {
+    const visibleVerses = isLandscape
+      ? [...leftVerses, ...rightVerses]
+      : currVerses;
+    setRevealedVerses(new Set(visibleVerses.map((v) => v.id)));
+  }, [currVerses, leftVerses, rightVerses, isLandscape]);
+
+  useEffect(() => {
+    setRevealedVerses(new Set());
   }, [page]);
 
   // Auto-hide top bar
@@ -436,7 +465,18 @@ export default function MushafPageView({
               : `Halaman ${page}`}
           </p>
         </div>
-        <div className="w-10" />
+        <Button
+          variant={hafalanMode ? "default" : "ghost"}
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            setHafalanMode((v) => !v);
+            setRevealedVerses(new Set());
+          }}
+          title="Mode Hafalan"
+        >
+          <Brain className="w-5 h-5" />
+        </Button>
       </div>
 
       {/* Main content */}
@@ -454,6 +494,9 @@ export default function MushafPageView({
                 surahNames={surahNamesMap}
                 isLoading={rightLoading}
                 onAyatTap={setSelectedAyat}
+                hafalanMode={hafalanMode}
+                revealedVerses={revealedVerses}
+                onRevealVerse={revealVerse}
               />
             </div>
             <div className="flex-1 relative overflow-hidden">
@@ -463,6 +506,9 @@ export default function MushafPageView({
                 surahNames={surahNamesMap}
                 isLoading={leftLoading}
                 onAyatTap={setSelectedAyat}
+                hafalanMode={hafalanMode}
+                revealedVerses={revealedVerses}
+                onRevealVerse={revealVerse}
               />
             </div>
             <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
@@ -508,6 +554,9 @@ export default function MushafPageView({
                 surahNames={surahNamesMap}
                 isLoading={currLoading}
                 onAyatTap={setSelectedAyat}
+                hafalanMode={hafalanMode}
+                revealedVerses={revealedVerses}
+                onRevealVerse={revealVerse}
               />
             </div>
             {page < TOTAL_PAGES && (
@@ -523,6 +572,22 @@ export default function MushafPageView({
           </div>
         )}
       </div>
+
+      {hafalanMode && (
+        <div className="absolute bottom-0 left-0 right-0 z-20 bg-primary/10 backdrop-blur-sm border-t border-primary/20 flex items-center justify-between px-4 py-2">
+          <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
+            <Brain className="w-3.5 h-3.5" /> Mode Hafalan Aktif
+          </p>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/20"
+            onClick={revealAll}
+          >
+            Tampilkan Semua
+          </Button>
+        </div>
+      )}
 
       {selectedAyat && (
         <AyatDetailSheet
