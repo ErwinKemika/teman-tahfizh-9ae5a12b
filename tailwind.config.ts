@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["'Cormorant Garamond'", "Georgia", "serif"],
         arabic: ["Amiri", "Traditional Arabic", "serif"],
       },
       colors: {
@@ -63,6 +64,19 @@ export default {
           DEFAULT: "hsl(var(--highlight))",
           foreground: "hsl(var(--highlight-foreground))",
         },
+        navy: {
+          900: "#0f2742",
+          800: "#143258",
+          700: "#1b426f",
+          600: "#27598f",
+        },
+        cream: "#f6f1e6",
+        gold: "#c9a35a",
+        "gold-soft": "#e3c98a",
+        ink: "#0b1d33",
+        paper: "#f6f8fb",
+        "paper-form": "#f4f6fa",
+        "auth-line": "#e5e9ef",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -102,6 +116,10 @@ export default {
           from: { width: "0%" },
           to: { width: "var(--progress-width)" },
         },
+        floaty: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -109,6 +127,7 @@ export default {
         "fade-in": "fade-in 0.3s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         "progress-fill": "progress-fill 0.8s ease-out forwards",
+        floaty: "floaty 6s ease-in-out infinite",
       },
     },
   },

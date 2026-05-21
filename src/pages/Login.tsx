@@ -1,376 +1,729 @@
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Eye, EyeOff, Mail, Lock, User, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-export default function Login() {
-  const { signIn, signUp } = useAuth();
+// ─── Inline SVG icons (hairline strokes, elegant) ────────────
+const IconBook = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H10a2 2 0 0 1 2 2v13a1.5 1.5 0 0 0-1.5-1.5H3z"/>
+    <path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H14a2 2 0 0 0-2 2v13a1.5 1.5 0 0 1 1.5-1.5H21z"/>
+  </svg>
+);
+const IconMail = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/>
+  </svg>
+);
+const IconLock = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 1 1 8 0v3.5"/>
+  </svg>
+);
+const IconUser = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8.5" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>
+  </svg>
+);
+const IconEye = ({ open }: { open: boolean }) => open ? (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>
+  </svg>
+) : (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3l18 18"/><path d="M10.6 6.1A10.9 10.9 0 0 1 12 6c6.5 0 10 7 10 7a17.4 17.4 0 0 1-3.2 4.1"/><path d="M6.1 6.6C3 8.7 2 12 2 12s3.5 7 10 7c1.6 0 3-.3 4.3-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>
+  </svg>
+);
+const IconCheck = ({ className = "w-3 h-3" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12.5 10 17 19 7.5"/>
+  </svg>
+);
+const IconChevron = ({ open }: { open: boolean }) => (
+  <svg
+    className={`w-4 h-4 text-[#7a8699] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+  >
+    <path d="m6 9 6 6 6-6"/>
+  </svg>
+);
+const IconGoogle = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.5 12.27c0-.79-.07-1.55-.2-2.27H12v4.3h5.92a5.07 5.07 0 0 1-2.2 3.32v2.77h3.56c2.08-1.92 3.28-4.74 3.28-8.12Z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.56-2.77c-.99.67-2.26 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/>
+    <path fill="#FBBC05" d="M5.84 14.11A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.45.34-2.11V7.05H2.18A11 11 0 0 0 1 12c0 1.78.42 3.46 1.18 4.95l3.66-2.84Z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.65l3.15-3.15C17.45 2.1 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.05l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38Z"/>
+  </svg>
+);
+
+// ─── Islamic geometric star pattern (inline SVG tile) ────────
+function GeoStarPattern({ patternId }: { patternId: string }) {
+  return (
+    <svg
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <pattern id={patternId} x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
+          {/* 10-pointed star (decagram), R=88 r=38, centred at 100,100 */}
+          <polygon
+            points="100,12 111.7,63.8 151.7,28.8 130.7,77.7 183.7,72.8 138,100 183.7,127.2 130.7,122.3 151.7,171.2 111.7,136.1 100,188 88.3,136.1 48.3,171.2 69.3,122.3 16.3,127.2 62,100 16.3,72.8 69.3,77.7 48.3,28.8 88.3,63.8"
+            fill="none" stroke="rgba(201,163,90,0.18)" strokeWidth="1"
+          />
+          <circle cx="100" cy="100" r="82" fill="none" stroke="rgba(201,163,90,0.07)" strokeWidth="0.8"/>
+          <circle cx="100" cy="100" r="54" fill="none" stroke="rgba(201,163,90,0.07)" strokeWidth="0.8"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill={`url(#${patternId})`}/>
+    </svg>
+  );
+}
+
+// ─── Stat strip (banner bottom) ──────────────────────────────
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="text-center">
+      <div className="font-display text-[26px] leading-none text-[#f6f1e6]">{value}</div>
+      <div className="text-[10px] uppercase tracking-[0.22em] text-[#e3c98a]/80 mt-1.5">{label}</div>
+    </div>
+  );
+}
+
+// ─── Sliding tab switcher ─────────────────────────────────────
+function AuthTabs({ value, onChange }: { value: "masuk" | "daftar"; onChange: (v: "masuk" | "daftar") => void }) {
+  return (
+    <div className="relative grid grid-cols-2 p-1 rounded-xl bg-[#eef1f6] border border-[#e5e9ef]">
+      <div
+        className="absolute top-1 bottom-1 left-1 rounded-lg bg-white"
+        style={{
+          width: "calc(50% - 4px)",
+          transform: value === "daftar" ? "translateX(100%)" : "translateX(0)",
+          boxShadow: "0 1px 2px rgba(15,39,66,0.08), 0 4px 12px -6px rgba(15,39,66,0.18)",
+          transition: "transform 0.35s cubic-bezier(0.65,0.05,0.36,1)",
+        }}
+      />
+      {(["masuk", "daftar"] as const).map((k) => (
+        <button
+          key={k}
+          type="button"
+          onClick={() => onChange(k)}
+          className={`relative z-10 py-2.5 text-[13px] font-semibold tracking-wide capitalize transition-colors ${
+            value === k ? "text-[#0f2742]" : "text-[#5b6b80] hover:text-[#0f2742]"
+          }`}
+        >
+          {k}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Field label + hint row ───────────────────────────────────
+function Field({ label, hint, children }: { label: string; hint?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-1.5">
+        <span className="text-[12px] font-semibold text-[#27384f] tracking-wide">{label}</span>
+        {hint && <span className="text-[11px] text-[#7a8699]">{hint}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Input with leading icon + optional trailing ──────────────
+function InputWrap({ icon, trailing, children }: {
+  icon?: React.ReactNode;
+  trailing?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      {icon && (
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7a8699] pointer-events-none">{icon}</span>
+      )}
+      {children}
+      {trailing && (
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2">{trailing}</span>
+      )}
+    </div>
+  );
+}
+
+const inputCls = (hasIcon: boolean, hasTrail: boolean) =>
+  `input-base w-full bg-[#f4f6fa] border border-[#e5e9ef] rounded-xl text-[14px] text-[#0b1d33] placeholder:text-[#9aa6b8] ${hasIcon ? "pl-10" : "pl-4"} ${hasTrail ? "pr-10" : "pr-4"} py-3`;
+
+// ─── Custom checkbox (styled box, hidden native) ──────────────
+function Checkbox({ checked, onChange, children }: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex items-start gap-2.5 select-none cursor-pointer">
+      <span
+        className={`mt-0.5 grid place-items-center w-[18px] h-[18px] shrink-0 rounded-[5px] border transition-colors duration-150 ${
+          checked ? "bg-[#0f2742] border-[#0f2742] text-white" : "bg-white border-[#cfd6e1]"
+        }`}
+      >
+        {checked && <IconCheck />}
+      </span>
+      <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      {children}
+    </label>
+  );
+}
+
+// ─── Divider "atau" ───────────────────────────────────────────
+function AuthDivider() {
+  return (
+    <div className="flex items-center gap-3 my-1">
+      <div className="h-px flex-1 bg-[#e5e9ef]" />
+      <span className="text-[11px] uppercase tracking-[0.22em] text-[#7a8699]">atau</span>
+      <div className="h-px flex-1 bg-[#e5e9ef]" />
+    </div>
+  );
+}
+
+// ─── Error banner ─────────────────────────────────────────────
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <p className="text-[12px] text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 leading-snug">
+      {message}
+    </p>
+  );
+}
+
+// ─── Role select (custom dropdown, 4 options) ─────────────────
+const ROLES = [
+  { id: "siswa", label: "Siswa",          desc: "Saya menghafal Al-Qur'an" },
+  { id: "guru",  label: "Guru / Musyrif", desc: "Mengajar & menilai setoran" },
+  { id: "wali",  label: "Wali Santri",    desc: "Memantau progres anak" },
+  { id: "admin", label: "Admin Lembaga",  desc: "Mengelola halaqah & kelas" },
+] as const;
+
+type RoleId = typeof ROLES[number]["id"];
+
+function RoleSelect({ value, onChange }: { value: RoleId; onChange: (v: RoleId) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const current = ROLES.find((r) => r.id === value) ?? ROLES[0];
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="input-base w-full flex items-center justify-between gap-3 bg-[#f4f6fa] border border-[#e5e9ef] rounded-xl px-3.5 py-3 text-left"
+        style={open ? { borderColor: "#1b426f", backgroundColor: "#fff", boxShadow: "0 0 0 4px rgba(27,66,111,0.10)" } : undefined}
+        aria-expanded={open}
+      >
+        <span className="flex items-center gap-3 min-w-0">
+          <span className="grid place-items-center w-7 h-7 rounded-lg bg-[#0f2742] text-[#f6f1e6] shrink-0">
+            <IconUser className="w-3.5 h-3.5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[14px] font-semibold text-[#0b1d33] truncate">{current.label}</span>
+            <span className="block text-[11px] text-[#7a8699] truncate">{current.desc}</span>
+          </span>
+        </span>
+        <IconChevron open={open} />
+      </button>
+
+      {open && (
+        <div
+          className="absolute z-20 left-0 right-0 mt-2 bg-white border border-[#e5e9ef] rounded-xl overflow-hidden"
+          style={{ boxShadow: "0 12px 40px -12px rgba(15,39,66,0.25)" }}
+        >
+          {ROLES.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => { onChange(r.id); setOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-[#f4f6fa] ${
+                r.id === value ? "bg-[#f4f6fa]" : ""
+              }`}
+            >
+              <span className="grid place-items-center w-7 h-7 rounded-lg bg-[#eef1f6] text-[#0f2742] shrink-0">
+                <IconUser className="w-3.5 h-3.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-semibold text-[#0b1d33]">{r.label}</span>
+                <span className="block text-[11px] text-[#7a8699]">{r.desc}</span>
+              </span>
+              {r.id === value && (
+                <span className="text-[#0f2742] shrink-0">
+                  <IconCheck className="w-3.5 h-3.5" />
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Masuk (login) form ───────────────────────────────────────
+function MasukForm() {
+  const { signIn } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState("login");
+  const [email, setEmail] = useState("");
+  const [pwd, setPwd]     = useState("");
+  const [show, setShow]   = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [busy, setBusy]   = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [showLoginPw, setShowLoginPw] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-
-  const [regEmail, setRegEmail] = useState("");
-  const [regPassword, setRegPassword] = useState("");
-  const [regName, setRegName] = useState("");
-  const [regRole, setRegRole] = useState<"guru" | "siswa">("siswa");
-  const [showRegPw, setShowRegPw] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(false);
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const { error } = await signIn(loginEmail, loginPassword);
+    setError(null);
+    setBusy(true);
+    const { error } = await signIn(email, pwd);
     if (error) {
-      toast.error("Login gagal: " + error.message);
+      setError(error.message);
+      setBusy(false);
     } else {
       toast.success("Berhasil masuk!");
       navigate("/");
     }
-    setLoading(false);
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!agreeTerms) {
-      toast.error("Harap setujui syarat & ketentuan terlebih dahulu");
-      return;
-    }
-    setLoading(true);
-    const { error } = await signUp(regEmail, regPassword, regName, regRole);
-    if (error) {
-      toast.error("Registrasi gagal: " + error.message);
-    } else {
-      toast.success("Akun berhasil dibuat! Silakan cek email untuk verifikasi.");
-    }
-    setLoading(false);
-  };
-
-  const handleGoogleSignIn = async () => {
+  const handleGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: `${window.location.origin}/` },
     });
     if (error) toast.error("Google sign-in gagal: " + error.message);
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
-      {/* ── Hero Panel ── */}
-      <div className="relative md:w-1/2 md:min-h-screen bg-primary overflow-hidden flex flex-col">
-        {/* Geometric star pattern */}
-        <div className="absolute inset-0 pointer-events-none">
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="hero-stars" x="0" y="0" width="140" height="140" patternUnits="userSpaceOnUse">
-                <polygon
-                  points="70,8 82,44 120,44 90,68 102,104 70,82 38,104 50,68 20,44 58,44"
-                  fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1.2"
-                />
-                <polygon
-                  points="70,28 78,52 104,52 84,66 92,90 70,76 48,90 56,66 36,52 62,52"
-                  fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.8"
-                />
-                <circle cx="70" cy="70" r="38" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.8"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#hero-stars)" />
-          </svg>
-        </div>
+    <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+      <Field label="Email">
+        <InputWrap icon={<IconMail />}>
+          <input
+            type="email" required
+            value={email} onChange={(e) => setEmail(e.target.value)}
+            placeholder="email@contoh.com"
+            className={inputCls(true, false)}
+          />
+        </InputWrap>
+      </Field>
 
-        {/* Branding (desktop top-left) */}
-        <div className="hidden md:flex items-center gap-2.5 relative z-10 p-6">
-          <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <p className="text-white font-bold text-sm leading-none">Tahfizh Tracker</p>
-            <p className="text-white/40 text-[10px] tracking-widest mt-0.5">HIFZ · MURAJAAH · TASMI</p>
-          </div>
-        </div>
+      <Field
+        label="Password"
+        hint={
+          <button
+            type="button"
+            className="text-[#1b426f] hover:text-[#0f2742] font-medium transition-colors"
+            onClick={() => toast.info("Fitur lupa password akan segera hadir")}
+          >
+            Lupa password?
+          </button>
+        }
+      >
+        <InputWrap
+          icon={<IconLock />}
+          trailing={
+            <button
+              type="button"
+              aria-label={show ? "Sembunyikan password" : "Tampilkan password"}
+              onClick={() => setShow((s) => !s)}
+              className="p-1.5 rounded-md text-[#7a8699] hover:text-[#0f2742] hover:bg-[#eef1f6] transition-colors"
+            >
+              <IconEye open={show} />
+            </button>
+          }
+        >
+          <input
+            type={show ? "text" : "password"} required
+            value={pwd} onChange={(e) => setPwd(e.target.value)}
+            placeholder="••••••••"
+            className={inputCls(true, true)}
+          />
+        </InputWrap>
+      </Field>
 
-        {/* Arabic content */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-8 py-10 md:py-0">
-          <p className="font-arabic text-white/90 text-2xl md:text-4xl leading-loose mb-3 md:mb-5">
-            بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ
-          </p>
-          <p className="font-arabic text-white/65 text-lg md:text-2xl leading-loose mb-5 md:mb-7">
-            وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ فَهَلْ مِن مُّدَّكِرٍ
-          </p>
-          <p className="text-white/55 text-sm italic leading-relaxed max-w-xs">
-            "Dan sungguh telah Kami mudahkan Al-Qur'an untuk pelajaran."
-          </p>
-          <p className="text-white/35 text-[11px] tracking-widest mt-2">QS. AL-QAMAR : 17</p>
-        </div>
+      <Checkbox checked={remember} onChange={setRemember}>
+        <span className="text-[12.5px] text-[#27384f]">Ingat saya di perangkat ini</span>
+      </Checkbox>
 
-        {/* Stats (desktop bottom) */}
-        <div className="hidden md:flex justify-center gap-10 relative z-10 pb-8">
-          {[["30", "JUZ"], ["114", "SURAH"], ["6.236", "AYAT"]].map(([num, lbl]) => (
-            <div key={lbl} className="text-center">
-              <p className="text-white font-bold text-lg">{num}</p>
-              <p className="text-white/35 text-[10px] tracking-widest">{lbl}</p>
-            </div>
+      {error && <ErrorBanner message={error} />}
+
+      <button
+        type="submit" disabled={busy}
+        className="btn-primary rounded-xl py-3.5 font-semibold text-[14px] tracking-wide mt-1 disabled:opacity-70"
+      >
+        {busy ? "Memverifikasi…" : "Masuk ke Dashboard"}
+      </button>
+
+      <AuthDivider />
+
+      <button
+        type="button"
+        onClick={handleGoogle}
+        className="rounded-xl py-3 border border-[#e5e9ef] bg-white hover:bg-[#f4f6fa] transition-colors flex items-center justify-center gap-2.5 text-[13.5px] font-semibold text-[#27384f]"
+      >
+        <IconGoogle /> Lanjutkan dengan Google
+      </button>
+    </form>
+  );
+}
+
+// ─── Daftar (register) form ───────────────────────────────────
+function DaftarForm() {
+  const { signUp } = useAuth();
+  const [nama, setNama]   = useState("");
+  const [email, setEmail] = useState("");
+  const [pwd, setPwd]     = useState("");
+  const [show, setShow]   = useState(false);
+  const [role, setRole]   = useState<RoleId>("siswa");
+  const [agree, setAgree] = useState(false);
+  const [busy, setBusy]   = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const strength = useMemo(() => {
+    let s = 0;
+    if (pwd.length >= 6) s++;
+    if (pwd.length >= 10) s++;
+    if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) s++;
+    if (/\d/.test(pwd) && /[^A-Za-z0-9]/.test(pwd)) s++;
+    return s;
+  }, [pwd]);
+
+  const strengthMeta = [
+    { label: "Mulai mengetik…", color: "#cfd6e1" },
+    { label: "Lemah",           color: "#d97757" },
+    { label: "Cukup",           color: "#e3a44a" },
+    { label: "Bagus",           color: "#5fa872" },
+    { label: "Kuat",            color: "#2f8a4d" },
+  ][strength];
+
+  const toBackendRole = (r: RoleId): "guru" | "siswa" =>
+    r === "guru" || r === "admin" ? "guru" : "siswa";
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agree) return;
+    setError(null);
+    setBusy(true);
+    const { error } = await signUp(email, pwd, nama, toBackendRole(role));
+    if (error) {
+      setError(error.message);
+    } else {
+      toast.success("Akun berhasil dibuat! Silakan cek email untuk verifikasi.");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <form className="flex flex-col gap-3.5" onSubmit={handleSubmit}>
+      <Field label="Nama Lengkap">
+        <InputWrap icon={<IconUser />}>
+          <input
+            required value={nama} onChange={(e) => setNama(e.target.value)}
+            placeholder="Ahmad Abdullah"
+            className={inputCls(true, false)}
+          />
+        </InputWrap>
+      </Field>
+
+      <Field label="Email">
+        <InputWrap icon={<IconMail />}>
+          <input
+            type="email" required
+            value={email} onChange={(e) => setEmail(e.target.value)}
+            placeholder="email@contoh.com"
+            className={inputCls(true, false)}
+          />
+        </InputWrap>
+      </Field>
+
+      <Field
+        label="Password"
+        hint={
+          pwd ? (
+            <span style={{ color: strengthMeta.color }} className="text-[11px] font-medium">
+              {strengthMeta.label}
+            </span>
+          ) : undefined
+        }
+      >
+        <InputWrap
+          icon={<IconLock />}
+          trailing={
+            <button
+              type="button"
+              aria-label={show ? "Sembunyikan password" : "Tampilkan password"}
+              onClick={() => setShow((s) => !s)}
+              className="p-1.5 rounded-md text-[#7a8699] hover:text-[#0f2742] hover:bg-[#eef1f6] transition-colors"
+            >
+              <IconEye open={show} />
+            </button>
+          }
+        >
+          <input
+            type={show ? "text" : "password"} required minLength={6}
+            value={pwd} onChange={(e) => setPwd(e.target.value)}
+            placeholder="Minimal 6 karakter"
+            className={inputCls(true, true)}
+          />
+        </InputWrap>
+        {/* Strength meter — 4 segments */}
+        <div className="mt-2 grid grid-cols-4 gap-1.5">
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-1 rounded-full transition-colors duration-300"
+              style={{ background: i < strength ? strengthMeta.color : "#e5e9ef" }}
+            />
           ))}
+        </div>
+      </Field>
+
+      <Field label="Peran Anda">
+        <RoleSelect value={role} onChange={setRole} />
+      </Field>
+
+      <Checkbox checked={agree} onChange={setAgree}>
+        <span className="text-[12px] text-[#27384f] leading-snug">
+          Saya menyetujui{" "}
+          <span className="text-[#1b426f] underline underline-offset-2 cursor-pointer">Syarat Layanan</span>
+          {" "}dan{" "}
+          <span className="text-[#1b426f] underline underline-offset-2 cursor-pointer">Kebijakan Privasi</span>
+          {" "}Tahfizh Tracker.
+        </span>
+      </Checkbox>
+
+      {error && <ErrorBanner message={error} />}
+
+      <button
+        type="submit"
+        disabled={busy || !agree}
+        className="btn-primary rounded-xl py-3.5 font-semibold text-[14px] tracking-wide mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {busy ? "Membuat akun…" : "Buat Akun Saya"}
+      </button>
+    </form>
+  );
+}
+
+// ─── Desktop banner (left panel) ─────────────────────────────
+function BannerPanel() {
+  return (
+    <div className="relative h-full overflow-hidden bg-navy-900 text-cream">
+      <GeoStarPattern patternId="geo-stars-banner" />
+
+      {/* Layered radial vignettes */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(120% 80% at 50% 0%, rgba(201,163,90,0.18), transparent 55%), " +
+            "radial-gradient(80% 60% at 50% 110%, rgba(15,39,66,0.85), transparent 60%)",
+        }}
+      />
+
+      {/* Mihrab arch silhouette */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[58%] mihrab" />
+
+      {/* Logo mark */}
+      <div className="absolute top-10 left-10 flex items-center gap-3 z-10">
+        <div
+          className="w-10 h-10 rounded-xl bg-cream/95 text-navy-900 grid place-items-center"
+          style={{ boxShadow: "0 8px 24px -12px rgba(0,0,0,0.6)" }}
+        >
+          <IconBook />
+        </div>
+        <div>
+          <div className="font-display text-[20px] leading-none tracking-tight text-cream">
+            Tahfizh Tracker
+          </div>
+          <div className="text-[11px] uppercase tracking-[0.22em] text-gold-soft/80 mt-1">
+            Hifz · Murajaah · Tasmi
+          </div>
         </div>
       </div>
 
-      {/* ── Form Panel ── */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-background px-4 py-8 md:px-10 lg:px-16">
-        {/* Desktop heading */}
-        <div className="hidden md:block w-full max-w-sm mb-7">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="w-8 h-0.5 bg-highlight" />
-            <p className="text-xs text-highlight font-semibold tracking-widest">ASSALAMU'ALAIKUM</p>
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">Selamat datang kembali</h1>
-          <p className="text-muted-foreground text-sm mt-1.5 leading-relaxed">
-            Masuk untuk melanjutkan setoran, murajaah, dan target juz harianmu.
-          </p>
+      {/* Center calligraphy stack */}
+      <div className="relative z-10 h-full flex flex-col items-center justify-center px-12 text-center">
+        <div className="font-arabic text-[44px] leading-[1.4] mb-4 animate-floaty text-cream" dir="rtl">
+          بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
         </div>
+        <div className="w-24 h-px gold-underline mb-8" />
+        <div className="font-arabic text-[28px] leading-[1.9] text-cream/95 max-w-md" dir="rtl">
+          وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ فَهَلْ مِن مُّدَّكِرٍ
+        </div>
+        <div className="font-display italic text-[18px] mt-5 text-gold-soft max-w-sm">
+          "Dan sungguh telah Kami mudahkan Al-Qur'an untuk pelajaran."
+        </div>
+        <div className="text-[11px] tracking-[0.22em] uppercase text-cream/55 mt-2">
+          QS. Al-Qamar : 17
+        </div>
+      </div>
 
-        <div className="w-full max-w-sm">
-          <div className="rounded-2xl border border-border/50 bg-card shadow-card p-5">
-            <Tabs value={tab} onValueChange={setTab}>
-              <TabsList className="grid grid-cols-2 w-full mb-5">
-                <TabsTrigger value="login">Masuk</TabsTrigger>
-                <TabsTrigger value="register">Daftar</TabsTrigger>
-              </TabsList>
+      {/* Bottom stat strip */}
+      <div
+        className="absolute bottom-0 inset-x-0 z-10 px-10 pb-8 pt-12"
+        style={{ background: "linear-gradient(180deg, transparent, rgba(15,39,66,0.7))" }}
+      >
+        <div className="grid grid-cols-3 gap-6 max-w-md mx-auto">
+          <Stat value="30"    label="Juz" />
+          <Stat value="114"   label="Surah" />
+          <Stat value="6.236" label="Ayat" />
+        </div>
+      </div>
 
-              {/* ── LOGIN TAB ── */}
-              <TabsContent value="login" className="mt-0">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="login-email" className="text-sm">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                      <Input
-                        id="login-email"
-                        type="email"
-                        placeholder="email@contoh.com"
-                        className="pl-9"
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
+      {/* Hairline frame */}
+      <div className="pointer-events-none absolute inset-5 border border-gold/15 rounded-[18px]" />
+    </div>
+  );
+}
 
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="login-password" className="text-sm">Password</Label>
-                      <button
-                        type="button"
-                        className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                        onClick={() => toast.info("Fitur lupa password akan segera hadir")}
-                      >
-                        Lupa password?
-                      </button>
-                    </div>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                      <Input
-                        id="login-password"
-                        type={showLoginPw ? "text" : "password"}
-                        placeholder="••••••••"
-                        className="pl-9 pr-9"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowLoginPw((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {showLoginPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
+// ─── Mobile hero (replaces banner on < lg) ───────────────────
+function MobileHero() {
+  return (
+    <div className="lg:hidden relative overflow-hidden bg-navy-900 text-cream pt-10 pb-16 px-6 rounded-b-[32px]">
+      <GeoStarPattern patternId="geo-stars-mobile" />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(90% 70% at 50% 0%, rgba(201,163,90,0.22), transparent 60%), " +
+            "radial-gradient(80% 80% at 50% 110%, rgba(15,39,66,0.85), transparent 60%)",
+        }}
+      />
 
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 rounded accent-primary"
-                    />
-                    <span className="text-xs text-muted-foreground">Ingat saya di perangkat ini</span>
-                  </label>
+      {/* Brand row */}
+      <div className="relative z-10 flex items-center gap-3">
+        <div
+          className="w-11 h-11 rounded-xl bg-cream/95 text-navy-900 grid place-items-center"
+          style={{ boxShadow: "0 8px 24px -12px rgba(0,0,0,0.6)" }}
+        >
+          <IconBook />
+        </div>
+        <div>
+          <div className="font-display text-[20px] leading-none text-cream">Tahfizh Tracker</div>
+          <div className="text-[10px] tracking-[0.22em] uppercase text-gold-soft/85 mt-1">
+            Hifz · Murajaah · Tasmi
+          </div>
+        </div>
+      </div>
 
-                  <Button type="submit" className="w-full gradient-primary text-white rounded-xl h-11 font-semibold" disabled={loading}>
-                    {loading ? "Memproses..." : "Masuk ke Dashboard"}
-                  </Button>
+      {/* Calligraphy */}
+      <div className="relative z-10 mt-7 text-center">
+        <div className="font-arabic text-[34px] leading-[1.4] text-cream" dir="rtl">
+          بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+        </div>
+        <div className="mx-auto mt-3 w-16 h-px gold-underline" />
+        <div className="font-display italic text-[14px] mt-4 text-gold-soft">
+          "Dan sungguh telah Kami mudahkan Al-Qur'an untuk pelajaran."
+        </div>
+        <div className="text-[10px] tracking-[0.22em] uppercase text-cream/60 mt-1.5">
+          QS. Al-Qamar : 17
+        </div>
+      </div>
 
-                  <div className="relative flex items-center gap-3">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-[10px] text-muted-foreground font-semibold tracking-widest">ATAU</span>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
+      {/* Hairline frame */}
+      <div className="pointer-events-none absolute inset-3 border border-gold/15 rounded-[28px]" />
+    </div>
+  );
+}
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full rounded-xl h-11 gap-2.5 text-sm font-medium"
-                    onClick={handleGoogleSignIn}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                    </svg>
-                    Lanjutkan dengan Google
-                  </Button>
-                </form>
-              </TabsContent>
+// ─── Form panel (right side on desktop, full on mobile) ───────
+function FormPanel() {
+  const initialTab: "masuk" | "daftar" =
+    typeof window !== "undefined" && window.location.hash.replace("#", "") === "daftar"
+      ? "daftar"
+      : "masuk";
+  const [tab, setTab] = useState<"masuk" | "daftar">(initialTab);
 
-              {/* ── REGISTER TAB ── */}
-              <TabsContent value="register" className="mt-0">
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="reg-name" className="text-sm">Nama Lengkap</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                      <Input
-                        id="reg-name"
-                        placeholder="Ahmad Abdullah"
-                        className="pl-9"
-                        value={regName}
-                        onChange={(e) => setRegName(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
+  return (
+    <div className="relative min-h-full bg-paper-cross flex flex-col">
+      <MobileHero />
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="reg-email" className="text-sm">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                      <Input
-                        id="reg-email"
-                        type="email"
-                        placeholder="email@contoh.com"
-                        className="pl-9"
-                        value={regEmail}
-                        onChange={(e) => setRegEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
+      {/* -mt-10 overlaps hero on mobile; lg removes it */}
+      <div className="flex-1 flex items-start lg:items-center justify-center px-5 sm:px-6 pt-6 pb-10 lg:py-12 -mt-10 lg:mt-0 relative z-10">
+        <div className="w-full max-w-[420px]">
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="reg-password" className="text-sm">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                      <Input
-                        id="reg-password"
-                        type={showRegPw ? "text" : "password"}
-                        placeholder="Minimal 6 karakter"
-                        className="pl-9 pr-9"
-                        value={regPassword}
-                        onChange={(e) => setRegPassword(e.target.value)}
-                        required
-                        minLength={6}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowRegPw((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {showRegPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-sm">Peran Anda</Label>
-                    <Select value={regRole} onValueChange={(v) => setRegRole(v as "guru" | "siswa")}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="siswa">
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 shrink-0" />
-                            <div className="text-left">
-                              <p className="font-medium text-sm">Siswa</p>
-                              <p className="text-xs text-muted-foreground">Saya menghafal Al-Qur'an</p>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="guru">
-                          <div className="flex items-center gap-2">
-                            <GraduationCap className="w-4 h-4 shrink-0" />
-                            <div className="text-left">
-                              <p className="font-medium text-sm">Guru</p>
-                              <p className="text-xs text-muted-foreground">Saya membimbing hafalan</p>
-                            </div>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <label className="flex items-start gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={agreeTerms}
-                      onChange={(e) => setAgreeTerms(e.target.checked)}
-                      className="w-4 h-4 rounded accent-primary mt-0.5 shrink-0"
-                    />
-                    <span className="text-xs text-muted-foreground leading-relaxed">
-                      Saya menyetujui{" "}
-                      <span className="text-primary underline cursor-pointer">Syarat Layanan</span>{" "}
-                      dan{" "}
-                      <span className="text-primary underline cursor-pointer">Kebijakan Privasi</span>{" "}
-                      Tahfizh Tracker.
-                    </span>
-                  </label>
-
-                  <Button type="submit" className="w-full gradient-primary text-white rounded-xl h-11 font-semibold" disabled={loading}>
-                    {loading ? "Memproses..." : "Buat Akun Saya"}
-                  </Button>
-                </form>
-
-                <p className="text-center text-xs text-muted-foreground mt-4">
-                  Sudah punya akun?{" "}
-                  <button
-                    type="button"
-                    onClick={() => setTab("login")}
-                    className="text-primary font-medium hover:underline"
-                  >
-                    Masuk di sini
-                  </button>
-                </p>
-              </TabsContent>
-            </Tabs>
+          {/* Desktop eyebrow */}
+          <div className="hidden lg:flex items-center gap-2 mb-5">
+            <span className="h-px w-8 bg-gold" />
+            <span className="text-[11px] tracking-[0.22em] uppercase text-[#7a8699]">
+              Assalamu'alaikum
+            </span>
           </div>
 
-          {tab === "login" && (
-            <p className="text-center text-xs text-muted-foreground mt-4">
-              Belum punya akun?{" "}
+          {/* Desktop heading */}
+          <h1 className="hidden lg:block font-display text-[34px] leading-[1.1] text-navy-900 mb-1.5">
+            {tab === "masuk" ? "Selamat datang kembali" : "Mulai perjalanan hafalanmu"}
+          </h1>
+          <p className="hidden lg:block text-[14px] text-[#5b6b80] mb-7 leading-relaxed">
+            {tab === "masuk"
+              ? "Masuk untuk melanjutkan setoran, murajaah, dan target juz harianmu."
+              : "Buat akun untuk mencatat setiap ayat, halaman, dan capaianmu."}
+          </p>
+
+          {/* Form card */}
+          <div
+            className="bg-white border border-auth-line rounded-2xl p-5 sm:p-6"
+            style={{
+              boxShadow:
+                "0 1px 0 rgba(255,255,255,0.7) inset, 0 24px 60px -32px rgba(15,39,66,0.25)",
+            }}
+          >
+            <AuthTabs value={tab} onChange={setTab} />
+            <div className="mt-5">
+              {tab === "masuk" ? <MasukForm key="masuk" /> : <DaftarForm key="daftar" />}
+            </div>
+          </div>
+
+          {/* Tab switch footer */}
+          <div className="mt-6 flex items-center justify-between text-[12px] text-[#7a8699]">
+            <span>
+              {tab === "masuk" ? "Belum punya akun?" : "Sudah punya akun?"}{" "}
               <button
                 type="button"
-                onClick={() => setTab("register")}
-                className="text-primary font-medium hover:underline"
+                onClick={() => setTab(tab === "masuk" ? "daftar" : "masuk")}
+                className="font-semibold text-navy-900 hover:underline underline-offset-2 transition-colors"
               >
-                Daftar gratis
+                {tab === "masuk" ? "Daftar gratis" : "Masuk di sini"}
               </button>
-            </p>
-          )}
+            </span>
+            <span className="hidden sm:inline">v1.0 · ID</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-          <p className="text-center text-[10px] text-muted-foreground/40 mt-3 hidden md:block">v1.0 · ID</p>
+// ─── Page root ────────────────────────────────────────────────
+export default function Login() {
+  return (
+    <div
+      className="min-h-screen w-full"
+      style={{ fontFamily: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif" }}
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] min-h-screen">
+        {/* Banner — desktop only */}
+        <div className="hidden lg:block order-1 min-h-screen">
+          <BannerPanel />
+        </div>
+        {/* Form panel */}
+        <div className="min-h-screen order-2">
+          <FormPanel />
         </div>
       </div>
     </div>
