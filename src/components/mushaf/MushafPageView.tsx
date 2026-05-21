@@ -76,7 +76,7 @@ function useSurahNames() {
   });
 }
 
-// ── Text-based page panel ─────────────────────────────────────────────────────
+// ── Page panel ────────────────────────────────────────────────────────────────
 
 function PagePanel({
   page,
@@ -87,6 +87,7 @@ function PagePanel({
   hafalanMode,
   revealedVerses,
   onRevealVerse,
+  isSpread,
 }: {
   page: number;
   verses: QuranComVerse[];
@@ -96,41 +97,49 @@ function PagePanel({
   hafalanMode?: boolean;
   revealedVerses?: Set<number>;
   onRevealVerse?: (verseId: number) => void;
+  isSpread?: boolean;
 }) {
   const juz = verses[0]?.juz_number;
   const surahNums = [...new Set(verses.map((v) => parseInt(v.verse_key.split(":")[0])))];
   const headerLabel = surahNums
     .map((n) => surahNames[n]?.englishName?.toUpperCase())
     .filter(Boolean)
-    .join(" • ");
+    .join(" · ");
+
+  const fontSize = isSpread ? "text-[22px] leading-[2.2]" : "text-[20px] leading-[2.0]";
+  const padX = isSpread ? "px-8" : "px-5";
+  const padY = isSpread ? "py-4" : "py-3";
 
   return (
     <div className="w-full h-full flex flex-col bg-[#f8f4eb] dark:bg-[#1c1917]">
       {/* Page header */}
-      <div className="shrink-0 flex items-center justify-between px-5 pt-2 pb-1.5 border-b border-primary/15">
-        <span className="text-[11px] font-bold tracking-widest text-primary/70 uppercase truncate max-w-[60%]">
+      <div className={`shrink-0 flex items-center justify-between ${padX} pt-3 pb-2 border-b border-primary/15`}>
+        <span className={`${isSpread ? "text-[12px]" : "text-[11px]"} font-bold tracking-widest text-primary/70 uppercase truncate max-w-[55%]`}>
           {headerLabel || "—"}
         </span>
         {juz != null && (
-          <span className="text-[11px] font-bold text-primary/70">Juz {juz}</span>
+          <span className={`${isSpread ? "text-[12px]" : "text-[11px]"} font-bold tracking-widest text-primary/70 uppercase`}>
+            Juz {juz}
+          </span>
         )}
       </div>
 
-      {/* Arabic text */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-3">
+      {/* Arabic text area */}
+      <div className={`flex-1 overflow-y-auto overscroll-contain ${padX} ${padY}`}
+           style={{ scrollbarWidth: "none" }}>
         {isLoading ? (
           <div className="space-y-4 pt-2 animate-pulse">
-            {Array.from({ length: 10 }).map((_, i) => (
+            {Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
                 className="h-7 rounded-full bg-primary/10"
-                style={{ width: `${65 + (i % 4) * 8}%`, marginLeft: "auto" }}
+                style={{ width: `${62 + (i % 5) * 7}%`, marginLeft: "auto" }}
               />
             ))}
           </div>
         ) : (
           <p
-            className="font-mushaf text-[20px] leading-[2.0] text-foreground"
+            className={`font-mushaf ${fontSize} text-foreground`}
             dir="rtl"
             style={{ textAlign: "justify", textAlignLast: "right" }}
           >
@@ -189,7 +198,7 @@ function PagePanel({
                   </span>
                   <span
                     className="font-mushaf mx-1 align-middle"
-                    style={{ color: "#F4C430", fontSize: "20px" }}
+                    style={{ color: "#C9A35A", fontSize: isSpread ? "22px" : "20px" }}
                   >
                     ﴿{toArabicNum(verse.verse_number)}﴾
                   </span>
@@ -201,7 +210,7 @@ function PagePanel({
       </div>
 
       {/* Page number footer */}
-      <div className="shrink-0 py-1.5 text-center border-t border-primary/10">
+      <div className={`shrink-0 py-2 text-center border-t border-primary/10`}>
         <span className="font-mushaf text-sm text-primary/50">{toArabicNum(page)}</span>
       </div>
     </div>
@@ -220,7 +229,8 @@ export default function MushafPageView({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(initialPage);
-  const [isLandscape, setIsLandscape] = useState(false);
+  // Two-page spread: triggered on desktop (≥1024px) OR landscape tablet (≥640px landscape)
+  const [isSpread, setIsSpread] = useState(false);
   const [showTopBar, setShowTopBar] = useState(true);
   const [selectedAyat, setSelectedAyat] = useState<AyahData | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -232,19 +242,22 @@ export default function MushafPageView({
   const touchStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isSwipingH = useRef(false);
 
-  const spreadLeft = page % 2 === 1 ? page : page - 1;
-  const spreadRight = spreadLeft + 1;
+  // In spread mode, always show an even spread (odd page on right, even on left)
+  const spreadLeft = page % 2 === 1 ? page : page - 1;   // odd = right page of mushaf
+  const spreadRight = spreadLeft + 1;                      // even = left page of mushaf
 
-  // Orientation detection
+  // Spread detection: desktop (≥1024px) or landscape tablet (≥640px landscape)
   useEffect(() => {
-    const mq = window.matchMedia("(orientation: landscape) and (min-width: 768px)");
-    setIsLandscape(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
+    const mq = window.matchMedia(
+      "(min-width: 1024px), (orientation: landscape) and (min-width: 640px)"
+    );
+    setIsSpread(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsSpread(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Fetch verse data for carousel + landscape
+  // Prefetch adjacent pages
   const { data: prevVerses = [], isLoading: prevLoading } = usePageData(page - 1);
   const { data: currVerses = [], isLoading: currLoading } = usePageData(page);
   const { data: nextVerses = [], isLoading: nextLoading } = usePageData(page + 1);
@@ -291,11 +304,11 @@ export default function MushafPageView({
   }, []);
 
   const revealAll = useCallback(() => {
-    const visibleVerses = isLandscape
+    const visibleVerses = isSpread
       ? [...leftVerses, ...rightVerses]
       : currVerses;
     setRevealedVerses(new Set(visibleVerses.map((v) => v.id)));
-  }, [currVerses, leftVerses, rightVerses, isLandscape]);
+  }, [currVerses, leftVerses, rightVerses, isSpread]);
 
   useEffect(() => {
     setRevealedVerses(new Set());
@@ -315,24 +328,24 @@ export default function MushafPageView({
     };
   }, [resetHideTimer]);
 
-  // Navigation
+  // Navigation — in spread mode advance by 2 pages
   const goNext = useCallback(() => {
-    if (isLandscape) {
+    if (isSpread) {
       if (spreadRight < TOTAL_PAGES) setPage(spreadRight + 1);
     } else {
       if (page < TOTAL_PAGES) setPage((p) => p + 1);
     }
-  }, [page, isLandscape, spreadRight]);
+  }, [page, isSpread, spreadRight]);
 
   const goPrev = useCallback(() => {
-    if (isLandscape) {
+    if (isSpread) {
       if (spreadLeft > 1) setPage(spreadLeft - 1);
     } else {
       if (page > 1) setPage((p) => p - 1);
     }
-  }, [page, isLandscape, spreadLeft]);
+  }, [page, isSpread, spreadLeft]);
 
-  // Touch handlers
+  // Touch handlers (portrait swipe only)
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     isSwipingH.current = false;
@@ -340,7 +353,7 @@ export default function MushafPageView({
 
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
-      if (isLandscape) return;
+      if (isSpread) return;
       const dx = e.touches[0].clientX - touchStart.current.x;
       const dy = e.touches[0].clientY - touchStart.current.y;
       if (!isSwipingH.current) {
@@ -352,12 +365,12 @@ export default function MushafPageView({
       }
       setSwipeOffset(dx);
     },
-    [isLandscape]
+    [isSpread]
   );
 
   const handleTouchEnd = useCallback(
     (e: React.TouchEvent) => {
-      if (isLandscape) {
+      if (isSpread) {
         const diffX = touchStart.current.x - e.changedTouches[0].clientX;
         const diffY = touchStart.current.y - e.changedTouches[0].clientY;
         if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
@@ -397,9 +410,10 @@ export default function MushafPageView({
         setTimeout(() => setIsTransitioning(false), 280);
       }
     },
-    [isLandscape, page, goNext, goPrev]
+    [isSpread, page, goNext, goPrev]
   );
 
+  // Keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") goNext();
@@ -460,7 +474,7 @@ export default function MushafPageView({
         <div className="flex-1 text-center">
           <p className="text-xs font-semibold text-foreground">Mushaf Al-Qur'an</p>
           <p className="text-[10px] text-muted-foreground">
-            {isLandscape
+            {isSpread
               ? `Halaman ${spreadLeft}–${Math.min(spreadRight, TOTAL_PAGES)}`
               : `Halaman ${page}`}
           </p>
@@ -481,12 +495,13 @@ export default function MushafPageView({
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden pt-[52px]" onClick={resetHideTimer}>
-        {isLandscape ? (
-          /* ── Landscape: two-page spread ── */
-          <div className="flex-1 flex overflow-hidden">
+        {isSpread ? (
+          /* ── Spread: two-page mushaf layout ── */
+          <div className="flex-1 flex overflow-hidden relative">
+            {/* Left page of mushaf = even = spreadRight */}
             <div
-              className="flex-1 relative overflow-hidden"
-              style={{ borderRight: "2px solid hsl(var(--primary) / 0.25)" }}
+              className="w-1/2 relative overflow-hidden"
+              style={{ boxShadow: "inset -8px 0 12px -8px rgba(0,0,0,0.10)" }}
             >
               <PagePanel
                 page={Math.min(spreadRight, TOTAL_PAGES)}
@@ -497,9 +512,21 @@ export default function MushafPageView({
                 hafalanMode={hafalanMode}
                 revealedVerses={revealedVerses}
                 onRevealVerse={revealVerse}
+                isSpread
               />
             </div>
-            <div className="flex-1 relative overflow-hidden">
+
+            {/* Book spine */}
+            <div
+              className="shrink-0 w-[2px] bg-primary/20 dark:bg-primary/15 z-10"
+              style={{ boxShadow: "0 0 10px 2px rgba(0,0,0,0.08)" }}
+            />
+
+            {/* Right page of mushaf = odd = spreadLeft */}
+            <div
+              className="w-1/2 relative overflow-hidden"
+              style={{ boxShadow: "inset 8px 0 12px -8px rgba(0,0,0,0.10)" }}
+            >
               <PagePanel
                 page={spreadLeft}
                 verses={leftVerses}
@@ -509,33 +536,38 @@ export default function MushafPageView({
                 hafalanMode={hafalanMode}
                 revealedVerses={revealedVerses}
                 onRevealVerse={revealVerse}
+                isSpread
               />
             </div>
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
+
+            {/* Nav: previous spread (RTL — previous = go right) */}
+            <div className="absolute left-2 top-1/2 -translate-y-1/2 z-10">
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-l-none rounded-r-xl bg-card/80 hover:bg-card shadow-md h-14 w-9"
+                className="rounded-l-none rounded-r-xl bg-[#f8f4eb]/80 dark:bg-[#1c1917]/80 hover:bg-[#f8f4eb] dark:hover:bg-[#1c1917] shadow-md h-14 w-9 border border-primary/10"
                 onClick={goPrev}
                 disabled={spreadLeft <= 1}
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 text-primary/60" />
               </Button>
             </div>
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
+
+            {/* Nav: next spread */}
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-r-none rounded-l-xl bg-card/80 hover:bg-card shadow-md h-14 w-9"
+                className="rounded-r-none rounded-l-xl bg-[#f8f4eb]/80 dark:bg-[#1c1917]/80 hover:bg-[#f8f4eb] dark:hover:bg-[#1c1917] shadow-md h-14 w-9 border border-primary/10"
                 onClick={goNext}
                 disabled={spreadRight >= TOTAL_PAGES}
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4 text-primary/60" />
               </Button>
             </div>
           </div>
         ) : (
-          /* ── Portrait: 3-panel swipe carousel ── */
+          /* ── Portrait: single-page swipe carousel ── */
           <div className="relative flex-1 overflow-hidden">
             {page > 1 && (
               <div className="absolute inset-0" style={panelStyle("prev")}>
