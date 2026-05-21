@@ -121,7 +121,7 @@ export default function TahfizhTracker() {
     if (!chartEntries) return [];
     const juzMap: Record<number, { total: number; count: number }> = {};
     chartEntries.forEach((e) => {
-      const juz = Math.ceil(e.page_number / 20);
+      const juz = Math.min(30, Math.max(1, Math.ceil((e.page_number - 1) / 20)));
       if (!juzMap[juz]) juzMap[juz] = { total: 0, count: 0 };
       juzMap[juz].total += e.kualitas_hafalan;
       juzMap[juz].count += 1;
@@ -237,8 +237,9 @@ export default function TahfizhTracker() {
         )
       : {};
 
-  const juzStart = (parseInt(selectedJuz) - 1) * 20 + 1;
-  const juzEnd = Math.min(parseInt(selectedJuz) * 20, 604);
+  const juzNum = parseInt(selectedJuz);
+  const juzStart = juzNum === 1 ? 1 : (juzNum - 1) * 20 + 2;
+  const juzEnd = juzNum === 30 ? 604 : juzNum * 20 + 1;
   const pages = Array.from({ length: juzEnd - juzStart + 1 }, (_, i) => juzStart + i);
 
   const juzEntries = pages.map((p) => entriesByPage[p]);
