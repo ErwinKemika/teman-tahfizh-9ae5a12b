@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
+        jakarta: ["'Plus Jakarta Sans'", "system-ui", "sans-serif"],
         display: ["'Cormorant Garamond'", "Georgia", "serif"],
         arabic: ["Amiri", "Traditional Arabic", "serif"],
       },
@@ -77,6 +78,10 @@ export default {
         paper: "#f6f8fb",
         "paper-form": "#f4f6fa",
         "auth-line": "#e5e9ef",
+        line: "#e5e9ef",
+        "muted-2": "#7a8699",
+        "dark-bg": "#0a1726",
+        "dark-card": "#10243c",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
