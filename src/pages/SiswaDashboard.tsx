@@ -377,22 +377,22 @@ export default function SiswaDashboard() {
   const surahAktif = hafalCount >= 20 ? "Al-Baqarah" : "Al-Fatihah";
 
   return (
-    <div className="font-jakarta bg-[#eef2f7] min-h-screen">
+    <div className="font-jakarta bg-[#eef2f7] min-h-screen w-full overflow-x-hidden">
       <Topbar />
 
       <div className="px-5 lg:px-9 py-7 max-w-[1200px] mx-auto">
 
         {/* Greeting */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="font-display text-[32px] sm:text-[36px] leading-[1.15] text-[#0f2742]">
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-[24px] sm:text-[32px] lg:text-[36px] leading-[1.15] text-[#0f2742] break-words">
               Assalamu'alaikum, {firstName}
             </h1>
             <p className="text-[14px] text-[#5b6b80] mt-2">
               Semoga hari ini penuh berkah — lanjutkan setoranmu.
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-full bg-white border border-line px-4 py-2 text-[13px] text-[#27384f] shadow-sm mt-1">
+          <div className="flex items-center gap-2 rounded-full bg-white border border-line px-4 py-2 text-[13px] text-[#27384f] shadow-sm mt-1 shrink-0">
             <span className="w-2 h-2 rounded-full bg-[#2f8a4d]" />
             Target harian:{" "}
             <span className="font-semibold text-[#0f2742] ml-1">1 halaman</span>
@@ -400,19 +400,19 @@ export default function SiswaDashboard() {
         </div>
 
         {/* Hadith banner */}
-        <div className="relative overflow-hidden rounded-[22px] mt-6 bg-hadith text-[#f6f1e6] px-7 sm:px-9 py-7">
-          <div className="relative z-10 flex items-center justify-between gap-6 flex-wrap">
-            <div className="max-w-xl">
+        <div className="relative overflow-hidden rounded-[22px] mt-6 bg-hadith text-[#f6f1e6] px-6 sm:px-9 py-6 sm:py-7">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
+            <div className="min-w-0">
               <div className="text-[10.5px] tracking-[0.2em] uppercase text-[#e3c98a] mb-2">
                 Hadits Pilihan
               </div>
-              <p className="font-display italic text-[18px] sm:text-[20px] leading-snug text-white/95">
+              <p className="font-display italic text-[16px] sm:text-[18px] lg:text-[20px] leading-snug text-white/95">
                 "Sebaik-baik kalian adalah yang mempelajari Al-Qur'an dan mengajarkannya."
               </p>
               <div className="text-[11.5px] text-[#ccd9ea] mt-2">HR. Bukhari</div>
             </div>
             <div
-              className="font-arabic text-[34px] sm:text-[40px] leading-[1.7] text-white/95 animate-floaty"
+              className="font-arabic text-[28px] sm:text-[36px] lg:text-[40px] leading-[1.7] text-white/95 animate-floaty shrink-0 text-right"
               dir="rtl"
             >
               خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ
