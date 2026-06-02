@@ -474,12 +474,12 @@ export default function SiswaDashboard() {
           {/* Progress card */}
           <div className="bg-white rounded-[14px] sm:rounded-[18px] border border-line shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_18px_40px_-28px_rgba(15,39,66,0.30)] p-4 sm:p-6 lg:col-span-1 flex flex-row sm:flex-row items-center gap-4 sm:gap-6">
             <ProgressDonut value={tahfizhStats?.percent || 0} />
-            <div className="min-w-0 w-full text-center sm:text-left">
-              <div className="text-[12px] tracking-[0.14em] uppercase text-[#9aa6b8]">
+            <div className="min-w-0 flex-1 text-left">
+              <div className="text-[10.5px] sm:text-[12px] tracking-[0.14em] uppercase text-[#9aa6b8]">
                 Progress Hafalan
               </div>
-              <div className="font-display text-[20px] sm:text-[22px] text-[#0f2742] leading-tight mt-1">
-                {hafalCount} / 604 halaman
+              <div className="font-display text-[16px] sm:text-[22px] text-[#0f2742] leading-tight mt-1">
+                {hafalCount} / 604 hal
               </div>
               <div className="flex flex-col gap-1.5 mt-3 text-[13px] items-center sm:items-start">
                 <span className="flex items-center gap-2 text-[#27384f]">
