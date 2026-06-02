@@ -467,7 +467,7 @@ function DaftarForm() {
           <span className="text-[#1b426f] underline underline-offset-2 cursor-pointer">Syarat Layanan</span>
           {" "}dan{" "}
           <span className="text-[#1b426f] underline underline-offset-2 cursor-pointer">Kebijakan Privasi</span>
-          {" "}Tahfizh Tracker.
+          {" "}Teman Qur'ani.
         </span>
       </Checkbox>
 
@@ -513,7 +513,7 @@ function BannerPanel() {
         </div>
         <div>
           <div className="font-display text-[20px] leading-none tracking-tight text-cream">
-            Tahfizh Tracker
+            Teman Qur'ani
           </div>
           <div className="text-[11px] uppercase tracking-[0.22em] text-gold-soft/80 mt-1">
             Hifz · Murajaah · Tasmi
@@ -579,7 +579,7 @@ function MobileHero() {
           <IconBook />
         </div>
         <div>
-          <div className="font-display text-[20px] leading-none text-cream">Tahfizh Tracker</div>
+          <div className="font-display text-[20px] leading-none text-cream">Teman Qur'ani</div>
           <div className="text-[10px] tracking-[0.22em] uppercase text-gold-soft/85 mt-1">
             Hifz · Murajaah · Tasmi
           </div>

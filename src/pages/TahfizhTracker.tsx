@@ -280,7 +280,7 @@ export default function TahfizhTracker() {
     <div className="p-4 lg:p-6 space-y-4 max-w-4xl mx-auto overflow-x-hidden">
       <div className="space-y-1">
         <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-primary" /> Tahfizh Tracker
+          <BookOpen className="w-5 h-5 text-primary" /> Teman Qur'ani
         </h1>
         <p className="text-sm text-muted-foreground">Lacak hafalan per halaman Al-Qur'an</p>
       </div>

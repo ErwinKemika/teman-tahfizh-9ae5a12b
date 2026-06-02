@@ -139,7 +139,7 @@ export default function ProfilePage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>Tahfizh Tracker v1.0</p>
+          <p>Teman Qur'ani v1.0</p>
           <p>Platform manajemen hafalan Al-Qur'an untuk sekolah Islam.</p>
         </CardContent>
       </Card>
