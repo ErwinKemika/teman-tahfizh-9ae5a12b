@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 // ── Donut SVG ────────────────────────────────────────────────────
-function ProgressDonut({ value = 0, size = 132, stroke = 13 }: { value?: number; size?: number; stroke?: number }) {
+function ProgressDonut({ value = 0, size = 110, stroke = 11 }: { value?: number; size?: number; stroke?: number }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const pct = Math.max(value, 1.5);
