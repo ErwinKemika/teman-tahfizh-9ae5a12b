@@ -85,7 +85,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
             <BookOpen className="w-[22px] h-[22px]" />
           </div>
           <div>
-            <div className="font-display text-[19px] leading-none text-white">Tahfizh Tracker</div>
+            <div className="font-display text-[19px] leading-none text-white">Teman Qur'ani</div>
             <div className="text-[11px] tracking-[0.14em] uppercase text-[#e3c98a]/80 mt-1.5">
               {profile?.role === "guru" ? "Panel Guru" : "Panel Siswa"}
             </div>
@@ -278,7 +278,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <div className="w-8 h-8 rounded-lg bg-[#0f2742] flex items-center justify-center">
               <BookOpen className="w-4 h-4 text-[#f6f1e6]" />
             </div>
-            <span className="font-bold text-foreground text-sm">Tahfizh Tracker</span>
+            <span className="font-bold text-foreground text-sm">Teman Qur'ani</span>
           </div>
           <div className="flex items-center gap-1">
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
