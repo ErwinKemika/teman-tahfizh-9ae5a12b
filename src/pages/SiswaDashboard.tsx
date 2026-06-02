@@ -207,21 +207,70 @@ function HistoryTable({ rows }: { rows: MutabaahEntry[] }) {
   const navigate = useNavigate();
   return (
     <div className="bg-white rounded-[18px] border border-line shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_18px_40px_-28px_rgba(15,39,66,0.30)] overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-line">
-        <div className="flex items-center gap-2.5">
-          <span className="grid place-items-center w-8 h-8 rounded-lg bg-[#eef2f7] text-[#1b426f]">
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3.5 sm:py-4 border-b border-line">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="grid place-items-center w-8 h-8 rounded-lg bg-[#eef2f7] text-[#1b426f] shrink-0">
             <ClipboardCheck className="w-[18px] h-[18px]" />
           </span>
-          <h3 className="font-display text-[19px] text-[#0f2742]">Riwayat Mutaba'ah Terbaru</h3>
+          <h3 className="font-display text-[15px] sm:text-[19px] text-[#0f2742] truncate">Riwayat Mutaba'ah</h3>
         </div>
         <button
           onClick={() => navigate("/mutabaah")}
-          className="text-[12.5px] font-semibold text-[#1b426f] hover:underline underline-offset-2 flex items-center gap-1"
+          className="text-[12px] sm:text-[12.5px] font-semibold text-[#1b426f] hover:underline underline-offset-2 flex items-center gap-1 shrink-0"
         >
           Lihat semua <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
-      <div className="overflow-x-auto no-scrollbar">
+
+      {/* Mobile: stacked cards */}
+      <ul className="sm:hidden divide-y divide-line">
+        {rows.map((entry) => (
+          <li key={entry.id} className="px-4 py-3">
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <span className="text-[12.5px] font-semibold text-[#0f2742]">
+                {new Date(entry.date + "T00:00:00").toLocaleDateString("id-ID", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+              <StatusPill status={entry.status} />
+            </div>
+            <div className="grid grid-cols-1 gap-0.5 text-[12px] text-[#27384f]">
+              {entry.ziyadah_surat && (
+                <div className="truncate">
+                  <span className="text-[#7a8699]">Ziyadah: </span>
+                  {entry.ziyadah_surat} {entry.ziyadah_ayat_start ?? ""}–{entry.ziyadah_ayat_end ?? ""}
+                </div>
+              )}
+              {entry.murojaah_hifdzul_jadid_dari != null && entry.murojaah_hifdzul_jadid_hingga != null && (
+                <div className="truncate">
+                  <span className="text-[#7a8699]">Hifdzul Jadid: </span>
+                  Hal. {entry.murojaah_hifdzul_jadid_dari}–{entry.murojaah_hifdzul_jadid_hingga}
+                </div>
+              )}
+              {entry.murojaah_hifdzul_qodim && (
+                <div className="truncate">
+                  <span className="text-[#7a8699]">Qadhim Fardhi: </span>
+                  {entry.murojaah_hifdzul_qodim}
+                </div>
+              )}
+              {entry.murojaah_tsnai && (
+                <div className="truncate">
+                  <span className="text-[#7a8699]">Qadhim Tsuna'i: </span>
+                  {entry.murojaah_tsnai}
+                </div>
+              )}
+              {entry.keterangan && (
+                <div className="text-[#7a8699] line-clamp-2">{entry.keterangan}</div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {/* Desktop / tablet: table */}
+      <div className="hidden sm:block overflow-x-auto no-scrollbar">
         <table className="w-full min-w-[720px] text-left">
           <caption className="sr-only">Riwayat mutaba'ah terbaru</caption>
           <thead>
