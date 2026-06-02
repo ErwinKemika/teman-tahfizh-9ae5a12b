@@ -66,16 +66,16 @@ interface StatCardProps {
 }
 function StatCard({ Icon, label, value, sub, tintBg, tintFg }: StatCardProps) {
   return (
-    <div className="bg-white rounded-[14px] sm:rounded-[18px] border border-line shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_18px_40px_-28px_rgba(15,39,66,0.30)] p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4">
+    <div className="bg-white rounded-[14px] sm:rounded-[18px] border border-line shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_18px_40px_-28px_rgba(15,39,66,0.30)] p-3 sm:p-5 flex items-center gap-2.5 sm:gap-4 min-w-0">
       <div
-        className="grid place-items-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl shrink-0"
+        className="grid place-items-center w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl shrink-0"
         style={{ background: tintBg, color: tintFg }}
       >
-        <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+        <Icon className="w-[18px] h-[18px] sm:w-6 sm:h-6" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-[11px] sm:text-[12.5px] text-[#7a8699] truncate">{label}</div>
-        <div className="font-display text-[20px] sm:text-[24px] leading-tight text-[#0f2742] truncate">{value}</div>
+        <div className="text-[10.5px] sm:text-[12.5px] text-[#7a8699] truncate">{label}</div>
+        <div className="font-display text-[16px] sm:text-[24px] leading-tight text-[#0f2742] truncate">{value}</div>
         {sub && <div className="text-[10px] sm:text-[11.5px] text-[#9aa6b8] mt-0.5 truncate">{sub}</div>}
       </div>
     </div>
