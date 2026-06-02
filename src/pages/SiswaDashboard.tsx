@@ -481,13 +481,13 @@ export default function SiswaDashboard() {
               <div className="font-display text-[16px] sm:text-[22px] text-[#0f2742] leading-tight mt-1">
                 {hafalCount} / 604 hal
               </div>
-              <div className="flex flex-col gap-1.5 mt-3 text-[13px] items-center sm:items-start">
+              <div className="flex flex-col gap-1 sm:gap-1.5 mt-2 sm:mt-3 text-[11.5px] sm:text-[13px] items-start">
                 <span className="flex items-center gap-2 text-[#27384f]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#2f8a4d]" />
-                  Hafal · {hafalCount} halaman
+                  <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#2f8a4d]" />
+                  Hafal · {hafalCount} hal
                 </span>
                 <span className="flex items-center gap-2 text-[#27384f]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#c9a35a]" />
+                  <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#c9a35a]" />
                   Muraja'ah · {tahfizhStats?.murajaah || 0}×
                 </span>
               </div>
