@@ -429,39 +429,39 @@ export default function SiswaDashboard() {
     <div className="font-jakarta bg-[#eef2f7] min-h-screen w-full overflow-x-hidden">
       <Topbar />
 
-      <div className="px-5 lg:px-9 py-7 max-w-[1200px] mx-auto">
+      <div className="px-4 sm:px-5 lg:px-9 py-5 sm:py-7 max-w-[1200px] mx-auto">
 
         {/* Greeting */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-[24px] sm:text-[32px] lg:text-[36px] leading-[1.15] text-[#0f2742] break-words">
+            <h1 className="font-display text-[20px] sm:text-[32px] lg:text-[36px] leading-[1.15] text-[#0f2742] break-words">
               Assalamu'alaikum, {firstName}
             </h1>
-            <p className="text-[14px] text-[#5b6b80] mt-2">
+            <p className="text-[13px] sm:text-[14px] text-[#5b6b80] mt-1.5 sm:mt-2">
               Semoga hari ini penuh berkah — lanjutkan setoranmu.
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-full bg-white border border-line px-4 py-2 text-[13px] text-[#27384f] shadow-sm mt-1 shrink-0">
+          <div className="flex items-center gap-2 rounded-full bg-white border border-line px-3 sm:px-4 py-1.5 sm:py-2 text-[11.5px] sm:text-[13px] text-[#27384f] shadow-sm mt-1 shrink-0">
             <span className="w-2 h-2 rounded-full bg-[#2f8a4d]" />
-            Target harian:{" "}
-            <span className="font-semibold text-[#0f2742] ml-1">1 halaman</span>
+            Target:{" "}
+            <span className="font-semibold text-[#0f2742] ml-1">1 hal/hari</span>
           </div>
         </div>
 
         {/* Hadith banner */}
-        <div className="relative overflow-hidden rounded-[22px] mt-6 bg-hadith text-[#f6f1e6] px-6 sm:px-9 py-6 sm:py-7">
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
-            <div className="min-w-0">
-              <div className="text-[10.5px] tracking-[0.2em] uppercase text-[#e3c98a] mb-2">
+        <div className="relative overflow-hidden rounded-[18px] sm:rounded-[22px] mt-5 sm:mt-6 bg-hadith text-[#f6f1e6] px-4 sm:px-9 py-5 sm:py-7">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6 min-w-0">
+            <div className="min-w-0 order-2 sm:order-1">
+              <div className="text-[10px] sm:text-[10.5px] tracking-[0.2em] uppercase text-[#e3c98a] mb-1.5 sm:mb-2">
                 Hadits Pilihan
               </div>
-              <p className="font-display italic text-[16px] sm:text-[18px] lg:text-[20px] leading-snug text-white/95">
+              <p className="font-display italic text-[14px] sm:text-[18px] lg:text-[20px] leading-snug text-white/95">
                 "Sebaik-baik kalian adalah yang mempelajari Al-Qur'an dan mengajarkannya."
               </p>
-              <div className="text-[11.5px] text-[#ccd9ea] mt-2">HR. Bukhari</div>
+              <div className="text-[11px] sm:text-[11.5px] text-[#ccd9ea] mt-1.5 sm:mt-2">HR. Bukhari</div>
             </div>
             <div
-              className="font-arabic text-[28px] sm:text-[36px] lg:text-[40px] leading-[1.7] text-white/95 animate-floaty shrink-0 text-right"
+              className="font-arabic text-[22px] sm:text-[36px] lg:text-[40px] leading-[1.6] text-white/95 animate-floaty text-right order-1 sm:order-2 sm:shrink-0 break-words"
               dir="rtl"
             >
               خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ
@@ -470,9 +470,9 @@ export default function SiswaDashboard() {
         </div>
 
         {/* Progress + Stat cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 mt-5 sm:mt-6">
           {/* Progress card */}
-          <div className="bg-white rounded-[18px] border border-line shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_18px_40px_-28px_rgba(15,39,66,0.30)] p-6 lg:col-span-1 flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
+          <div className="bg-white rounded-[14px] sm:rounded-[18px] border border-line shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_18px_40px_-28px_rgba(15,39,66,0.30)] p-4 sm:p-6 lg:col-span-1 flex flex-row sm:flex-row items-center gap-4 sm:gap-6">
             <ProgressDonut value={tahfizhStats?.percent || 0} />
             <div className="min-w-0 w-full text-center sm:text-left">
               <div className="text-[12px] tracking-[0.14em] uppercase text-[#9aa6b8]">
