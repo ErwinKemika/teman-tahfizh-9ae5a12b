@@ -47,8 +47,8 @@ function ProgressDonut({ value = 0, size = 110, stroke = 11 }: { value?: number;
       </svg>
       <div className="absolute inset-0 grid place-items-center">
         <div className="text-center">
-          <div className="font-display text-[30px] leading-none text-[#0f2742]">{value}%</div>
-          <div className="text-[10px] tracking-[0.16em] uppercase text-[#7a8699] mt-1">Hafal</div>
+          <div className="font-display text-[24px] sm:text-[28px] leading-none text-[#0f2742]">{value}%</div>
+          <div className="text-[9px] sm:text-[10px] tracking-[0.16em] uppercase text-[#7a8699] mt-1">Hafal</div>
         </div>
       </div>
     </div>
