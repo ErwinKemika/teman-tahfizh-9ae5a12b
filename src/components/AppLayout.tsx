@@ -82,7 +82,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
       <div className="px-5 pt-6 pb-5">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-[#f6f1e6] grid place-items-center shadow-[0_10px_24px_-12px_rgba(0,0,0,0.7)] shrink-0 overflow-hidden">
-            <img src="/logo tq.png" alt="Teman Qur'ani" className="w-8 h-8 object-contain" />
+            <img src="/logo-tq.png" alt="Teman Qur'ani" className="w-8 h-8 object-contain" />
           </div>
           <div>
             <div className="font-display text-[19px] leading-none text-white">Teman Qur'ani</div>
@@ -276,7 +276,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         >
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-[#f6f1e6] flex items-center justify-center overflow-hidden">
-              <img src="/logo tq.png" alt="Teman Qur'ani" className="w-6 h-6 object-contain" />
+              <img src="/logo-tq.png" alt="Teman Qur'ani" className="w-6 h-6 object-contain" />
             </div>
             <span className="font-bold text-foreground text-sm">Teman Qur'ani</span>
           </div>
