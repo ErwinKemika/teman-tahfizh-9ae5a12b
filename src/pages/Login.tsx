@@ -506,10 +506,10 @@ function BannerPanel() {
       {/* Logo mark */}
       <div className="absolute top-10 left-10 flex items-center gap-3 z-10">
         <div
-          className="w-10 h-10 rounded-xl bg-cream/95 text-navy-900 grid place-items-center"
+          className="w-10 h-10 rounded-xl bg-cream/95 grid place-items-center overflow-hidden"
           style={{ boxShadow: "0 8px 24px -12px rgba(0,0,0,0.6)" }}
         >
-          <IconBook />
+          <img src="/logo-tq.png" alt="Teman Qur'ani" className="w-7 h-7 object-contain" />
         </div>
         <div>
           <div className="font-display text-[20px] leading-none tracking-tight text-cream">
