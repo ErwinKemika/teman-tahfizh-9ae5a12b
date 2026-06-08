@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -87,7 +87,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
           <div>
             <div className="font-display text-[19px] leading-none text-white">Teman Qur'ani</div>
             <div className="text-[11px] tracking-[0.14em] uppercase text-[#e3c98a]/80 mt-1.5">
-              {profile?.role === "guru" ? "Panel Guru" : "Panel Siswa"}
+              {profile?.role === "guru" ? "Panel Guru" : profile?.role === "admin_lembaga" ? "Panel Admin" : "Panel Siswa"}
             </div>
           </div>
         </div>
@@ -245,6 +245,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  useEffect(() => {
+    if (profile?.role === "admin_lembaga") {
+      navigate("/admin", { replace: true });
+    }
+  }, [profile?.role, navigate]);
 
   const mobileNavItems =
     profile?.role === "guru"

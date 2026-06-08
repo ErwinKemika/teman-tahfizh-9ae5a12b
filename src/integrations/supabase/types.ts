@@ -137,6 +137,7 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          lembaga_id: string | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
           user_id: string
@@ -147,6 +148,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          lembaga_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id: string
@@ -157,6 +159,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          lembaga_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id?: string
@@ -398,7 +401,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "guru" | "siswa"
+      app_role: "guru" | "siswa" | "admin_lembaga"
       jenis_ujian_enum: "harian" | "pekanan" | "bulanan"
       mutabaah_status: "lulus" | "mengulang" | "libur" | "sakit"
       tahfizh_status: "belum_dihafalkan" | "murajaah" | "tasmi_done" | "mutqin"
@@ -529,7 +532,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["guru", "siswa"],
+      app_role: ["guru", "siswa", "admin_lembaga"],
       jenis_ujian_enum: ["harian", "pekanan", "bulanan"],
       mutabaah_status: ["lulus", "mengulang", "libur", "sakit"],
       tahfizh_status: ["belum_dihafalkan", "murajaah", "tasmi_done", "mutqin"],

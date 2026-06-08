@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 // ─── Inline SVG icons (hairline strokes, elegant) ────────────
@@ -177,12 +178,16 @@ function ErrorBanner({ message }: { message: string }) {
   );
 }
 
-// ─── Role select (custom dropdown, 4 options) ─────────────────
+const IconBuilding = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
+  </svg>
+);
+
+// ─── Role select (custom dropdown, 2 options) ─────────────────
 const ROLES = [
-  { id: "siswa", label: "Siswa",          desc: "Saya menghafal Al-Qur'an" },
+  { id: "siswa", label: "Siswa / Santri", desc: "Saya menghafal Al-Qur'an" },
   { id: "guru",  label: "Guru / Musyrif", desc: "Mengajar & menilai setoran" },
-  { id: "wali",  label: "Wali Santri",    desc: "Memantau progres anak" },
-  { id: "admin", label: "Admin Lembaga",  desc: "Mengelola halaqah & kelas" },
 ] as const;
 
 type RoleId = typeof ROLES[number]["id"];
@@ -258,7 +263,7 @@ function RoleSelect({ value, onChange }: { value: RoleId; onChange: (v: RoleId) 
 
 // ─── Masuk (login) form ───────────────────────────────────────
 function MasukForm() {
-  const { signIn } = useAuth();
+  const { signIn, profile } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [pwd, setPwd]     = useState("");
@@ -266,6 +271,13 @@ function MasukForm() {
   const [remember, setRemember] = useState(true);
   const [busy, setBusy]   = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    if (loggedIn && profile) {
+      navigate(profile.role === "admin_lembaga" ? "/admin" : "/");
+    }
+  }, [loggedIn, profile, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,7 +289,7 @@ function MasukForm() {
       setBusy(false);
     } else {
       toast.success("Berhasil masuk!");
-      navigate("/");
+      setLoggedIn(true);
     }
   };
 
@@ -349,14 +361,15 @@ function MasukForm() {
 // ─── Daftar (register) form ───────────────────────────────────
 function DaftarForm() {
   const { signUp } = useAuth();
-  const [nama, setNama]   = useState("");
-  const [email, setEmail] = useState("");
-  const [pwd, setPwd]     = useState("");
-  const [show, setShow]   = useState(false);
-  const [role, setRole]   = useState<RoleId>("siswa");
-  const [agree, setAgree] = useState(false);
-  const [busy, setBusy]   = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [nama, setNama]           = useState("");
+  const [email, setEmail]         = useState("");
+  const [pwd, setPwd]             = useState("");
+  const [show, setShow]           = useState(false);
+  const [role, setRole]           = useState<RoleId>("siswa");
+  const [kodeLembaga, setKode]    = useState("");
+  const [agree, setAgree]         = useState(false);
+  const [busy, setBusy]           = useState(false);
+  const [error, setError]         = useState<string | null>(null);
 
   const strength = useMemo(() => {
     let s = 0;
@@ -375,15 +388,25 @@ function DaftarForm() {
     { label: "Kuat",            color: "#2f8a4d" },
   ][strength];
 
-  const toBackendRole = (r: RoleId): "guru" | "siswa" =>
-    r === "guru" || r === "admin" ? "guru" : "siswa";
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agree) return;
     setError(null);
     setBusy(true);
-    const { error } = await signUp(email, pwd, nama, toBackendRole(role));
+
+    const { data: lembagaData, error: lembagaError } = await supabase
+      .from("lembaga")
+      .select("id")
+      .eq("kode", kodeLembaga.toUpperCase().trim())
+      .single();
+
+    if (lembagaError || !lembagaData) {
+      setError("Kode lembaga tidak valid. Hubungi admin lembagamu.");
+      setBusy(false);
+      return;
+    }
+
+    const { error } = await signUp(email, pwd, nama, role, lembagaData.id);
     if (error) {
       setError(error.message);
     } else {
@@ -459,6 +482,18 @@ function DaftarForm() {
 
       <Field label="Peran Anda">
         <RoleSelect value={role} onChange={setRole} />
+      </Field>
+
+      <Field label="Kode Lembaga" hint={<span>Minta ke admin lembagamu</span>}>
+        <InputWrap icon={<IconBuilding />}>
+          <input
+            required
+            value={kodeLembaga}
+            onChange={(e) => setKode(e.target.value.toUpperCase())}
+            placeholder="Contoh: KIBS"
+            className={inputCls(true, false)}
+          />
+        </InputWrap>
       </Field>
 
       <Checkbox checked={agree} onChange={setAgree}>
