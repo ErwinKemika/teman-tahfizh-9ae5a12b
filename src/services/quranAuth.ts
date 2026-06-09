@@ -1,7 +1,4 @@
-const OAUTH_URL =
-  import.meta.env.VITE_QURAN_OAUTH_URL ?? "https://oauth2.quran.foundation";
-const CLIENT_ID = import.meta.env.VITE_QURAN_CLIENT_ID ?? "";
-const CLIENT_SECRET = import.meta.env.VITE_QURAN_CLIENT_SECRET ?? "";
+import { supabase } from "@/integrations/supabase/client";
 
 export const QURAN_API_BASE =
   import.meta.env.VITE_QURAN_API_BASE ?? "https://api.quran.com/api/v4";
@@ -13,31 +10,28 @@ interface TokenCache {
 
 let cache: TokenCache | null = null;
 
+/**
+ * Fetches a Quran Foundation access token via the `quran-token` edge function.
+ * The OAuth client_id/client_secret are kept server-side; this client never
+ * sees them. Returns null if the backend is not configured or the call fails,
+ * in which case callers fall back to unauthenticated requests.
+ */
 export async function getQuranAccessToken(): Promise<string | null> {
   if (cache && Date.now() < cache.expiresAt - 30_000) {
     return cache.token;
   }
 
-  if (!CLIENT_ID || !CLIENT_SECRET) return null;
-
   try {
-    const res = await fetch(`${OAUTH_URL}/oauth2/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "client_credentials",
-        scope: "content",
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-      }),
-    });
+    const { data, error } = await supabase.functions.invoke<{
+      token: string | null;
+      expiresIn: number;
+    }>("quran-token");
 
-    if (!res.ok) throw new Error(`${res.status}`);
+    if (error || !data?.token) return null;
 
-    const json = await res.json();
     cache = {
-      token: json.access_token,
-      expiresAt: Date.now() + (json.expires_in ?? 3600) * 1000,
+      token: data.token,
+      expiresAt: Date.now() + (data.expiresIn || 3600) * 1000,
     };
     return cache.token;
   } catch (err) {
