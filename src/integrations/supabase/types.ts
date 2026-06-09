@@ -79,6 +79,27 @@ export type Database = {
           },
         ]
       }
+      lembaga: {
+        Row: {
+          created_at: string
+          id: string
+          kode: string
+          nama: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kode: string
+          nama: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kode?: string
+          nama?: string
+        }
+        Relationships: []
+      }
       mutabaah_entries: {
         Row: {
           created_at: string
@@ -138,6 +159,7 @@ export type Database = {
           full_name: string
           id: string
           lembaga_id: string | null
+          nickname: string | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
           user_id: string
@@ -149,6 +171,7 @@ export type Database = {
           full_name?: string
           id?: string
           lembaga_id?: string | null
+          nickname?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id: string
@@ -160,6 +183,7 @@ export type Database = {
           full_name?: string
           id?: string
           lembaga_id?: string | null
+          nickname?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id?: string
@@ -392,6 +416,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_my_lembaga_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
