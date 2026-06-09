@@ -263,7 +263,7 @@ function RoleSelect({ value, onChange }: { value: RoleId; onChange: (v: RoleId) 
 
 // ─── Masuk (login) form ───────────────────────────────────────
 function MasukForm() {
-  const { signIn, profile } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [pwd, setPwd]     = useState("");
@@ -271,14 +271,6 @@ function MasukForm() {
   const [remember, setRemember] = useState(true);
   const [busy, setBusy]   = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loggedIn, setLoggedIn] = useState(false);
-
-  useEffect(() => {
-    if (loggedIn && profile) {
-      navigate(profile.role === "admin_lembaga" ? "/admin" : "/");
-    }
-  }, [loggedIn, profile, navigate]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -289,7 +281,7 @@ function MasukForm() {
       setBusy(false);
     } else {
       toast.success("Berhasil masuk!");
-      setLoggedIn(true);
+      navigate("/");
     }
   };
 
