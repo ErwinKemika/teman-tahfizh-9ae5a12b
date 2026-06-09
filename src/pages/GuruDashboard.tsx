@@ -86,7 +86,7 @@ export default function GuruDashboard() {
     <div className="p-4 lg:p-6 space-y-6 max-w-6xl mx-auto overflow-x-hidden">
       <div className="space-y-1">
         <h1 className="text-xl lg:text-2xl font-bold text-foreground">
-          Assalamu'alaikum, {profile?.full_name?.split(" ")[0] || ""} 👋
+          Assalamu'alaikum, {profile?.nickname || profile?.full_name?.split(" ")[0] || ""} 👋
         </h1>
         <p className="text-sm text-muted-foreground">Dashboard Guru — Pantau progress siswa</p>
       </div>

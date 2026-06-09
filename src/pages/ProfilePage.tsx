@@ -19,6 +19,7 @@ export default function ProfilePage() {
   const { profile, user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [fullName, setFullName] = useState(profile?.full_name || "");
+  const [nickname, setNickname] = useState(profile?.nickname || "");
   const [newPassword, setNewPassword] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
   const [uploading, setUploading] = useState(false);
@@ -27,6 +28,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (profile?.full_name) setFullName(profile.full_name);
     if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+    if (profile?.nickname) setNickname(profile.nickname);
   }, [profile?.full_name, profile?.avatar_url]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,7 +62,7 @@ export default function ProfilePage() {
     mutationFn: async () => {
       const { error } = await supabase
         .from("profiles")
-        .update({ full_name: fullName })
+        .update({ full_name: fullName, nickname: nickname || null })
         .eq("user_id", user!.id);
       if (error) throw error;
     },
@@ -131,6 +133,14 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <Label>Nama Lengkap</Label>
             <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Nama Panggilan</Label>
+            <Input
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="Dipakai di dashboard, contoh: Azzam"
+            />
           </div>
           <Button
             onClick={() => updateProfileMutation.mutate()}

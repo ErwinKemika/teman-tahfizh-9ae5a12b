@@ -338,7 +338,7 @@ function HistoryTable({ rows }: { rows: MutabaahEntry[] }) {
 export default function SiswaDashboard() {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
-  const firstName = profile?.full_name?.split(" ")[0] || "Santri";
+  const firstName = profile?.nickname || profile?.full_name?.split(" ")[0] || "Santri";
 
   const { data: tahfizhStats } = useQuery({
     queryKey: ["tahfizh-stats", user?.id],
