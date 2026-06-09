@@ -17,7 +17,7 @@ import { useRef } from "react";
 import CropAvatarDialog from "@/components/CropAvatarDialog";
 
 export default function ProfilePage() {
-  const { profile, user, signOut } = useAuth();
+  const { profile, user, signOut, refreshProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [nickname, setNickname] = useState(profile?.nickname || "");
@@ -60,6 +60,7 @@ export default function ProfilePage() {
         .eq("user_id", user.id);
       if (updateError) throw updateError;
       setAvatarUrl(url);
+      await refreshProfile();
       toast.success("Foto profil berhasil diperbarui!");
     } catch (err: any) {
       toast.error("Gagal upload foto: " + err.message);
