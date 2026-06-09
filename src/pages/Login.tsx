@@ -184,10 +184,11 @@ const IconBuilding = () => (
   </svg>
 );
 
-// ─── Role select (custom dropdown, 2 options) ─────────────────
+// ─── Role select (custom dropdown) ─────────────────
+// Only "siswa" can self-register. Guru accounts must be promoted by an admin
+// out-of-band; we never accept a guru role from client-side input.
 const ROLES = [
   { id: "siswa", label: "Siswa / Santri", desc: "Saya menghafal Al-Qur'an" },
-  { id: "guru",  label: "Guru / Musyrif", desc: "Mengajar & menilai setoran" },
 ] as const;
 
 type RoleId = typeof ROLES[number]["id"];

@@ -22,7 +22,7 @@ interface AuthContextType {
   role: AppRole | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string, role: AppRole, lembagaId?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, lembagaId?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -79,12 +79,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string, role: AppRole, lembagaId?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, lembagaId?: string) => {
+    // Role is always assigned 'siswa' server-side by the handle_new_user trigger.
+    // Never trust client-supplied role claims.
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName, role, lembaga_id: lembagaId ?? null },
+        data: { full_name: fullName, lembaga_id: lembagaId ?? null },
         emailRedirectTo: window.location.origin,
       },
     });
