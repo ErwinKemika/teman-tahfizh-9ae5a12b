@@ -417,6 +417,10 @@ export type Database = {
     }
     Functions: {
       get_my_lembaga_id: { Args: never; Returns: string }
+      guru_shares_lembaga_with_student: {
+        Args: { _student_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
