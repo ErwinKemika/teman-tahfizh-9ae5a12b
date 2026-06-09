@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { User, Lock, Info, Moon, Camera } from "lucide-react";
 import { AvatarImage } from "@/components/ui/avatar";
 import { useRef } from "react";
+import CropAvatarDialog from "@/components/CropAvatarDialog";
 
 export default function ProfilePage() {
   const { profile, user, signOut } = useAuth();
@@ -23,6 +24,7 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
   const [uploading, setUploading] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -31,16 +33,24 @@ export default function ProfilePage() {
     if (profile?.nickname) setNickname(profile.nickname);
   }, [profile?.full_name, profile?.avatar_url]);
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
+    e.target.value = "";
+    const reader = new FileReader();
+    reader.onload = () => setCropSrc(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleCroppedUpload = async (blob: Blob) => {
+    if (!user) return;
+    setCropSrc(null);
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}.${ext}`;
+      const path = `${user.id}.jpg`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(path, file, { upsert: true });
+        .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
       const url = `${data.publicUrl}?t=${Date.now()}`;
@@ -114,8 +124,16 @@ export default function ProfilePage() {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={handleAvatarUpload}
+            onChange={handleFileSelect}
           />
+          {cropSrc && (
+            <CropAvatarDialog
+              imageSrc={cropSrc}
+              open={!!cropSrc}
+              onClose={() => setCropSrc(null)}
+              onCropComplete={handleCroppedUpload}
+            />
+          )}
           <div className="text-center">
             <p className="font-semibold text-foreground">{profile?.full_name}</p>
             <p className="text-xs text-muted-foreground capitalize">{profile?.role}</p>
