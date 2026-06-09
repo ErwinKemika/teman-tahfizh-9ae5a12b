@@ -22,15 +22,18 @@ export default function GuruDashboard() {
   const [showStudents, setShowStudents] = useState(false);
 
   const { data: students } = useQuery({
-    queryKey: ["all-students"],
+    queryKey: ["all-students", profile?.lembaga_id],
     queryFn: async () => {
+      if (!profile?.lembaga_id) return [];
       const { data } = await supabase
         .from("profiles")
         .select("*")
         .eq("role", "siswa")
+        .eq("lembaga_id", profile.lembaga_id)
         .order("full_name");
       return data || [];
     },
+    enabled: !!profile?.lembaga_id,
   });
 
   const { data: todayActivity } = useQuery({
