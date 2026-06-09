@@ -400,7 +400,7 @@ function DaftarForm() {
       return;
     }
 
-    const { error } = await signUp(email, pwd, nama, role, lembagaData.id);
+    const { error } = await signUp(email, pwd, nama, lembagaData.id);
     if (error) {
       setError(error.message);
       setBusy(false);
@@ -476,9 +476,7 @@ function DaftarForm() {
         </div>
       </Field>
 
-      <Field label="Peran Anda">
-        <RoleSelect value={role} onChange={setRole} />
-      </Field>
+      {/* Role is always 'siswa' for self-signup. Guru accounts are provisioned by an admin. */}
 
       <Field label="Kode Lembaga" hint={<span>Minta ke admin lembagamu</span>}>
         <InputWrap icon={<IconBuilding />}>
