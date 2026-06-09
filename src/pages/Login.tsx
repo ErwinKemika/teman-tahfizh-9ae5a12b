@@ -352,7 +352,8 @@ function MasukForm() {
 
 // ─── Daftar (register) form ───────────────────────────────────
 function DaftarForm() {
-  const { signUp } = useAuth();
+  const { signUp, signIn } = useAuth();
+  const navigate = useNavigate();
   const [nama, setNama]           = useState("");
   const [email, setEmail]         = useState("");
   const [pwd, setPwd]             = useState("");
@@ -401,10 +402,12 @@ function DaftarForm() {
     const { error } = await signUp(email, pwd, nama, role, lembagaData.id);
     if (error) {
       setError(error.message);
+      setBusy(false);
     } else {
-      toast.success("Akun berhasil dibuat! Silakan cek email untuk verifikasi.");
+      await signIn(email, pwd);
+      toast.success("Akun berhasil dibuat!");
+      navigate("/");
     }
-    setBusy(false);
   };
 
   return (
