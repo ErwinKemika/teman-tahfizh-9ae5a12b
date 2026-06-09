@@ -223,8 +223,10 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
       <div className="mt-auto px-3 pb-5">
         <div className="mx-2 mb-3 h-px bg-white/[0.08]" />
         <div className="flex items-center gap-3 rounded-xl px-2.5 py-2 hover:bg-white/5 transition-colors">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#c9a35a] to-[#9c7b38] text-[#0f2742] grid place-items-center font-bold text-[14px] shrink-0">
-            {initials}
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#c9a35a] to-[#9c7b38] text-[#0f2742] grid place-items-center font-bold text-[14px] shrink-0 overflow-hidden">
+            {profile?.avatar_url
+              ? <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+              : initials}
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-[13.5px] font-semibold text-white truncate">
