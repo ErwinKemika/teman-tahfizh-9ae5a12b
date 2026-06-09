@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard,
   BookOpen,
@@ -45,6 +46,20 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
 
   const ujianPaths = ["/ujian", "/hasil-ujian"];
   const [ujianOpen, setUjianOpen] = useState(() => ujianPaths.includes(pathname));
+  const [lembagaNama, setLembagaNama] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profile?.lembaga_id) {
+      supabase
+        .from("lembaga" as any)
+        .select("nama")
+        .eq("id", profile.lembaga_id)
+        .single()
+        .then(({ data }) => {
+          if (data) setLembagaNama((data as any).nama);
+        });
+    }
+  }, [profile?.lembaga_id]);
 
   const handleNav = (path: string) => {
     navigate(path);
@@ -89,6 +104,9 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
             <div className="text-[11px] tracking-[0.14em] uppercase text-[#e3c98a]/80 mt-1.5">
               {profile?.role === "guru" ? "Panel Guru" : profile?.role === "admin_lembaga" ? "Panel Admin" : "Panel Siswa"}
             </div>
+            {lembagaNama && (
+              <div className="text-[10px] text-[#8aa0bd] mt-0.5 truncate max-w-[150px]">{lembagaNama}</div>
+            )}
           </div>
         </div>
       </div>
