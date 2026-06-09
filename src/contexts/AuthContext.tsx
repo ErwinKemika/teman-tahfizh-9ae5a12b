@@ -8,6 +8,7 @@ interface Profile {
   id: string;
   user_id: string;
   full_name: string;
+  nickname: string | null;
   role: AppRole;
   class: string | null;
   avatar_url: string | null;
