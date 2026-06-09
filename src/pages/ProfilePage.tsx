@@ -11,17 +11,50 @@ import { Switch } from "@/components/ui/switch";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, Lock, Info, Moon } from "lucide-react";
+import { User, Lock, Info, Moon, Camera } from "lucide-react";
+import { AvatarImage } from "@/components/ui/avatar";
+import { useRef } from "react";
 
 export default function ProfilePage() {
   const { profile, user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [newPassword, setNewPassword] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profile?.full_name) setFullName(profile.full_name);
-  }, [profile?.full_name]);
+    if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+  }, [profile?.full_name, profile?.avatar_url]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      const url = `${data.publicUrl}?t=${Date.now()}`;
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: url })
+        .eq("user_id", user.id);
+      if (updateError) throw updateError;
+      setAvatarUrl(url);
+      toast.success("Foto profil berhasil diperbarui!");
+    } catch (err: any) {
+      toast.error("Gagal upload foto: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
@@ -58,11 +91,29 @@ export default function ProfilePage() {
       {/* Avatar & Info */}
       <Card className="shadow-card">
         <CardContent className="py-6 flex flex-col items-center gap-3">
-          <Avatar className="w-20 h-20">
-            <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-              {profile?.full_name?.charAt(0) || "?"}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
+            <Avatar className="w-20 h-20">
+              <AvatarImage src={avatarUrl || undefined} alt={profile?.full_name} />
+              <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
+                {profile?.full_name?.charAt(0) || "?"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera className="w-6 h-6 text-white" />
+            </div>
+            {uploading && (
+              <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                <span className="text-white text-xs">...</span>
+              </div>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarUpload}
+          />
           <div className="text-center">
             <p className="font-semibold text-foreground">{profile?.full_name}</p>
             <p className="text-xs text-muted-foreground capitalize">{profile?.role}</p>
