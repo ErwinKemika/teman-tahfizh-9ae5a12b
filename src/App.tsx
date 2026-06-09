@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RoleRoute from "@/components/RoleRoute";
 import AppLayout from "@/components/AppLayout";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
@@ -45,7 +46,7 @@ const App = () => (
               <Route path="/ujian" element={<ProtectedLayout><UjianPage /></ProtectedLayout>} />
               <Route path="/hasil-ujian" element={<ProtectedLayout><HasilUjianPage /></ProtectedLayout>} />
               <Route path="/profile" element={<ProtectedLayout><ProfilePage /></ProtectedLayout>} />
-              <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/admin" element={<RoleRoute allowedRoles={["admin_lembaga"]}><AdminDashboard /></RoleRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
