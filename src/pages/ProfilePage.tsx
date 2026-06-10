@@ -54,10 +54,7 @@ export default function ProfilePage() {
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
       const url = `${data.publicUrl}?t=${Date.now()}`;
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ avatar_url: url })
-        .eq("user_id", user.id);
+      const { error: updateError } = await supabase.from("profiles").update({ avatar_url: url }).eq("user_id", user.id);
       if (updateError) throw updateError;
       setAvatarUrl(url);
       await refreshProfile();
@@ -120,13 +117,7 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileSelect}
-          />
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
           {cropSrc && (
             <CropAvatarDialog
               imageSrc={cropSrc}
