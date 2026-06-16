@@ -65,6 +65,7 @@ export default function MutabaahPage() {
   const [murojaahQadhimFardhi, setMurojaahQadhimFardhi] = useState("");
   const [keterangan, setKeterangan] = useState("");
 
+  const [selectedFormStudent, setSelectedFormStudent] = useState<string>("");
   const [historyMonth, setHistoryMonth] = useState(new Date());
   const [reportMonth, setReportMonth] = useState(String(new Date().getMonth() + 1));
   const [reportYear, setReportYear] = useState(String(new Date().getFullYear()));
@@ -90,18 +91,21 @@ export default function MutabaahPage() {
   ];
   const autoStatus: MutabaahStatus = requiredFields.every((f) => f.trim() !== "") ? "lulus" : "mengulang";
 
+  const formStudentId = isGuru ? selectedFormStudent : user?.id;
+
   const { data: todayEntry } = useQuery({
-    queryKey: ["mutabaah-today", user?.id],
+    queryKey: ["mutabaah-today", formStudentId],
     queryFn: async () => {
+      if (!formStudentId) return null;
       const { data } = await supabase
         .from("mutabaah_entries")
         .select("*")
-        .eq("student_id", user!.id)
+        .eq("student_id", formStudentId)
         .eq("date", today)
         .maybeSingle();
       return data;
     },
-    enabled: !!user,
+    enabled: !!formStudentId,
   });
 
   const { data: monthEntries } = useQuery({
@@ -147,7 +151,7 @@ export default function MutabaahPage() {
   const submitMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("mutabaah_entries").insert({
-        student_id: user!.id,
+        student_id: formStudentId!,
         date: today,
         status: autoStatus,
         ziyadah_surat: ziyadahSurat || null,
@@ -163,11 +167,17 @@ export default function MutabaahPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Mutaba'ah hari ini berhasil disimpan!");
+      toast.success(isGuru ? "Mutaba'ah siswa berhasil disimpan!" : "Mutaba'ah hari ini berhasil disimpan!");
       queryClient.invalidateQueries({ queryKey: ["mutabaah-today"] });
       queryClient.invalidateQueries({ queryKey: ["mutabaah-month"] });
       queryClient.invalidateQueries({ queryKey: ["today-mutabaah"] });
+      queryClient.invalidateQueries({ queryKey: ["today-activity"] });
       queryClient.invalidateQueries({ queryKey: ["streak"] });
+      if (isGuru) {
+        setZiyadahSurat(""); setZiyadahAyatStart(""); setZiyadahAyatEnd("");
+        setZiyadahHalaman(""); setHifdzJadidDari(""); setHifdzJadidHingga("");
+        setMurojaahQadhimTsnai(""); setMurojaahQadhimFardhi(""); setKeterangan("");
+      }
     },
     onError: (e) => toast.error("Gagal: " + e.message),
   });
@@ -217,15 +227,13 @@ export default function MutabaahPage() {
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 print:hidden">
+          <Button variant={activeTab === "form" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("form")}>
+            {isGuru ? "Input Mutaba'ah Siswa" : "Input Hari Ini"}
+          </Button>
           {!isGuru && (
-            <>
-              <Button variant={activeTab === "form" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("form")}>
-                Input Hari Ini
-              </Button>
-              <Button variant={activeTab === "history" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("history")}>
-                Riwayat Bulanan
-              </Button>
-            </>
+            <Button variant={activeTab === "history" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("history")}>
+              Riwayat Bulanan
+            </Button>
           )}
           <Button variant={activeTab === "report" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("report")}>
             Laporan
@@ -238,13 +246,32 @@ export default function MutabaahPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center justify-between">
                 <span>{today}</span>
-                {todayEntry && <Badge className="bg-success/10 text-success">Sudah diisi ✓</Badge>}
+                {formStudentId && todayEntry && <Badge className="bg-success/10 text-success">Sudah diisi ✓</Badge>}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {todayEntry ? (
+              {isGuru && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Pilih Siswa</Label>
+                  <Select value={selectedFormStudent} onValueChange={setSelectedFormStudent}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih nama siswa..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {students?.map((s) => (
+                        <SelectItem key={s.user_id} value={s.user_id}>{s.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {isGuru && !selectedFormStudent ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Pilih nama siswa di atas untuk mengisi mutaba'ah
+                </p>
+              ) : todayEntry ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  Mutaba'ah hari ini sudah diisi. Lihat riwayat untuk detailnya.
+                  Mutaba'ah hari ini sudah diisi. Lihat laporan untuk detailnya.
                 </p>
               ) : (
                 <>
@@ -301,7 +328,7 @@ export default function MutabaahPage() {
                     </Badge>
                   </div>
 
-                  <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending} className="w-full">
+                  <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending || !formStudentId} className="w-full">
                     {submitMutation.isPending ? "Menyimpan..." : "Simpan Mutaba'ah"}
                   </Button>
                 </>
