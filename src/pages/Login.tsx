@@ -402,7 +402,12 @@ function DaftarForm() {
 
     const { error } = await signUp(email, pwd, nama, lembagaData.id);
     if (error) {
-      setError(error.message);
+      const msg = error.message.toLowerCase();
+      if (msg.includes("invalid") && msg.includes("email")) {
+        setError("Format email tidak didukung. Coba gunakan email Gmail/Yahoo, atau hubungi admin.");
+      } else {
+        setError(error.message);
+      }
       setBusy(false);
     } else {
       await signIn(email, pwd);
