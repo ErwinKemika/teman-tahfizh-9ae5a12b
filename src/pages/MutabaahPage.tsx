@@ -54,6 +54,7 @@ export default function MutabaahPage() {
   const [activeTab, setActiveTab] = useState<"form" | "history" | "report">(isGuru ? "report" : "form");
 
   const today = new Date().toISOString().split("T")[0];
+  const [selectedDate, setSelectedDate] = useState(today);
 
   const [ziyadahSurat, setZiyadahSurat] = useState("");
   const [ziyadahAyatStart, setZiyadahAyatStart] = useState("");
@@ -94,14 +95,14 @@ export default function MutabaahPage() {
   const formStudentId = isGuru ? selectedFormStudent : user?.id;
 
   const { data: todayEntry } = useQuery({
-    queryKey: ["mutabaah-today", formStudentId],
+    queryKey: ["mutabaah-today", formStudentId, selectedDate],
     queryFn: async () => {
       if (!formStudentId) return null;
       const { data } = await supabase
         .from("mutabaah_entries")
         .select("*")
         .eq("student_id", formStudentId)
-        .eq("date", today)
+        .eq("date", selectedDate)
         .maybeSingle();
       return data;
     },
@@ -152,7 +153,7 @@ export default function MutabaahPage() {
     mutationFn: async () => {
       const { error } = await supabase.from("mutabaah_entries").insert({
         student_id: formStudentId!,
-        date: today,
+        date: selectedDate,
         status: autoStatus,
         ziyadah_surat: ziyadahSurat || null,
         ziyadah_ayat_start: ziyadahAyatStart ? parseInt(ziyadahAyatStart) : null,
@@ -245,8 +246,19 @@ export default function MutabaahPage() {
           <Card className="shadow-card print:hidden">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center justify-between">
-                <span>{today}</span>
-                {formStudentId && todayEntry && <Badge className="bg-success/10 text-success">Sudah diisi ✓</Badge>}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground font-normal shrink-0">Tanggal</label>
+                  <Input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value || today)}
+                    max={today}
+                    className="w-36 h-7 text-sm font-semibold px-2 py-0 cursor-pointer"
+                  />
+                </div>
+                {formStudentId && todayEntry && (
+                  <Badge className="bg-success/10 text-success shrink-0">Sudah diisi ✓</Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -271,7 +283,8 @@ export default function MutabaahPage() {
                 </p>
               ) : todayEntry ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  Mutaba'ah hari ini sudah diisi. Lihat laporan untuk detailnya.
+                  Mutaba'ah tanggal <span className="font-medium text-foreground">{selectedDate}</span> sudah diisi.
+                  Lihat laporan untuk detailnya.
                 </p>
               ) : (
                 <>
