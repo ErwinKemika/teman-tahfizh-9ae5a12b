@@ -81,8 +81,6 @@ export default function MutabaahPage() {
   const [ziyadahHalaman, setZiyadahHalaman] = useState("");
   const [hifdzJadidDari, setHifdzJadidDari] = useState("");
   const [hifdzJadidHingga, setHifdzJadidHingga] = useState("");
-  const [murojaahQadhimTsnai, setMurojaahQadhimTsnai] = useState("");
-  const [murojaahQadhimFardhi, setMurojaahQadhimFardhi] = useState("");
   const [keterangan, setKeterangan] = useState("");
 
   const [selectedFormStudent, setSelectedFormStudent] = useState<string>("");
@@ -107,7 +105,6 @@ export default function MutabaahPage() {
   const requiredFields = [
     ziyadahSurat, ziyadahAyatStart, ziyadahAyatEnd, ziyadahHalaman,
     hifdzJadidDari, hifdzJadidHingga,
-    murojaahQadhimTsnai, murojaahQadhimFardhi,
   ];
   const autoStatus: MutabaahStatus = requiredFields.every((f) => f.trim() !== "") ? "lulus" : "mengulang";
 
@@ -180,8 +177,6 @@ export default function MutabaahPage() {
         ziyadah_jumlah: parseHalaman(ziyadahHalaman),
         murojaah_hifdzul_jadid_dari: parseHalaman(hifdzJadidDari),
         murojaah_hifdzul_jadid_hingga: parseHalaman(hifdzJadidHingga),
-        murojaah_hifdzul_qodim: murojaahQadhimTsnai || null,
-        murojaah_tsnai: murojaahQadhimFardhi || null,
         keterangan: keterangan || null,
       });
       if (error) throw error;
@@ -196,7 +191,7 @@ export default function MutabaahPage() {
       if (isGuru) {
         setZiyadahSurat(""); setZiyadahAyatStart(""); setZiyadahAyatEnd("");
         setZiyadahHalaman(""); setHifdzJadidDari(""); setHifdzJadidHingga("");
-        setMurojaahQadhimTsnai(""); setMurojaahQadhimFardhi(""); setKeterangan("");
+        setKeterangan("");
       }
     },
     onError: (e) => toast.error("Gagal: " + e.message),
@@ -335,20 +330,6 @@ export default function MutabaahPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="font-semibold">Muraja'ah Hifdzul Qadhim</Label>
-                    <div className="space-y-2">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
-                        <span className="text-sm text-foreground/80 sm:w-20 shrink-0">Tsuna'i</span>
-                        <Input placeholder="Contoh: Juz 30 / Juz 20" value={murojaahQadhimTsnai} onChange={(e) => setMurojaahQadhimTsnai(e.target.value)} className="sm:flex-1" />
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
-                        <span className="text-sm text-foreground/80 sm:w-20 shrink-0">Fardhi</span>
-                        <Input placeholder="Contoh: Juz 29 / Juz 1" value={murojaahQadhimFardhi} onChange={(e) => setMurojaahQadhimFardhi(e.target.value)} className="sm:flex-1" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
                     <Label>Keterangan <span className="text-muted-foreground font-normal">(opsional)</span></Label>
                     <Textarea placeholder="Catatan tambahan..." value={keterangan} onChange={(e) => setKeterangan(e.target.value)} rows={2} />
                   </div>
@@ -435,12 +416,6 @@ export default function MutabaahPage() {
                       {(entry.murojaah_hifdzul_jadid_dari || entry.murojaah_hifdzul_jadid_hingga) && (
                         <p className="text-muted-foreground">
                           Hifdzul Jadid: hal. <span className="text-foreground">{formatHalaman(entry.murojaah_hifdzul_jadid_dari)}–{formatHalaman(entry.murojaah_hifdzul_jadid_hingga)}</span>
-                        </p>
-                      )}
-                      {(entry.murojaah_hifdzul_qodim || entry.murojaah_tsnai) && (
-                        <p className="text-muted-foreground">
-                          Qadhim — Tsuna'i: <span className="text-foreground">{entry.murojaah_hifdzul_qodim || "-"}</span>
-                          {" | "}Fardhi: <span className="text-foreground">{entry.murojaah_tsnai || "-"}</span>
                         </p>
                       )}
                       {entry.keterangan && <p className="text-muted-foreground italic">"{entry.keterangan}"</p>}
@@ -614,14 +589,6 @@ export default function MutabaahPage() {
                                     : "—"}
                                 </p>
                               </div>
-                              <div>
-                                <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Qadhim Tsuna'i</p>
-                                <p className="text-foreground leading-tight">{entry.murojaah_hifdzul_qodim || "—"}</p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Qadhim Fardhi</p>
-                                <p className="text-foreground leading-tight">{entry.murojaah_tsnai || "—"}</p>
-                              </div>
                               {entry.keterangan && (
                                 <div className="col-span-2">
                                   <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Keterangan</p>
@@ -646,8 +613,6 @@ export default function MutabaahPage() {
                               <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Tanggal</th>
                               <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Ziyadah</th>
                               <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Hifdzul Jadid</th>
-                              <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Qadhim Tsuna'i</th>
-                              <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Qadhim Fardhi</th>
                               <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Keterangan</th>
                               <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Status</th>
                             </tr>
@@ -671,8 +636,6 @@ export default function MutabaahPage() {
                                     ? `Hal. ${formatHalaman(entry.murojaah_hifdzul_jadid_dari)}–${formatHalaman(entry.murojaah_hifdzul_jadid_hingga)}`
                                     : <span className="text-muted-foreground">—</span>}
                                 </td>
-                                <td className="px-3 py-2">{entry.murojaah_hifdzul_qodim || <span className="text-muted-foreground">—</span>}</td>
-                                <td className="px-3 py-2">{entry.murojaah_tsnai || <span className="text-muted-foreground">—</span>}</td>
                                 <td className="px-3 py-2 max-w-[120px] truncate">{entry.keterangan || <span className="text-muted-foreground">—</span>}</td>
                                 <td className="px-3 py-2">
                                   <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium print:border ${
@@ -689,7 +652,7 @@ export default function MutabaahPage() {
                           </tbody>
                           <tfoot>
                             <tr className="bg-muted/40 print:bg-gray-100 font-semibold">
-                              <td colSpan={7} className="px-3 py-2 text-right text-muted-foreground">
+                              <td colSpan={5} className="px-3 py-2 text-right text-muted-foreground">
                                 Total: {reportEntries.length} hari &nbsp;|&nbsp; Lulus: {totalLulus} &nbsp;|&nbsp; Belum Lulus: {totalMengulang} &nbsp;|&nbsp; Libur/Sakit: {totalLibur + totalSakit}
                               </td>
                               <td className="px-3 py-2" />
