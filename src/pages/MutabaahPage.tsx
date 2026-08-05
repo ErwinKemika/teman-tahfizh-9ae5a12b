@@ -15,6 +15,25 @@ import { ClipboardCheck, ChevronLeft, ChevronRight, FileDown } from "lucide-reac
 
 type MutabaahStatus = "lulus" | "mengulang" | "libur" | "sakit";
 
+function parseHalaman(val: string): number | null {
+  if (!val || val.trim() === "") return null;
+  const t = val.trim();
+  const mixed = t.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+  if (mixed) return parseInt(mixed[1]) + parseInt(mixed[2]) / parseInt(mixed[3]);
+  const frac = t.match(/^(\d+)\/(\d+)$/);
+  if (frac) return parseInt(frac[1]) / parseInt(frac[2]);
+  const n = parseFloat(t);
+  return isNaN(n) ? null : n;
+}
+
+function formatHalaman(n: number | null | undefined): string {
+  if (n == null) return "";
+  const int = Math.floor(n);
+  const frac = n - int;
+  if (Math.abs(frac - 0.5) < 0.001) return int === 0 ? "½" : `${int}½`;
+  return String(n);
+}
+
 const QURAN_SURAHS = [
   "Al-Fatihah", "Al-Baqarah", "Ali 'Imran", "An-Nisa'", "Al-Ma'idah",
   "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Taubah", "Yunus",
@@ -158,9 +177,9 @@ export default function MutabaahPage() {
         ziyadah_surat: ziyadahSurat || null,
         ziyadah_ayat_start: ziyadahAyatStart ? parseInt(ziyadahAyatStart) : null,
         ziyadah_ayat_end: ziyadahAyatEnd ? parseInt(ziyadahAyatEnd) : null,
-        ziyadah_jumlah: ziyadahHalaman ? parseInt(ziyadahHalaman) : null,
-        murojaah_hifdzul_jadid_dari: hifdzJadidDari ? parseInt(hifdzJadidDari) : null,
-        murojaah_hifdzul_jadid_hingga: hifdzJadidHingga ? parseInt(hifdzJadidHingga) : null,
+        ziyadah_jumlah: parseHalaman(ziyadahHalaman),
+        murojaah_hifdzul_jadid_dari: parseHalaman(hifdzJadidDari),
+        murojaah_hifdzul_jadid_hingga: parseHalaman(hifdzJadidHingga),
         murojaah_hifdzul_qodim: murojaahQadhimTsnai || null,
         murojaah_tsnai: murojaahQadhimFardhi || null,
         keterangan: keterangan || null,
@@ -304,14 +323,14 @@ export default function MutabaahPage() {
                       <Input placeholder="Ayat awal" type="number" value={ziyadahAyatStart} onChange={(e) => setZiyadahAyatStart(e.target.value)} />
                       <Input placeholder="Ayat akhir" type="number" value={ziyadahAyatEnd} onChange={(e) => setZiyadahAyatEnd(e.target.value)} />
                     </div>
-                    <Input placeholder="Jumlah halaman" type="number" value={ziyadahHalaman} onChange={(e) => setZiyadahHalaman(e.target.value)} />
+                    <Input placeholder="Jumlah halaman (contoh: 1 atau 1/2)" value={ziyadahHalaman} onChange={(e) => setZiyadahHalaman(e.target.value)} />
                   </div>
 
                   <div className="space-y-2">
                     <Label className="font-semibold">Muroja'ah Hifdzul Jadid (Halaman)</Label>
                     <div className="grid grid-cols-2 gap-2">
-                      <Input placeholder="Dari hal." type="number" value={hifdzJadidDari} onChange={(e) => setHifdzJadidDari(e.target.value)} />
-                      <Input placeholder="Hingga hal." type="number" value={hifdzJadidHingga} onChange={(e) => setHifdzJadidHingga(e.target.value)} />
+                      <Input placeholder="Dari hal. (cth: 5 atau 5½)" value={hifdzJadidDari} onChange={(e) => setHifdzJadidDari(e.target.value)} />
+                      <Input placeholder="Hingga hal. (cth: 6 atau 5½)" value={hifdzJadidHingga} onChange={(e) => setHifdzJadidHingga(e.target.value)} />
                     </div>
                   </div>
 
@@ -410,12 +429,12 @@ export default function MutabaahPage() {
                       {entry.ziyadah_surat && (
                         <p className="text-muted-foreground">
                           Ziyadah: <span className="text-foreground">{entry.ziyadah_surat} ayat {entry.ziyadah_ayat_start}–{entry.ziyadah_ayat_end}</span>
-                          {entry.ziyadah_jumlah ? <span className="text-foreground"> ({entry.ziyadah_jumlah} hal.)</span> : null}
+                          {entry.ziyadah_jumlah ? <span className="text-foreground"> ({formatHalaman(entry.ziyadah_jumlah)} hal.)</span> : null}
                         </p>
                       )}
                       {(entry.murojaah_hifdzul_jadid_dari || entry.murojaah_hifdzul_jadid_hingga) && (
                         <p className="text-muted-foreground">
-                          Hifdzul Jadid: hal. <span className="text-foreground">{entry.murojaah_hifdzul_jadid_dari}–{entry.murojaah_hifdzul_jadid_hingga}</span>
+                          Hifdzul Jadid: hal. <span className="text-foreground">{formatHalaman(entry.murojaah_hifdzul_jadid_dari)}–{formatHalaman(entry.murojaah_hifdzul_jadid_hingga)}</span>
                         </p>
                       )}
                       {(entry.murojaah_hifdzul_qodim || entry.murojaah_tsnai) && (
@@ -583,7 +602,7 @@ export default function MutabaahPage() {
                                 <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Ziyadah</p>
                                 <p className="text-foreground leading-tight">
                                   {entry.ziyadah_surat
-                                    ? `${entry.ziyadah_surat}${entry.ziyadah_ayat_start ? ` ${entry.ziyadah_ayat_start}–${entry.ziyadah_ayat_end}` : ""}${entry.ziyadah_jumlah ? ` (${entry.ziyadah_jumlah} hal.)` : ""}`
+                                    ? `${entry.ziyadah_surat}${entry.ziyadah_ayat_start ? ` ${entry.ziyadah_ayat_start}–${entry.ziyadah_ayat_end}` : ""}${entry.ziyadah_jumlah ? ` (${formatHalaman(entry.ziyadah_jumlah)} hal.)` : ""}`
                                     : "—"}
                                 </p>
                               </div>
@@ -591,7 +610,7 @@ export default function MutabaahPage() {
                                 <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Hifdzul Jadid</p>
                                 <p className="text-foreground leading-tight">
                                   {entry.murojaah_hifdzul_jadid_dari
-                                    ? `Hal. ${entry.murojaah_hifdzul_jadid_dari}–${entry.murojaah_hifdzul_jadid_hingga}`
+                                    ? `Hal. ${formatHalaman(entry.murojaah_hifdzul_jadid_dari)}–${formatHalaman(entry.murojaah_hifdzul_jadid_hingga)}`
                                     : "—"}
                                 </p>
                               </div>
@@ -643,13 +662,13 @@ export default function MutabaahPage() {
                                     <span>
                                       {entry.ziyadah_surat}
                                       {entry.ziyadah_ayat_start && ` ${entry.ziyadah_ayat_start}–${entry.ziyadah_ayat_end}`}
-                                      {entry.ziyadah_jumlah && ` (${entry.ziyadah_jumlah} hal.)`}
+                                      {entry.ziyadah_jumlah && ` (${formatHalaman(entry.ziyadah_jumlah)} hal.)`}
                                     </span>
                                   ) : <span className="text-muted-foreground">—</span>}
                                 </td>
                                 <td className="px-3 py-2">
                                   {entry.murojaah_hifdzul_jadid_dari
-                                    ? `Hal. ${entry.murojaah_hifdzul_jadid_dari}–${entry.murojaah_hifdzul_jadid_hingga}`
+                                    ? `Hal. ${formatHalaman(entry.murojaah_hifdzul_jadid_dari)}–${formatHalaman(entry.murojaah_hifdzul_jadid_hingga)}`
                                     : <span className="text-muted-foreground">—</span>}
                                 </td>
                                 <td className="px-3 py-2">{entry.murojaah_hifdzul_qodim || <span className="text-muted-foreground">—</span>}</td>
