@@ -81,6 +81,10 @@ export default function UjianPage() {
   const [catatanGuru, setCatatanGuru] = useState("");
   const todayStr = new Date().toISOString().split("T")[0];
 
+  // Shared (Harian & Pekanan)
+  const [murojaahQadhimTsnai, setMurojaahQadhimTsnai] = useState("");
+  const [murojaahQadhimFardhi, setMurojaahQadhimFardhi] = useState("");
+
   // Harian
   const [tanggal, setTanggal] = useState(todayStr);
   const [juzHarian, setJuzHarian] = useState<string[]>([]);
@@ -168,6 +172,7 @@ export default function UjianPage() {
     setHafalanScoresHarian(Array(5).fill(0)); setTajwidScoresHarian(Array(5).fill(0));
     setPekanKe(""); setJuzPekanan([]); setHalamanDari(""); setHalamanHingga("");
     setHafalanScores(Array(10).fill(0)); setTajwidScores(Array(10).fill(0)); setStatusLulus("true");
+    setMurojaahQadhimTsnai(""); setMurojaahQadhimFardhi("");
     setJuzBulanan([]); setTotalJuz("");
     setHafalanScoresBulanan(Array(20).fill(0)); setTajwidScoresBulanan(Array(20).fill(0));
     setNilaiAdab(80); setPeringkat(""); setStatusNaikJuz("true"); setRekomendasi("");
@@ -202,6 +207,8 @@ export default function UjianPage() {
           nilai_total: nilaiTotalHarian,
           nilai: nilaiTotalHarian,
           juz_tested: juzHarian.join(", "),
+          murojaah_qadhim_tsnai: murojaahQadhimTsnai || null,
+          murojaah_qadhim_fardhi: murojaahQadhimFardhi || null,
         };
       } else if (formType === "pekanan") {
         payload = {
@@ -218,6 +225,8 @@ export default function UjianPage() {
           juz_tested: juzPekanan.join(", "),
           hafalan_scores: hafalanScores,
           tajwid_scores: tajwidScores,
+          murojaah_qadhim_tsnai: murojaahQadhimTsnai || null,
+          murojaah_qadhim_fardhi: murojaahQadhimFardhi || null,
         };
       } else {
         payload = {
@@ -355,6 +364,19 @@ export default function UjianPage() {
                   </span>
                 </p>
                 <div className="space-y-2">
+                  <Label className="font-semibold">Muraja'ah Hifdzul Qadhim</Label>
+                  <div className="space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                      <span className="text-sm text-muted-foreground sm:w-20 shrink-0">Tsuna'i</span>
+                      <Input placeholder="Contoh: Juz 30 / Juz 20" value={murojaahQadhimTsnai} onChange={(e) => setMurojaahQadhimTsnai(e.target.value)} className="sm:flex-1" />
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                      <span className="text-sm text-muted-foreground sm:w-20 shrink-0">Fardhi</span>
+                      <Input placeholder="Contoh: Juz 29 / Juz 1" value={murojaahQadhimFardhi} onChange={(e) => setMurojaahQadhimFardhi(e.target.value)} className="sm:flex-1" />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
                   <Label>Jenis Penilaian</Label>
                   <div className="flex flex-wrap gap-4">
                     {PENILAIAN_OPTIONS.map((opt) => (
@@ -437,6 +459,19 @@ export default function UjianPage() {
                       <RadioGroupItem value="false" /> Mengulang
                     </label>
                   </RadioGroup>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold">Muraja'ah Hifdzul Qadhim</Label>
+                  <div className="space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                      <span className="text-sm text-muted-foreground sm:w-20 shrink-0">Tsuna'i</span>
+                      <Input placeholder="Contoh: Juz 30 / Juz 20" value={murojaahQadhimTsnai} onChange={(e) => setMurojaahQadhimTsnai(e.target.value)} className="sm:flex-1" />
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                      <span className="text-sm text-muted-foreground sm:w-20 shrink-0">Fardhi</span>
+                      <Input placeholder="Contoh: Juz 29 / Juz 1" value={murojaahQadhimFardhi} onChange={(e) => setMurojaahQadhimFardhi(e.target.value)} className="sm:flex-1" />
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -634,6 +669,12 @@ export default function UjianPage() {
                               </span>
                             )}
                           </p>
+                          {(r.murojaah_qadhim_tsnai || r.murojaah_qadhim_fardhi) && (
+                            <p className="text-xs text-muted-foreground">
+                              Qadhim — Tsuna'i: <span className="text-foreground">{r.murojaah_qadhim_tsnai || "-"}</span>
+                              {" | "}Fardhi: <span className="text-foreground">{r.murojaah_qadhim_fardhi || "-"}</span>
+                            </p>
+                          )}
                           {r.catatan_guru && (
                             <p className="text-xs text-muted-foreground italic">"{r.catatan_guru}"</p>
                           )}
