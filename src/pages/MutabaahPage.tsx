@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ClipboardCheck, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
+import { ClipboardCheck, ChevronLeft, ChevronRight, FileDown, Pencil } from "lucide-react";
 
 type MutabaahStatus = "lulus" | "mengulang" | "libur" | "sakit";
 
@@ -71,6 +71,7 @@ export default function MutabaahPage() {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"form" | "history" | "report">(isGuru ? "report" : "form");
+  const [isEditing, setIsEditing] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(today);
@@ -197,6 +198,47 @@ export default function MutabaahPage() {
     onError: (e) => toast.error("Gagal: " + e.message),
   });
 
+  const startEdit = () => {
+    if (!todayEntry) return;
+    setZiyadahSurat(todayEntry.ziyadah_surat || "");
+    setZiyadahAyatStart(todayEntry.ziyadah_ayat_start != null ? String(todayEntry.ziyadah_ayat_start) : "");
+    setZiyadahAyatEnd(todayEntry.ziyadah_ayat_end != null ? String(todayEntry.ziyadah_ayat_end) : "");
+    setZiyadahHalaman(formatHalaman(todayEntry.ziyadah_jumlah as number | null));
+    setHifdzJadidDari(formatHalaman(todayEntry.murojaah_hifdzul_jadid_dari as number | null));
+    setHifdzJadidHingga(formatHalaman(todayEntry.murojaah_hifdzul_jadid_hingga as number | null));
+    setKeterangan(todayEntry.keterangan || "");
+    setIsEditing(true);
+  };
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("mutabaah_entries")
+        .update({
+          status: autoStatus,
+          ziyadah_surat: ziyadahSurat || null,
+          ziyadah_ayat_start: ziyadahAyatStart ? parseInt(ziyadahAyatStart) : null,
+          ziyadah_ayat_end: ziyadahAyatEnd ? parseInt(ziyadahAyatEnd) : null,
+          ziyadah_jumlah: parseHalaman(ziyadahHalaman),
+          murojaah_hifdzul_jadid_dari: parseHalaman(hifdzJadidDari),
+          murojaah_hifdzul_jadid_hingga: parseHalaman(hifdzJadidHingga),
+          keterangan: keterangan || null,
+        })
+        .eq("id", todayEntry!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Mutaba'ah berhasil diperbarui!");
+      queryClient.invalidateQueries({ queryKey: ["mutabaah-today"] });
+      queryClient.invalidateQueries({ queryKey: ["mutabaah-month"] });
+      queryClient.invalidateQueries({ queryKey: ["today-mutabaah"] });
+      queryClient.invalidateQueries({ queryKey: ["today-activity"] });
+      queryClient.invalidateQueries({ queryKey: ["streak"] });
+      setIsEditing(false);
+    },
+    onError: (e) => toast.error("Gagal: " + e.message),
+  });
+
   const statusColor: Record<string, string> = {
     lulus: "bg-success/10 text-success",
     mengulang: "bg-warning/10 text-warning",
@@ -265,7 +307,7 @@ export default function MutabaahPage() {
                   <Input
                     type="date"
                     value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value || today)}
+                    onChange={(e) => { setSelectedDate(e.target.value || today); setIsEditing(false); }}
                     max={today}
                     className="w-36 h-7 text-sm font-semibold px-2 py-0 cursor-pointer"
                   />
@@ -279,7 +321,7 @@ export default function MutabaahPage() {
               {isGuru && (
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">Pilih Siswa</Label>
-                  <Select value={selectedFormStudent} onValueChange={setSelectedFormStudent}>
+                  <Select value={selectedFormStudent} onValueChange={(v) => { setSelectedFormStudent(v); setIsEditing(false); }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih nama siswa..." />
                     </SelectTrigger>
@@ -295,11 +337,28 @@ export default function MutabaahPage() {
                 <p className="text-sm text-muted-foreground text-center py-8">
                   Pilih nama siswa di atas untuk mengisi mutaba'ah
                 </p>
-              ) : todayEntry ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Mutaba'ah tanggal <span className="font-medium text-foreground">{selectedDate}</span> sudah diisi.
-                  Lihat laporan untuk detailnya.
-                </p>
+              ) : todayEntry && !isEditing ? (
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-border/50 p-3 space-y-1.5 text-sm">
+                    {todayEntry.ziyadah_surat && (
+                      <p className="text-muted-foreground">
+                        Ziyadah: <span className="text-foreground">{todayEntry.ziyadah_surat} {todayEntry.ziyadah_ayat_start}–{todayEntry.ziyadah_ayat_end}
+                        {todayEntry.ziyadah_jumlah ? ` (${formatHalaman(todayEntry.ziyadah_jumlah as number)} hal.)` : ""}</span>
+                      </p>
+                    )}
+                    {(todayEntry.murojaah_hifdzul_jadid_dari || todayEntry.murojaah_hifdzul_jadid_hingga) && (
+                      <p className="text-muted-foreground">
+                        Hifdzul Jadid: hal. <span className="text-foreground">{formatHalaman(todayEntry.murojaah_hifdzul_jadid_dari as number)}–{formatHalaman(todayEntry.murojaah_hifdzul_jadid_hingga as number)}</span>
+                      </p>
+                    )}
+                    {todayEntry.keterangan && (
+                      <p className="text-muted-foreground italic">"{todayEntry.keterangan}"</p>
+                    )}
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full gap-2" onClick={startEdit}>
+                    <Pencil className="w-3.5 h-3.5" /> Edit Mutaba'ah
+                  </Button>
+                </div>
               ) : (
                 <>
                   <div className="space-y-2">
@@ -341,9 +400,20 @@ export default function MutabaahPage() {
                     </Badge>
                   </div>
 
-                  <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending || !formStudentId} className="w-full">
-                    {submitMutation.isPending ? "Menyimpan..." : "Simpan Mutaba'ah"}
-                  </Button>
+                  {isEditing ? (
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" onClick={() => setIsEditing(false)}>
+                        Batal
+                      </Button>
+                      <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending || !formStudentId} className="flex-1">
+                        {updateMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending || !formStudentId} className="w-full">
+                      {submitMutation.isPending ? "Menyimpan..." : "Simpan Mutaba'ah"}
+                    </Button>
+                  )}
                 </>
               )}
             </CardContent>
