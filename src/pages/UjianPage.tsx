@@ -50,10 +50,11 @@ function ScoreGrid({
               type="number"
               min={0}
               max={100}
-              value={score}
+              placeholder="0"
+              value={score || ""}
               onChange={(e) => {
                 const next = [...scores];
-                next[i] = Number(e.target.value);
+                next[i] = e.target.value === "" ? 0 : Number(e.target.value);
                 onChange(next);
               }}
               className="text-center px-1"
