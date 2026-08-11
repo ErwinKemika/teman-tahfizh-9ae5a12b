@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ClipboardCheck, ChevronLeft, ChevronRight, FileDown, Pencil } from "lucide-react";
+import { ClipboardCheck, ChevronLeft, ChevronRight, FileDown, Pencil, Check, ChevronDown } from "lucide-react";
 
 type MutabaahStatus = "lulus" | "mengulang" | "libur" | "sakit";
 
@@ -76,7 +76,9 @@ export default function MutabaahPage() {
   const today = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(today);
 
-  const [ziyadahSurat, setZiyadahSurat] = useState("");
+  const [ziyadahSurats, setZiyadahSurats] = useState<string[]>([]);
+  const [ziyadahSuratOpen, setZiyadahSuratOpen] = useState(false);
+  const [ziyadahSuratSearch, setZiyadahSuratSearch] = useState("");
   const [ziyadahAyatStart, setZiyadahAyatStart] = useState("");
   const [ziyadahAyatEnd, setZiyadahAyatEnd] = useState("");
   const [ziyadahHalaman, setZiyadahHalaman] = useState("");
@@ -103,11 +105,21 @@ export default function MutabaahPage() {
     enabled: isGuru,
   });
 
+  const isSingleSurat = ziyadahSurats.length === 1;
   const requiredFields = [
-    ziyadahSurat, ziyadahAyatStart, ziyadahAyatEnd, ziyadahHalaman,
-    hifdzJadidDari, hifdzJadidHingga,
+    ziyadahSurats.length > 0 ? "x" : "",
+    ...(isSingleSurat ? [ziyadahAyatStart, ziyadahAyatEnd] : []),
+    ziyadahHalaman,
+    hifdzJadidDari,
+    hifdzJadidHingga,
   ];
   const autoStatus: MutabaahStatus = requiredFields.every((f) => f.trim() !== "") ? "lulus" : "mengulang";
+
+  const toggleSurat = (surat: string) => {
+    setZiyadahSurats((prev) =>
+      prev.includes(surat) ? prev.filter((s) => s !== surat) : [...prev, surat]
+    );
+  };
 
   const formStudentId = isGuru ? selectedFormStudent : user?.id;
 
@@ -172,9 +184,9 @@ export default function MutabaahPage() {
         student_id: formStudentId!,
         date: selectedDate,
         status: autoStatus,
-        ziyadah_surat: ziyadahSurat || null,
-        ziyadah_ayat_start: ziyadahAyatStart ? parseInt(ziyadahAyatStart) : null,
-        ziyadah_ayat_end: ziyadahAyatEnd ? parseInt(ziyadahAyatEnd) : null,
+        ziyadah_surat: ziyadahSurats.length > 0 ? ziyadahSurats.join(", ") : null,
+        ziyadah_ayat_start: isSingleSurat && ziyadahAyatStart ? parseInt(ziyadahAyatStart) : null,
+        ziyadah_ayat_end: isSingleSurat && ziyadahAyatEnd ? parseInt(ziyadahAyatEnd) : null,
         ziyadah_jumlah: parseHalaman(ziyadahHalaman),
         murojaah_hifdzul_jadid_dari: parseHalaman(hifdzJadidDari),
         murojaah_hifdzul_jadid_hingga: parseHalaman(hifdzJadidHingga),
@@ -190,7 +202,7 @@ export default function MutabaahPage() {
       queryClient.invalidateQueries({ queryKey: ["today-activity"] });
       queryClient.invalidateQueries({ queryKey: ["streak"] });
       if (isGuru) {
-        setZiyadahSurat(""); setZiyadahAyatStart(""); setZiyadahAyatEnd("");
+        setZiyadahSurats([]); setZiyadahAyatStart(""); setZiyadahAyatEnd("");
         setZiyadahHalaman(""); setHifdzJadidDari(""); setHifdzJadidHingga("");
         setKeterangan("");
       }
@@ -200,7 +212,11 @@ export default function MutabaahPage() {
 
   const startEdit = () => {
     if (!todayEntry) return;
-    setZiyadahSurat(todayEntry.ziyadah_surat || "");
+    setZiyadahSurats(
+      todayEntry.ziyadah_surat
+        ? todayEntry.ziyadah_surat.split(", ").map((s: string) => s.trim()).filter(Boolean)
+        : []
+    );
     setZiyadahAyatStart(todayEntry.ziyadah_ayat_start != null ? String(todayEntry.ziyadah_ayat_start) : "");
     setZiyadahAyatEnd(todayEntry.ziyadah_ayat_end != null ? String(todayEntry.ziyadah_ayat_end) : "");
     setZiyadahHalaman(formatHalaman(todayEntry.ziyadah_jumlah as number | null));
@@ -216,9 +232,9 @@ export default function MutabaahPage() {
         .from("mutabaah_entries")
         .update({
           status: autoStatus,
-          ziyadah_surat: ziyadahSurat || null,
-          ziyadah_ayat_start: ziyadahAyatStart ? parseInt(ziyadahAyatStart) : null,
-          ziyadah_ayat_end: ziyadahAyatEnd ? parseInt(ziyadahAyatEnd) : null,
+          ziyadah_surat: ziyadahSurats.length > 0 ? ziyadahSurats.join(", ") : null,
+          ziyadah_ayat_start: isSingleSurat && ziyadahAyatStart ? parseInt(ziyadahAyatStart) : null,
+          ziyadah_ayat_end: isSingleSurat && ziyadahAyatEnd ? parseInt(ziyadahAyatEnd) : null,
           ziyadah_jumlah: parseHalaman(ziyadahHalaman),
           murojaah_hifdzul_jadid_dari: parseHalaman(hifdzJadidDari),
           murojaah_hifdzul_jadid_hingga: parseHalaman(hifdzJadidHingga),
@@ -342,8 +358,11 @@ export default function MutabaahPage() {
                   <div className="rounded-lg border border-border/50 p-3 space-y-1.5 text-sm">
                     {todayEntry.ziyadah_surat && (
                       <p className="text-muted-foreground">
-                        Ziyadah: <span className="text-foreground">{todayEntry.ziyadah_surat} {todayEntry.ziyadah_ayat_start}–{todayEntry.ziyadah_ayat_end}
-                        {todayEntry.ziyadah_jumlah ? ` (${formatHalaman(todayEntry.ziyadah_jumlah as number)} hal.)` : ""}</span>
+                        Ziyadah: <span className="text-foreground">
+                          {todayEntry.ziyadah_surat}
+                          {todayEntry.ziyadah_ayat_start != null ? ` ayat ${todayEntry.ziyadah_ayat_start}–${todayEntry.ziyadah_ayat_end}` : ""}
+                          {todayEntry.ziyadah_jumlah ? ` (${formatHalaman(todayEntry.ziyadah_jumlah as number)} hal.)` : ""}
+                        </span>
                       </p>
                     )}
                     {(todayEntry.murojaah_hifdzul_jadid_dari || todayEntry.murojaah_hifdzul_jadid_hingga) && (
@@ -363,20 +382,80 @@ export default function MutabaahPage() {
                 <>
                   <div className="space-y-2">
                     <Label className="font-semibold">Ziyadah (Hafalan Baru)</Label>
-                    <Select value={ziyadahSurat} onValueChange={setZiyadahSurat}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih nama surat..." />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {QURAN_SURAHS.map((surah, i) => (
-                          <SelectItem key={i} value={surah}>{i + 1}. {surah}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input placeholder="Ayat awal" type="number" value={ziyadahAyatStart} onChange={(e) => setZiyadahAyatStart(e.target.value)} />
-                      <Input placeholder="Ayat akhir" type="number" value={ziyadahAyatEnd} onChange={(e) => setZiyadahAyatEnd(e.target.value)} />
+                    {ziyadahSuratOpen && (
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => { setZiyadahSuratOpen(false); setZiyadahSuratSearch(""); }}
+                      />
+                    )}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setZiyadahSuratOpen(!ziyadahSuratOpen)}
+                        className="flex items-center justify-between w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-left"
+                      >
+                        <span className={ziyadahSurats.length === 0 ? "text-muted-foreground" : "text-foreground"}>
+                          {ziyadahSurats.length === 0
+                            ? "Pilih surat (bisa lebih dari satu)..."
+                            : ziyadahSurats.length <= 2
+                              ? ziyadahSurats.join(", ")
+                              : `${ziyadahSurats[0]}, ${ziyadahSurats[1]}, +${ziyadahSurats.length - 2} lainnya`}
+                        </span>
+                        <ChevronDown className="w-4 h-4 opacity-50 shrink-0" />
+                      </button>
+                      {ziyadahSuratOpen && (
+                        <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-md">
+                          <div className="p-2">
+                            <Input
+                              placeholder="Cari surat..."
+                              value={ziyadahSuratSearch}
+                              onChange={(e) => setZiyadahSuratSearch(e.target.value)}
+                              className="h-8 text-sm"
+                              autoFocus
+                            />
+                          </div>
+                          <div className="max-h-52 overflow-y-auto">
+                            {QURAN_SURAHS
+                              .map((name, idx) => ({ name, num: idx + 1 }))
+                              .filter(({ name, num }) =>
+                                `${num}. ${name}`.toLowerCase().includes(ziyadahSuratSearch.toLowerCase())
+                              )
+                              .map(({ name, num }) => {
+                                const isSelected = ziyadahSurats.includes(name);
+                                return (
+                                  <div
+                                    key={num}
+                                    className={`flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-accent ${isSelected ? "bg-accent/50" : ""}`}
+                                    onClick={() => toggleSurat(name)}
+                                  >
+                                    <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${isSelected ? "bg-primary border-primary" : "border-input"}`}>
+                                      {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                                    </div>
+                                    {num}. {name}
+                                  </div>
+                                );
+                              })}
+                          </div>
+                          <div className="border-t border-border p-2 flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">{ziyadahSurats.length} surat dipilih</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs"
+                              onClick={() => { setZiyadahSuratOpen(false); setZiyadahSuratSearch(""); }}
+                            >
+                              Selesai
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                    {isSingleSurat && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input placeholder="Ayat awal" type="number" value={ziyadahAyatStart} onChange={(e) => setZiyadahAyatStart(e.target.value)} />
+                        <Input placeholder="Ayat akhir" type="number" value={ziyadahAyatEnd} onChange={(e) => setZiyadahAyatEnd(e.target.value)} />
+                      </div>
+                    )}
                     <Input placeholder="Jumlah halaman (contoh: 1 atau 1/2)" value={ziyadahHalaman} onChange={(e) => setZiyadahHalaman(e.target.value)} />
                   </div>
 
@@ -479,7 +558,10 @@ export default function MutabaahPage() {
                       </div>
                       {entry.ziyadah_surat && (
                         <p className="text-muted-foreground">
-                          Ziyadah: <span className="text-foreground">{entry.ziyadah_surat} ayat {entry.ziyadah_ayat_start}–{entry.ziyadah_ayat_end}</span>
+                          Ziyadah: <span className="text-foreground">
+                            {entry.ziyadah_surat}
+                            {entry.ziyadah_ayat_start != null ? ` ayat ${entry.ziyadah_ayat_start}–${entry.ziyadah_ayat_end}` : ""}
+                          </span>
                           {entry.ziyadah_jumlah ? <span className="text-foreground"> ({formatHalaman(entry.ziyadah_jumlah)} hal.)</span> : null}
                         </p>
                       )}
@@ -647,7 +729,7 @@ export default function MutabaahPage() {
                                 <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Ziyadah</p>
                                 <p className="text-foreground leading-tight">
                                   {entry.ziyadah_surat
-                                    ? `${entry.ziyadah_surat}${entry.ziyadah_ayat_start ? ` ${entry.ziyadah_ayat_start}–${entry.ziyadah_ayat_end}` : ""}${entry.ziyadah_jumlah ? ` (${formatHalaman(entry.ziyadah_jumlah)} hal.)` : ""}`
+                                    ? `${entry.ziyadah_surat}${entry.ziyadah_ayat_start != null ? ` ayat ${entry.ziyadah_ayat_start}–${entry.ziyadah_ayat_end}` : ""}${entry.ziyadah_jumlah ? ` (${formatHalaman(entry.ziyadah_jumlah)} hal.)` : ""}`
                                     : "—"}
                                 </p>
                               </div>
@@ -696,8 +778,8 @@ export default function MutabaahPage() {
                                   {entry.ziyadah_surat ? (
                                     <span>
                                       {entry.ziyadah_surat}
-                                      {entry.ziyadah_ayat_start && ` ${entry.ziyadah_ayat_start}–${entry.ziyadah_ayat_end}`}
-                                      {entry.ziyadah_jumlah && ` (${formatHalaman(entry.ziyadah_jumlah)} hal.)`}
+                                      {entry.ziyadah_ayat_start != null && ` ayat ${entry.ziyadah_ayat_start}–${entry.ziyadah_ayat_end}`}
+                                      {entry.ziyadah_jumlah != null && ` (${formatHalaman(entry.ziyadah_jumlah)} hal.)`}
                                     </span>
                                   ) : <span className="text-muted-foreground">—</span>}
                                 </td>
