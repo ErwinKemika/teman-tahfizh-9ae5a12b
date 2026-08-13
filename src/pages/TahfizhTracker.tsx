@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { BookOpen, Star } from "lucide-react";
+import { BookOpen, Star, PlusCircle } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -187,6 +187,54 @@ export default function TahfizhTracker() {
       setEditEntry(null);
     },
     onError: (e) => toast.error("Gagal menyimpan: " + e.message),
+  });
+
+  const bulkMurojaahMutation = useMutation({
+    mutationFn: async () => {
+      const studentId = chartStudentId || user!.id;
+      const today = new Date().toISOString().split("T")[0];
+
+      const withEntry = pages.filter((p) => entriesByPage[p]);
+      const withoutEntry = pages.filter((p) => !entriesByPage[p]);
+
+      const ops: Promise<void>[] = [
+        ...withEntry.map((pageNum) => {
+          const entry = entriesByPage[pageNum];
+          return supabase
+            .from("tahfizh_entries")
+            .update({ kuantitas_murojaah: (entry.kuantitas_murojaah || 0) + 1 })
+            .eq("id", entry.id)
+            .then(({ error }) => { if (error) throw error; });
+        }),
+      ];
+
+      if (withoutEntry.length > 0) {
+        ops.push(
+          supabase
+            .from("tahfizh_entries")
+            .insert(
+              withoutEntry.map((pageNum) => ({
+                student_id: studentId,
+                page_number: pageNum,
+                status: "murajaah" as const,
+                kualitas_hafalan: 0,
+                kuantitas_murojaah: 1,
+                is_mutqin: false,
+                tanggal_hafalan: today,
+              }))
+            )
+            .then(({ error }) => { if (error) throw error; })
+        );
+      }
+
+      await Promise.all(ops);
+    },
+    onSuccess: () => {
+      toast.success(`Muroja'ah +1 untuk semua ${pages.length} halaman Juz ${selectedJuz}!`);
+      queryClient.invalidateQueries({ queryKey: ["chart-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["tahfizh-stats"] });
+    },
+    onError: (e) => toast.error("Gagal: " + (e as Error).message),
   });
 
   const mutqinToggleMutation = useMutation({
@@ -538,10 +586,24 @@ export default function TahfizhTracker() {
                 <span>{juzMutqin}/{pages.length} Mutqin</span>
               </div>
               <Progress value={(juzHafal / pages.length) * 100} className="h-2" />
-              <div className="flex gap-4 mt-2 text-xs">
-                <span className="text-success">Hafal: {juzHafal}</span>
-                <span className="text-warning">Muraja'ah: {juzMurajaah}x</span>
-                <span className="text-destructive">Belum: {pages.length - juzHafal}</span>
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex gap-4 text-xs">
+                  <span className="text-success">Hafal: {juzHafal}</span>
+                  <span className="text-warning">Muraja'ah: {juzMurajaah}x</span>
+                  <span className="text-destructive">Belum: {pages.length - juzHafal}</span>
+                </div>
+                {isGuru && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1.5"
+                    disabled={bulkMurojaahMutation.isPending}
+                    onClick={() => bulkMurojaahMutation.mutate()}
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    {bulkMurojaahMutation.isPending ? "Menyimpan..." : "+1 Muroja'ah Semua"}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
