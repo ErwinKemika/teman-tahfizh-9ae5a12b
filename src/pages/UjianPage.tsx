@@ -78,7 +78,7 @@ export default function UjianPage() {
   // Common
   const [selectedStudent, setSelectedStudent] = useState("");
   const [catatanGuru, setCatatanGuru] = useState("");
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = new Date().toLocaleDateString("en-CA");
 
   // Shared (Harian & Pekanan)
   const [murojaahQadhimTsnai, setMurojaahQadhimTsnai] = useState("");
