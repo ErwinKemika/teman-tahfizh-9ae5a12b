@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -19,7 +18,6 @@ import { ClipboardCheck } from "lucide-react";
 type JenisUjian = "harian" | "pekanan" | "bulanan";
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-const PENILAIAN_OPTIONS = ["Kelancaran", "Tajwid", "Makhraj"];
 
 function calcAvg(scores: number[]) {
   if (!scores.length) return 0;
@@ -91,7 +89,6 @@ export default function UjianPage() {
   const [juzHarian, setJuzHarian] = useState<string[]>([]);
   const [hafalanScoresHarian, setHafalanScoresHarian] = useState<number[]>(Array(5).fill(0));
   const [tajwidScoresHarian, setTajwidScoresHarian] = useState<number[]>(Array(5).fill(0));
-  const [jenisPenilaian, setJenisPenilaian] = useState<string[]>([]);
 
   // Pekanan (10 soal)
   const [pekanKe, setPekanKe] = useState("");
@@ -169,7 +166,7 @@ export default function UjianPage() {
   const resetForm = () => {
     setSelectedStudent("");
     setCatatanGuru("");
-    setJuzHarian([]); setJenisPenilaian([]);
+    setJuzHarian([]);
     setHafalanScoresHarian(Array(5).fill(0)); setTajwidScoresHarian(Array(5).fill(0));
     setPekanKe(""); setJuzPekanan([]); setHalamanDari(""); setHalamanHingga("");
     setHafalanScores(Array(10).fill(0)); setTajwidScores(Array(10).fill(0)); setStatusLulus("true");
@@ -200,7 +197,6 @@ export default function UjianPage() {
           tahun: d.getFullYear(),
           tanggal,
           juz_diuji: juzHarian,
-          jenis_penilaian: jenisPenilaian.length ? jenisPenilaian : null,
           hafalan_scores: hafalanScoresHarian,
           tajwid_scores: tajwidScoresHarian,
           nilai_kelancaran: avgHafalanHarian,
@@ -375,20 +371,6 @@ export default function UjianPage() {
                       <span className="text-sm text-muted-foreground sm:w-20 shrink-0">Fardhi</span>
                       <Input placeholder="Contoh: Juz 29 / Juz 1" value={murojaahQadhimFardhi} onChange={(e) => setMurojaahQadhimFardhi(e.target.value)} className="sm:flex-1" />
                     </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Jenis Penilaian</Label>
-                  <div className="flex flex-wrap gap-4">
-                    {PENILAIAN_OPTIONS.map((opt) => (
-                      <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <Checkbox
-                          checked={jenisPenilaian.includes(opt)}
-                          onCheckedChange={() => toggleArr(jenisPenilaian, opt, setJenisPenilaian)}
-                        />
-                        {opt}
-                      </label>
-                    ))}
                   </div>
                 </div>
               </TabsContent>
