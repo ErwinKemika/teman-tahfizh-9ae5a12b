@@ -166,7 +166,7 @@ export default function TahfizhTracker() {
         kuantitas_murojaah: entry.kuantitas_murojaah,
         is_mutqin: entry.is_mutqin,
         catatan: entry.catatan,
-        tanggal_hafalan: new Date().toISOString().split("T")[0],
+        tanggal_hafalan: new Date().toLocaleDateString("en-CA"),
       };
 
       if (entry.existing_id) {
@@ -192,7 +192,7 @@ export default function TahfizhTracker() {
   const bulkMurojaahMutation = useMutation({
     mutationFn: async () => {
       const studentId = chartStudentId || user!.id;
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Date().toLocaleDateString("en-CA");
 
       const withEntry = pages.filter((p) => entriesByPage[p]);
       const withoutEntry = pages.filter((p) => !entriesByPage[p]);
@@ -261,7 +261,7 @@ export default function TahfizhTracker() {
           is_mutqin: true,
           kualitas_hafalan: 100,
           kuantitas_murojaah: 0,
-          tanggal_hafalan: new Date().toISOString().split("T")[0],
+          tanggal_hafalan: new Date().toLocaleDateString("en-CA"),
         });
         if (error) throw error;
       }

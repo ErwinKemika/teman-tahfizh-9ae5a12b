@@ -73,7 +73,7 @@ export default function MutabaahPage() {
   const [activeTab, setActiveTab] = useState<"form" | "history" | "report">(isGuru ? "report" : "form");
   const [isEditing, setIsEditing] = useState(false);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("en-CA");
   const [selectedDate, setSelectedDate] = useState(today);
 
   const [ziyadahSurats, setZiyadahSurats] = useState<string[]>([]);
@@ -143,8 +143,8 @@ export default function MutabaahPage() {
     queryFn: async () => {
       const year = historyMonth.getFullYear();
       const month = historyMonth.getMonth();
-      const start = new Date(year, month, 1).toISOString().split("T")[0];
-      const end = new Date(year, month + 1, 0).toISOString().split("T")[0];
+      const start = new Date(year, month, 1).toLocaleDateString("en-CA");
+      const end = new Date(year, month + 1, 0).toLocaleDateString("en-CA");
       const { data } = await supabase
         .from("mutabaah_entries")
         .select("*")
@@ -164,8 +164,8 @@ export default function MutabaahPage() {
     queryFn: async () => {
       const m = parseInt(reportMonth);
       const y = parseInt(reportYear);
-      const start = new Date(y, m - 1, 1).toISOString().split("T")[0];
-      const end = new Date(y, m, 0).toISOString().split("T")[0];
+      const start = new Date(y, m - 1, 1).toLocaleDateString("en-CA");
+      const end = new Date(y, m, 0).toLocaleDateString("en-CA");
       const { data } = await supabase
         .from("mutabaah_entries")
         .select("*")

@@ -357,7 +357,7 @@ export default function SiswaDashboard() {
   const { data: todayMutabaah } = useQuery({
     queryKey: ["today-mutabaah", user?.id],
     queryFn: async () => {
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Date().toLocaleDateString("en-CA");
       const { data } = await supabase
         .from("mutabaah_entries")
         .select("id")
@@ -397,7 +397,7 @@ export default function SiswaDashboard() {
       for (let i = 0; i < data.length; i++) {
         const expected = new Date(today);
         expected.setDate(today.getDate() - i);
-        const expectedStr = expected.toISOString().split("T")[0];
+        const expectedStr = expected.toLocaleDateString("en-CA");
         if (data[i].date === expectedStr) streak++;
         else break;
       }
@@ -415,7 +415,7 @@ export default function SiswaDashboard() {
         .from("mutabaah_entries")
         .select("id")
         .eq("student_id", user!.id)
-        .gte("date", weekAgo.toISOString().split("T")[0]);
+        .gte("date", weekAgo.toLocaleDateString("en-CA"));
       return data?.length || 0;
     },
     enabled: !!user,

@@ -39,7 +39,7 @@ export default function GuruDashboard() {
   const { data: todayActivity } = useQuery({
     queryKey: ["today-activity"],
     queryFn: async () => {
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Date().toLocaleDateString("en-CA");
       const { data } = await supabase
         .from("mutabaah_entries")
         .select("student_id")
@@ -51,7 +51,7 @@ export default function GuruDashboard() {
   const { data: todayMutabaahEntries } = useQuery({
     queryKey: ["today-mutabaah-entries"],
     queryFn: async () => {
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Date().toLocaleDateString("en-CA");
       const { data } = await supabase
         .from("mutabaah_entries")
         .select("*")
