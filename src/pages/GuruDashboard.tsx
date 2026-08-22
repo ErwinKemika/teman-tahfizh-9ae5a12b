@@ -17,6 +17,7 @@ import {
   BookMarked,
   GraduationCap,
 } from "lucide-react";
+import { WeeklyRankCard } from "@/components/ui/weekly-rank-card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
@@ -550,6 +551,11 @@ export default function GuruDashboard() {
               </table>
             </div>
           )}
+        </div>
+
+        {/* Weekly Ranking */}
+        <div className="mt-6">
+          <WeeklyRankCard />
         </div>
 
         <div className="h-8" />

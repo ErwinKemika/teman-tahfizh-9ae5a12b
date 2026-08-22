@@ -17,6 +17,7 @@ import {
   RotateCcw,
   Menu,
 } from "lucide-react";
+import { WeeklyRankCard } from "@/components/ui/weekly-rank-card";
 
 // ── Donut SVG ────────────────────────────────────────────────────
 function ProgressDonut({ value = 0, size = 110, stroke = 11 }: { value?: number; size?: number; stroke?: number }) {
@@ -547,6 +548,11 @@ export default function SiswaDashboard() {
               onClick={() => navigate("/mushaf")}
             />
           </div>
+        </div>
+
+        {/* Weekly Ranking */}
+        <div className="mt-8">
+          <WeeklyRankCard currentUserId={user?.id} />
         </div>
 
         {/* History table */}
