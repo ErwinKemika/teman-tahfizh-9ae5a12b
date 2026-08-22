@@ -2,8 +2,8 @@ import { useState, useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -17,26 +17,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BookOpen, Star, PlusCircle } from "lucide-react";
 import {
-  PieChart,
-  Pie,
-  Cell,
   BarChart,
   Bar,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts";
-
-const statusColors: Record<string, string> = {
-  belum_dihafalkan: "bg-destructive/10 text-destructive",
-  murajaah: "bg-warning/10 text-warning",
-  tasmi_done: "bg-success/10 text-success",
-  mutqin: "bg-highlight/10 text-highlight",
-};
+import { DonutChart, type DonutChartSegment } from "@/components/ui/donut-chart";
+import { AreaChartProgress, type AreaProgressDataPoint } from "@/components/ui/area-chart-progress";
+import { motion, AnimatePresence } from "framer-motion";
 
 const statusLabels: Record<string, string> = {
   belum_dihafalkan: "Belum",
@@ -45,7 +36,20 @@ const statusLabels: Record<string, string> = {
   mutqin: "Mutqin",
 };
 
-const DONUT_COLORS = ["#27AE60", "#E74C3C"];
+const statusColors: Record<string, string> = {
+  mutqin: "bg-highlight/10 border-highlight/30",
+  tasmi_done: "bg-success/10 border-success/30",
+  murajaah: "bg-warning/10 border-warning/30",
+  belum_dihafalkan: "bg-muted/30 border-border/30",
+};
+
+const badgeColors: Record<string, string> = {
+  mutqin: "bg-highlight/10 text-highlight border-highlight/20",
+  tasmi_done: "bg-success/10 text-success border-success/20",
+  murajaah: "bg-warning/10 text-warning border-warning/20",
+  belum_dihafalkan: "bg-muted text-muted-foreground border-border",
+};
+
 
 interface EditEntry {
   page_number: number;
@@ -107,15 +111,17 @@ export default function TahfizhTracker() {
     [chartEntries]
   );
 
-  const donutData = useMemo(() => {
+  const donutData = useMemo((): DonutChartSegment[] => {
     if (!chartEntries) return [];
     const done = chartEntries.filter((e) => e.is_mutqin || e.status === "tasmi_done").length;
     const belum = Math.max(0, 604 - done);
     return [
-      { name: "Hafal + Mutqin", value: done },
-      { name: "Belum Hafal", value: belum },
+      { label: "Hafal + Mutqin", value: done, color: "hsl(var(--success))" },
+      { label: "Belum Hafal", value: belum, color: "hsl(var(--destructive))" },
     ];
   }, [chartEntries]);
+
+  const [hoveredDonut, setHoveredDonut] = useState<DonutChartSegment | null>(null);
 
   const barData = useMemo(() => {
     if (!chartEntries) return [];
@@ -135,23 +141,22 @@ export default function TahfizhTracker() {
       .sort((a, b) => parseInt(a.name.slice(1)) - parseInt(b.name.slice(1)));
   }, [chartEntries]);
 
-  const lineData = useMemo(() => {
-    const months: Record<string, number> = {};
+  const areaData = useMemo((): AreaProgressDataPoint[] => {
     const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = d.toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
-      months[key] = 0;
-    }
+    const months: AreaProgressDataPoint[] = Array.from({ length: 6 }, (_, i) => ({
+      key: new Date(now.getFullYear(), now.getMonth() - (5 - i), 1),
+      data: 0,
+    }));
     chartEntries?.forEach((e) => {
       if (e.status === "tasmi_done" || e.is_mutqin) {
-        const dateStr = e.tanggal_hafalan || e.created_at;
-        const d = new Date(dateStr);
-        const key = d.toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
-        if (key in months) months[key] = (months[key] || 0) + 1;
+        const d = new Date(e.tanggal_hafalan || e.created_at);
+        const item = months.find(
+          (m) => m.key.getFullYear() === d.getFullYear() && m.key.getMonth() === d.getMonth()
+        );
+        if (item) item.data += 1;
       }
     });
-    return Object.entries(months).map(([month, count]) => ({ month, count }));
+    return months;
   }, [chartEntries]);
 
   const saveMutation = useMutation({
@@ -432,55 +437,55 @@ export default function TahfizhTracker() {
           <CardContent className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4 min-w-0">
               {/* Donut chart */}
-              <div className="w-full md:w-[40%] min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
-                <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
+              <div className="w-full md:w-[40%] min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm flex flex-col items-center">
+                <p className="text-xs font-medium text-muted-foreground mb-3 text-center">
                   Status Hafalan Keseluruhan
                 </p>
-                <ResponsiveContainer width="99%" height={180}>
-                  <PieChart>
-                    <Pie
-                      data={donutData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={75}
-                      paddingAngle={2}
-                      dataKey="value"
-                      label={false}
-                    >
-                      {donutData.map((_, idx) => (
-                        <Cell key={idx} fill={DONUT_COLORS[idx]} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip
-                      formatter={(value: number, name: string) => [`${value} hal.`, name]}
-                      contentStyle={{
-                        fontSize: 11,
-                        borderRadius: 8,
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        color: "hsl(var(--foreground))",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="flex flex-col gap-1 mt-1">
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#27AE60" }} />
-                    Hafal + Mutqin: <span className="font-medium text-foreground">{donutData[0]?.value ?? 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#F39C12" }} />
-                    Muraja'ah: <span className="font-medium text-foreground">{totalMurojaah}x</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#E74C3C" }} />
-                    Belum Hafal: <span className="font-medium text-foreground">{donutData[1]?.value ?? 0}</span>
+                <DonutChart
+                  data={donutData}
+                  size={180}
+                  strokeWidth={22}
+                  animationDuration={1.2}
+                  onSegmentHover={setHoveredDonut}
+                  centerContent={
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={hoveredDonut?.label ?? "default"}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.15 }}
+                        className="flex flex-col items-center justify-center text-center"
+                      >
+                        <span className="text-[10px] text-muted-foreground leading-tight max-w-[90px] truncate">
+                          {hoveredDonut?.label ?? "Selesai"}
+                        </span>
+                        <span className="text-2xl font-bold text-foreground leading-tight">
+                          {hoveredDonut?.value ?? totalDone}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">/ 604 hal.</span>
+                      </motion.div>
+                    </AnimatePresence>
+                  }
+                />
+                <div className="flex flex-col gap-1.5 mt-3 w-full">
+                  {donutData.map((seg) => (
+                    <div key={seg.label} className="flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: seg.color }} />
+                        <span className="text-muted-foreground">{seg.label}</span>
+                      </div>
+                      <span className="font-semibold text-foreground">{seg.value}</span>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-warning" />
+                      <span className="text-muted-foreground">Total Muraja'ah</span>
+                    </div>
+                    <span className="font-semibold text-foreground">{totalMurojaah}x</span>
                   </div>
                 </div>
-                <p className="text-center text-xs text-muted-foreground mt-2">
-                  Selesai: <span className="font-bold text-foreground">{totalDone}</span> / 604
-                </p>
               </div>
 
               {/* Bar chart */}
@@ -515,23 +520,12 @@ export default function TahfizhTracker() {
               </div>
             </div>
 
-            {/* Line chart */}
+            {/* Area chart */}
             <div className="min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
               <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
                 Progress Hafal per Bulan (6 Bulan Terakhir)
               </p>
-              <ResponsiveContainer width="99%" height={160}>
-                <LineChart data={lineData} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                  <RechartsTooltip
-                    formatter={(value: number) => [`${value} halaman`, "Tasmi'/Mutqin"]}
-                    contentStyle={{ fontSize: 11, borderRadius: 8, backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", color: "hsl(var(--foreground))" }}
-                  />
-                  <Line type="monotone" dataKey="count" stroke="#F4C430" strokeWidth={2.5} dot={{ fill: "#F4C430", r: 3 }} activeDot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <AreaChartProgress data={areaData} height={160} color="#F4C430" />
             </div>
           </CardContent>
         </Card>
@@ -617,44 +611,38 @@ export default function TahfizhTracker() {
                 <button
                   key={pageNum}
                   onClick={() => openEdit(pageNum)}
-                  className="text-left p-3 rounded-xl border border-border/50 bg-card hover:shadow-card-hover transition-all space-y-2"
+                  className={`relative group text-left p-3 rounded-xl border transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${statusColors[status]}`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-foreground">Hal. {pageNum}</span>
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-sm font-bold text-foreground">Hal. {pageNum}</span>
                     {isGuru ? (
-                      <button
+                      <div
                         onClick={(e) => {
                           e.stopPropagation();
-                          mutqinToggleMutation.mutate({
-                            entryId: entry?.id,
-                            value: !entry?.is_mutqin,
-                            pageNum,
-                          });
+                          mutqinToggleMutation.mutate({ entryId: entry?.id, value: !entry?.is_mutqin, pageNum });
                         }}
-                        className="p-0.5 rounded hover:bg-accent transition-colors"
-                        title={entry?.is_mutqin ? "Klik untuk hapus Mutqin" : "Klik untuk set Mutqin"}
+                        role="button"
+                        tabIndex={0}
+                        className={`transition-opacity cursor-pointer ${entry?.is_mutqin ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                        title={entry?.is_mutqin ? "Hapus Mutqin" : "Set Mutqin"}
                       >
                         <Star
-                          className={`w-3.5 h-3.5 transition-colors ${
-                            entry?.is_mutqin
-                              ? "text-highlight fill-highlight"
-                              : "text-muted-foreground/40 fill-transparent"
-                          }`}
+                          className={`w-3.5 h-3.5 ${entry?.is_mutqin ? "text-highlight fill-highlight" : "text-muted-foreground/40 fill-transparent"}`}
                         />
-                      </button>
+                      </div>
                     ) : (
                       entry?.is_mutqin && (
-                        <span title="Hanya Ustadz yang dapat mengubah status Mutqin" style={{ cursor: "default" }}>
-                          <Star className="w-3.5 h-3.5 text-highlight fill-highlight" />
-                        </span>
+                        <Star className="w-3.5 h-3.5 text-highlight fill-highlight" />
                       )
                     )}
                   </div>
-                  <Badge className={`text-[10px] ${statusColors[status]}`}>{statusLabels[status]}</Badge>
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${badgeColors[status]}`}>
+                    {statusLabels[status]}
+                  </Badge>
                   {entry && (
-                    <div className="text-[10px] text-muted-foreground">
+                    <p className="text-[10px] text-muted-foreground mt-1.5 leading-tight">
                       Kualitas: {entry.kualitas_hafalan}% • Muroja'ah: {entry.kuantitas_murojaah}x
-                    </div>
+                    </p>
                   )}
                 </button>
               );

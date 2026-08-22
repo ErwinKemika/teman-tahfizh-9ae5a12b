@@ -78,7 +78,7 @@ export default {
         paper: "#f6f8fb",
         "paper-form": "#f4f6fa",
         "auth-line": "#e5e9ef",
-        line: "#e5e9ef",
+        line: "var(--line)",
         "muted-2": "#7a8699",
         "dark-bg": "#0a1726",
         "dark-card": "#10243c",
