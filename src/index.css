@@ -65,6 +65,8 @@
     --sidebar-ring: 47 90% 58%;
 
     --line: #e5e9ef;
+    --ring-track: #e9edf3;
+    --topbar-bg: rgba(238,242,247,0.82);
 
     --font-sans: 'Inter', system-ui, sans-serif;
     --font-arabic: 'Amiri', 'Traditional Arabic', serif;
@@ -117,6 +119,10 @@
     --sidebar-accent-foreground: 210 40% 96%;
     --sidebar-border: 215 40% 18%;
     --sidebar-ring: 47 90% 58%;
+
+    --line: rgba(255,255,255,0.08);
+    --ring-track: #1e3450;
+    --topbar-bg: rgba(10,23,38,0.88);
   }
 }
 
