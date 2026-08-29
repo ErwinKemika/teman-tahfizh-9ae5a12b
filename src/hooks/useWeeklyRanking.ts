@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface RankedStudent {
   student_id: string;
@@ -36,14 +37,17 @@ const avg = (arr: number[]) =>
   arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
 
 export function useWeeklyRanking() {
+  const { profile } = useAuth();
+  const lembagaId = profile?.lembaga_id;
+
   return useQuery<RankedStudent[]>({
-    queryKey: ["weekly-ranking"],
+    queryKey: ["weekly-ranking", lembagaId],
     queryFn: async () => {
       const { fromDate, toDate, fromISO, toISO } = getWeekBounds();
 
       const [{ data: students }, { data: ujianData }, { data: hafalanData }] =
         await Promise.all([
-          supabase.from("profiles").select("user_id, full_name").eq("role", "siswa"),
+          supabase.from("profiles").select("user_id, full_name").eq("role", "siswa").eq("lembaga_id", lembagaId!),
           supabase
             .from("ujian")
             .select("student_id, nilai_total")
@@ -95,6 +99,7 @@ export function useWeeklyRanking() {
       return scored.map((s, i) => ({ ...s, rank: i + 1 }));
     },
     staleTime: 5 * 60 * 1000,
+    enabled: !!lembagaId,
   });
 }
 
