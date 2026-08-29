@@ -54,7 +54,7 @@ interface EditEntry {
 }
 
 export default function TahfizhTracker() {
-  const { user, role } = useAuth();
+  const { user, role, profile } = useAuth();
   const isGuru = role === "guru";
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
