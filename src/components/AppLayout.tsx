@@ -127,9 +127,9 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
                   <button
                     onClick={() => { handleNav(item.path); setUjianOpen(true); }}
                     className={cn(
-                      "group w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all",
+                      "group w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all nav-shiny",
                       isParentActive
-                        ? "bg-gradient-to-r from-[rgba(201,163,90,0.22)] to-[rgba(201,163,90,0.06)] ring-1 ring-inset ring-[rgba(201,163,90,0.30)] text-white"
+                        ? "nav-shiny-active text-white"
                         : "text-[#aebfd4] hover:text-white hover:bg-white/5"
                     )}
                   >
@@ -194,9 +194,9 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
                 <button
                   onClick={() => handleNav(item.path)}
                   className={cn(
-                    "group w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all",
+                    "group w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all nav-shiny",
                     isActive
-                      ? "bg-gradient-to-r from-[rgba(201,163,90,0.22)] to-[rgba(201,163,90,0.06)] ring-1 ring-inset ring-[rgba(201,163,90,0.30)] text-white"
+                      ? "nav-shiny-active text-white"
                       : "text-[#aebfd4] hover:text-white hover:bg-white/5"
                   )}
                 >

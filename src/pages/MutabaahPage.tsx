@@ -93,16 +93,17 @@ export default function MutabaahPage() {
   const [selectedReportStudent, setSelectedReportStudent] = useState<string>("");
 
   const { data: students } = useQuery({
-    queryKey: ["students-list"],
+    queryKey: ["students-list", profile?.lembaga_id],
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .eq("role", "siswa")
+        .eq("lembaga_id", profile!.lembaga_id)
         .order("full_name");
       return data || [];
     },
-    enabled: isGuru,
+    enabled: isGuru && !!profile?.lembaga_id,
   });
 
   const isSingleSurat = ziyadahSurats.length === 1;
