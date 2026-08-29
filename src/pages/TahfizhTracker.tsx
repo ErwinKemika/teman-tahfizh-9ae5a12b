@@ -16,17 +16,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BookOpen, Star, PlusCircle } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-} from "recharts";
 import { DonutChart, type DonutChartSegment } from "@/components/ui/donut-chart";
 import { AreaChartProgress, type AreaProgressDataPoint } from "@/components/ui/area-chart-progress";
+import { AnimatedCard, CardVisual, CardBody as AnimatedCardBody, CardTitle as AnimatedCardTitle, CardDescription as AnimatedCardDescription, Visual3 } from "@/components/ui/animated-card-chart";
 import { motion, AnimatePresence } from "framer-motion";
 
 const statusLabels: Record<string, string> = {
@@ -71,15 +63,16 @@ export default function TahfizhTracker() {
   const [selectedStudent, setSelectedStudent] = useState<string>("all");
 
   const { data: students } = useQuery({
-    queryKey: ["students-list"],
+    queryKey: ["students-list", profile?.lembaga_id],
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
         .select("user_id, full_name")
-        .eq("role", "siswa");
+        .eq("role", "siswa")
+        .eq("lembaga_id", profile!.lembaga_id);
       return data || [];
     },
-    enabled: isGuru,
+    enabled: isGuru && !!profile?.lembaga_id,
   });
 
   const chartStudentId = isGuru
@@ -489,34 +482,29 @@ export default function TahfizhTracker() {
               </div>
 
               {/* Bar chart */}
-              <div className="w-full md:w-[60%] min-w-0 overflow-hidden rounded-xl border border-border/40 bg-card/50 p-3 shadow-sm">
-                <p className="text-xs font-medium text-muted-foreground mb-2 text-center">
-                  Kualitas Hafalan per Juz
-                </p>
-                {barData.length === 0 ? (
-                  <div className="flex items-center justify-center h-[160px] text-xs text-muted-foreground">
-                    Belum ada data
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="99%" height={180}>
-                    <BarChart data={barData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                      <RechartsTooltip
-                        formatter={(value: number) => [`${value}%`, "Rata-rata"]}
-                        contentStyle={{ fontSize: 11, borderRadius: 8, backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", color: "hsl(var(--foreground))" }}
+              <div className="w-full md:w-[60%] min-w-0">
+                <AnimatedCard className="w-full">
+                  <CardVisual className="w-full">
+                    {barData.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-xs text-neutral-400">
+                        Belum ada data
+                      </div>
+                    ) : (
+                      <Visual3
+                        mainColor="#c9a35a"
+                        secondaryColor="#e3c98a"
+                        gridColor="#80808015"
+                        data={barData}
                       />
-                      <defs>
-                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#2E86C1" />
-                          <stop offset="100%" stopColor="#1B3A6B" />
-                        </linearGradient>
-                      </defs>
-                      <Bar dataKey="avg" fill="url(#barGradient)" radius={[3, 3, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
+                    )}
+                  </CardVisual>
+                  <AnimatedCardBody>
+                    <AnimatedCardTitle className="text-sm">Kualitas Hafalan per Juz</AnimatedCardTitle>
+                    <AnimatedCardDescription>
+                      Rata-rata kualitas hafalan berdasarkan juz yang tercatat
+                    </AnimatedCardDescription>
+                  </AnimatedCardBody>
+                </AnimatedCard>
               </div>
             </div>
 

@@ -65,7 +65,7 @@ function ScoreGrid({
 }
 
 export default function UjianPage() {
-  const { user, role } = useAuth();
+  const { user, role, profile } = useAuth();
   const queryClient = useQueryClient();
   const isGuru = role === "guru";
 
@@ -133,12 +133,12 @@ export default function UjianPage() {
   );
 
   const { data: students } = useQuery({
-    queryKey: ["students-for-ujian"],
+    queryKey: ["students-for-ujian", profile?.lembaga_id],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("*").eq("role", "siswa").order("full_name");
+      const { data } = await supabase.from("profiles").select("*").eq("role", "siswa").eq("lembaga_id", profile!.lembaga_id).order("full_name");
       return data || [];
     },
-    enabled: isGuru,
+    enabled: isGuru && !!profile?.lembaga_id,
   });
 
   const { data: ujianResults } = useQuery({
