@@ -12,7 +12,8 @@ dist
 dist-ssr
 *.local
 
-# Local-only env overrides (never commit)
+# Env files (never commit)
+.env
 .env.local
 .env.*.local
 
