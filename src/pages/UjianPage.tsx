@@ -13,7 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ClipboardCheck } from "lucide-react";
+import { ClipboardCheck, Plus, X } from "lucide-react";
 
 type JenisUjian = "harian" | "pekanan" | "bulanan";
 
@@ -24,42 +24,98 @@ function calcAvg(scores: number[]) {
   return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
 }
 
-function ScoreGrid({
-  label,
-  scores,
-  onChange,
+function DynamicScoreSection({
+  hafalan,
+  tajwid,
+  onHafalanChange,
+  onTajwidChange,
 }: {
-  label: string;
-  scores: number[];
-  onChange: (s: number[]) => void;
+  hafalan: number[];
+  tajwid: number[];
+  onHafalanChange: (s: number[]) => void;
+  onTajwidChange: (s: number[]) => void;
 }) {
-  const average = calcAvg(scores);
+  const avgHafalan = calcAvg(hafalan);
+  const avgTajwid = calcAvg(tajwid);
+
+  const addSoal = () => {
+    onHafalanChange([...hafalan, 0]);
+    onTajwidChange([...tajwid, 0]);
+  };
+
+  const removeSoal = (i: number) => {
+    onHafalanChange(hafalan.filter((_, idx) => idx !== i));
+    onTajwidChange(tajwid.filter((_, idx) => idx !== i));
+  };
+
   return (
     <div className="space-y-2">
-      <Label>
-        {label}{" "}
-        <span className="text-xs text-muted-foreground font-normal">(rata-rata: {average})</span>
-      </Label>
-      <div className="grid grid-cols-5 gap-2">
-        {scores.map((score, i) => (
-          <div key={i} className="space-y-1">
-            <p className="text-xs text-center text-muted-foreground">S{i + 1}</p>
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              placeholder="0"
-              value={score || ""}
-              onChange={(e) => {
-                const next = [...scores];
-                next[i] = e.target.value === "" ? 0 : Number(e.target.value);
-                onChange(next);
-              }}
-              className="text-center px-1"
-            />
-          </div>
-        ))}
+      <div className="flex items-center justify-between">
+        <Label>
+          Soal ({hafalan.length}){" "}
+          <span className="text-xs text-muted-foreground font-normal">
+            rata-rata hafalan: {avgHafalan} · tajwid: {avgTajwid}
+          </span>
+        </Label>
+        <Button type="button" size="sm" variant="outline" onClick={addSoal} className="h-7 gap-1 text-xs">
+          <Plus className="w-3.5 h-3.5" /> Tambah Soal
+        </Button>
       </div>
+
+      {hafalan.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">
+          Belum ada soal. Klik "Tambah Soal" sesuai jumlah soal yang diujikan.
+        </p>
+      ) : (
+        <div className="space-y-1.5">
+          <div className="grid grid-cols-[1.5rem_1fr_1fr_1.5rem] gap-2 px-1">
+            <span />
+            <p className="text-[10px] text-muted-foreground">Hafalan</p>
+            <p className="text-[10px] text-muted-foreground">Tajwid</p>
+            <span />
+          </div>
+          {hafalan.map((h, i) => (
+            <div key={i} className="grid grid-cols-[1.5rem_1fr_1fr_1.5rem] gap-2 items-center">
+              <span className="text-xs text-center text-muted-foreground">S{i + 1}</span>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                placeholder="0"
+                value={h || ""}
+                onChange={(e) => {
+                  const next = [...hafalan];
+                  next[i] = e.target.value === "" ? 0 : Number(e.target.value);
+                  onHafalanChange(next);
+                }}
+                className="text-center px-1 h-8"
+              />
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                placeholder="0"
+                value={tajwid[i] || ""}
+                onChange={(e) => {
+                  const next = [...tajwid];
+                  next[i] = e.target.value === "" ? 0 : Number(e.target.value);
+                  onTajwidChange(next);
+                }}
+                className="text-center px-1 h-8"
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-6 text-muted-foreground hover:text-destructive"
+                onClick={() => removeSoal(i)}
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -87,25 +143,25 @@ export default function UjianPage() {
   // Harian
   const [tanggal, setTanggal] = useState(todayStr);
   const [juzHarian, setJuzHarian] = useState<string[]>([]);
-  const [hafalanScoresHarian, setHafalanScoresHarian] = useState<number[]>(Array(5).fill(0));
-  const [tajwidScoresHarian, setTajwidScoresHarian] = useState<number[]>(Array(5).fill(0));
+  const [hafalanScoresHarian, setHafalanScoresHarian] = useState<number[]>([]);
+  const [tajwidScoresHarian, setTajwidScoresHarian] = useState<number[]>([]);
 
-  // Pekanan (10 soal)
+  // Pekanan
   const [pekanKe, setPekanKe] = useState("");
   const [bulan, setBulan] = useState(String(new Date().getMonth() + 1));
   const [tahun, setTahun] = useState(String(new Date().getFullYear()));
   const [juzPekanan, setJuzPekanan] = useState<string[]>([]);
   const [halamanDari, setHalamanDari] = useState("");
   const [halamanHingga, setHalamanHingga] = useState("");
-  const [hafalanScores, setHafalanScores] = useState<number[]>(Array(10).fill(0));
-  const [tajwidScores, setTajwidScores] = useState<number[]>(Array(10).fill(0));
+  const [hafalanScores, setHafalanScores] = useState<number[]>([]);
+  const [tajwidScores, setTajwidScores] = useState<number[]>([]);
   const [statusLulus, setStatusLulus] = useState<"true" | "false">("true");
 
-  // Bulanan (20 soal)
+  // Bulanan
   const [juzBulanan, setJuzBulanan] = useState<string[]>([]);
   const [totalJuz, setTotalJuz] = useState("");
-  const [hafalanScoresBulanan, setHafalanScoresBulanan] = useState<number[]>(Array(20).fill(0));
-  const [tajwidScoresBulanan, setTajwidScoresBulanan] = useState<number[]>(Array(20).fill(0));
+  const [hafalanScoresBulanan, setHafalanScoresBulanan] = useState<number[]>([]);
+  const [tajwidScoresBulanan, setTajwidScoresBulanan] = useState<number[]>([]);
   const [nilaiAdab, setNilaiAdab] = useState(80);
   const [peringkat, setPeringkat] = useState("");
   const [statusNaikJuz, setStatusNaikJuz] = useState<"true" | "false">("true");
@@ -167,12 +223,12 @@ export default function UjianPage() {
     setSelectedStudent("");
     setCatatanGuru("");
     setJuzHarian([]);
-    setHafalanScoresHarian(Array(5).fill(0)); setTajwidScoresHarian(Array(5).fill(0));
+    setHafalanScoresHarian([]); setTajwidScoresHarian([]);
     setPekanKe(""); setJuzPekanan([]); setHalamanDari(""); setHalamanHingga("");
-    setHafalanScores(Array(10).fill(0)); setTajwidScores(Array(10).fill(0)); setStatusLulus("true");
+    setHafalanScores([]); setTajwidScores([]); setStatusLulus("true");
     setMurojaahQadhimTsnai(""); setMurojaahQadhimFardhi("");
     setJuzBulanan([]); setTotalJuz("");
-    setHafalanScoresBulanan(Array(20).fill(0)); setTajwidScoresBulanan(Array(20).fill(0));
+    setHafalanScoresBulanan([]); setTajwidScoresBulanan([]);
     setNilaiAdab(80); setPeringkat(""); setStatusNaikJuz("true"); setRekomendasi("");
   };
 
@@ -352,8 +408,12 @@ export default function UjianPage() {
                     ))}
                   </div>
                 </div>
-                <ScoreGrid label="Hafalan" scores={hafalanScoresHarian} onChange={setHafalanScoresHarian} />
-                <ScoreGrid label="Tajwid" scores={tajwidScoresHarian} onChange={setTajwidScoresHarian} />
+                <DynamicScoreSection
+                  hafalan={hafalanScoresHarian}
+                  tajwid={tajwidScoresHarian}
+                  onHafalanChange={setHafalanScoresHarian}
+                  onTajwidChange={setTajwidScoresHarian}
+                />
                 <p className="text-sm">
                   Nilai Total:{" "}
                   <span className={`font-bold text-lg ${scoreColor(nilaiTotalHarian)}`}>
@@ -420,8 +480,12 @@ export default function UjianPage() {
                     ))}
                   </div>
                 </div>
-                <ScoreGrid label="Hafalan" scores={hafalanScores} onChange={setHafalanScores} />
-                <ScoreGrid label="Tajwid" scores={tajwidScores} onChange={setTajwidScores} />
+                <DynamicScoreSection
+                  hafalan={hafalanScores}
+                  tajwid={tajwidScores}
+                  onHafalanChange={setHafalanScores}
+                  onTajwidChange={setTajwidScores}
+                />
                 <p className="text-sm">
                   Nilai Total:{" "}
                   <span className={`font-bold text-lg ${scoreColor(nilaiTotalPekan)}`}>
@@ -496,8 +560,12 @@ export default function UjianPage() {
                     ))}
                   </div>
                 </div>
-                <ScoreGrid label="Hafalan" scores={hafalanScoresBulanan} onChange={setHafalanScoresBulanan} />
-                <ScoreGrid label="Tajwid" scores={tajwidScoresBulanan} onChange={setTajwidScoresBulanan} />
+                <DynamicScoreSection
+                  hafalan={hafalanScoresBulanan}
+                  tajwid={tajwidScoresBulanan}
+                  onHafalanChange={setHafalanScoresBulanan}
+                  onTajwidChange={setTajwidScoresBulanan}
+                />
                 <div className="space-y-2">
                   <Label>
                     Nilai Adab & Akhlak:{" "}
