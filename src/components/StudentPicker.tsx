@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { cn, compareNama } from "@/lib/utils";
 
 interface StudentOption {
   user_id: string;
@@ -30,7 +30,7 @@ export default function StudentPicker({
   const [search, setSearch] = useState("");
 
   const sorted = useMemo(
-    () => [...(students || [])].sort((a, b) => a.full_name.localeCompare(b.full_name, "id")),
+    () => [...(students || [])].sort((a, b) => compareNama(a.full_name, b.full_name)),
     [students]
   );
 

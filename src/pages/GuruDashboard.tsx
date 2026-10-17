@@ -1,5 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { compareNama } from "@/lib/utils";
+import { formatHifdzJadid } from "@/lib/mutabaah";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -213,9 +215,8 @@ export default function GuruDashboard() {
         .from("profiles")
         .select("*")
         .eq("role", "siswa")
-        .eq("lembaga_id", profile.lembaga_id)
-        .order("full_name");
-      return data || [];
+        .eq("lembaga_id", profile.lembaga_id);
+      return (data || []).sort((a, b) => compareNama(a.full_name, b.full_name));
     },
     enabled: !!profile?.lembaga_id,
   });
@@ -526,10 +527,11 @@ export default function GuruDashboard() {
             </div>
           ) : (
             <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full min-w-[640px] text-left">
+              <table className="w-full min-w-[700px] text-left">
                 <thead>
                   <tr className="text-[11px] uppercase tracking-[0.08em] text-[#9aa6b8] dark:text-[#5a6a80]">
                     <th className="font-semibold px-4 sm:px-6 py-3">Siswa</th>
+                    <th className="font-semibold px-4 sm:px-6 py-3">Jam</th>
                     <th className="font-semibold px-4 sm:px-6 py-3">Ziyadah</th>
                     <th className="hidden sm:table-cell font-semibold px-4 sm:px-6 py-3">Hifdzul Jadid</th>
                     <th className="hidden sm:table-cell font-semibold px-4 sm:px-6 py-3">Qadhim</th>
@@ -538,7 +540,12 @@ export default function GuruDashboard() {
                   </tr>
                 </thead>
                 <tbody className="text-[13.5px]">
-                  {todayMutabaahEntries.map((entry) => {
+                  {[...todayMutabaahEntries]
+                    .sort((a, b) => compareNama(
+                      students?.find((s) => s.user_id === a.student_id)?.full_name ?? "",
+                      students?.find((s) => s.user_id === b.student_id)?.full_name ?? ""
+                    ))
+                    .map((entry) => {
                     const student = students?.find((s) => s.user_id === entry.student_id);
                     return (
                       <tr
@@ -548,16 +555,16 @@ export default function GuruDashboard() {
                         <td className="px-4 sm:px-6 py-3.5 font-semibold text-[#0f2742] dark:text-[#e8edf5] whitespace-nowrap">
                           {student?.full_name || "—"}
                         </td>
+                        <td className="px-4 sm:px-6 py-3.5 text-[#5b6b80] dark:text-[#8a9ab0] whitespace-nowrap">
+                          {new Date(entry.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                        </td>
                         <td className="px-4 sm:px-6 py-3.5 text-[#27384f] dark:text-[#b0c4db] max-w-[120px] truncate">
                           {entry.ziyadah_surat
                             ? `${entry.ziyadah_surat} ${entry.ziyadah_ayat_start ?? ""}–${entry.ziyadah_ayat_end ?? ""}`
                             : "—"}
                         </td>
                         <td className="hidden sm:table-cell px-4 sm:px-6 py-3.5 text-[#5b6b80] dark:text-[#8a9ab0] whitespace-nowrap">
-                          {entry.murojaah_hifdzul_jadid_dari != null &&
-                          entry.murojaah_hifdzul_jadid_hingga != null
-                            ? `Hal. ${entry.murojaah_hifdzul_jadid_dari}–${entry.murojaah_hifdzul_jadid_hingga}`
-                            : "—"}
+                          {formatHifdzJadid(entry) || "—"}
                         </td>
                         <td className="hidden sm:table-cell px-4 sm:px-6 py-3.5 text-[#5b6b80] dark:text-[#8a9ab0]">
                           {entry.murojaah_hifdzul_qodim || entry.murojaah_tsnai || "—"}

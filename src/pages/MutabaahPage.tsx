@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { compareNama } from "@/lib/utils";
+import { formatHalaman, formatHifdzJadid } from "@/lib/mutabaah";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,31 +28,6 @@ function parseHalaman(val: string): number | null {
   if (frac) return parseInt(frac[1]) / parseInt(frac[2]);
   const n = parseFloat(t);
   return isNaN(n) ? null : n;
-}
-
-function formatHalaman(n: number | null | undefined): string {
-  if (n == null) return "";
-  const int = Math.floor(n);
-  const frac = n - int;
-  if (Math.abs(frac - 0.5) < 0.001) return int === 0 ? "½" : `${int}½`;
-  return String(n);
-}
-
-type HifdzJadidEntry = {
-  murojaah_hifdzul_jadid_dari?: number | null;
-  murojaah_hifdzul_jadid_hingga?: number | null;
-  murojaah_hifdzul_jadid_juz?: number[] | null;
-};
-
-function formatHifdzJadid(e: HifdzJadidEntry): string {
-  const juz = e.murojaah_hifdzul_jadid_juz?.length
-    ? `Juz ${[...e.murojaah_hifdzul_jadid_juz].sort((a, b) => a - b).join(", ")}`
-    : "";
-  const hal =
-    e.murojaah_hifdzul_jadid_dari || e.murojaah_hifdzul_jadid_hingga
-      ? `hal. ${formatHalaman(e.murojaah_hifdzul_jadid_dari)}–${formatHalaman(e.murojaah_hifdzul_jadid_hingga)}`
-      : "";
-  return [juz, hal].filter(Boolean).join(" · ");
 }
 
 const QURAN_SURAHS = [
@@ -124,9 +101,8 @@ export default function MutabaahPage() {
         .from("profiles")
         .select("user_id, full_name")
         .eq("role", "siswa")
-        .eq("lembaga_id", profile!.lembaga_id)
-        .order("full_name");
-      return data || [];
+        .eq("lembaga_id", profile!.lembaga_id);
+      return (data || []).sort((a, b) => compareNama(a.full_name, b.full_name));
     },
     enabled: isGuru && !!profile?.lembaga_id,
   });
@@ -716,7 +692,9 @@ export default function MutabaahPage() {
                   Tidak ada mutaba'ah yang menunggu persetujuan
                 </p>
               ) : (
-                pendingEntries.map((entry) => {
+                [...pendingEntries]
+                  .sort((a, b) => b.date.localeCompare(a.date) || compareNama(studentName(a.student_id), studentName(b.student_id)))
+                  .map((entry) => {
                   const chosen = pendingStatus[entry.id] ?? "lulus";
                   return (
                     <div key={entry.id} className="rounded-xl border border-border/50 p-3 space-y-2 text-sm">
