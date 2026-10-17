@@ -231,7 +231,7 @@ export default function HasilUjianPage() {
           filteredResults.map((r: any) => {
             const jenis = r.jenis_ujian as keyof typeof jenisConfig;
             const jenisCfg = jenisConfig[jenis] ?? jenisConfig.harian;
-            const score = jenis === "bulanan" ? (r.nilai_akhir ?? r.nilai) : (r.nilai_total ?? r.nilai);
+            const score = r.nilai_total ?? r.nilai;
 
             // Metadata line
             let meta = "";
@@ -265,23 +265,18 @@ export default function HasilUjianPage() {
                           {" "}{r.status_lulus ? "Lulus" : "Mengulang"}
                         </span>
                       )}
-                      {jenis === "bulanan" && r.status_naik_juz != null && (
-                        <span className={r.status_naik_juz ? " • text-success" : " • text-warning"}>
-                          {" "}{r.status_naik_juz ? "Naik Juz" : "Belum Naik"}
-                        </span>
-                      )}
                     </p>
                     {r.catatan_guru && (
                       <p className="text-xs text-muted-foreground italic">"{r.catatan_guru}"</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <div className="text-right">
-                      <p className="text-[10px] text-muted-foreground">
-                        {jenis === "bulanan" ? "Akhir" : "Total"}
-                      </p>
-                      <div className={`text-xl font-bold ${scoreColor(score || 0)}`}>{score || 0}</div>
-                    </div>
+                    {jenis !== "bulanan" && (
+                      <div className="text-right">
+                        <p className="text-[10px] text-muted-foreground">Total</p>
+                        <div className={`text-xl font-bold ${scoreColor(score || 0)}`}>{score || 0}</div>
+                      </div>
+                    )}
                     {isGuru && (
                       <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(r.id)}>
                         <Trash2 className="w-4 h-4 text-destructive" />
@@ -290,22 +285,18 @@ export default function HasilUjianPage() {
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-border/40 space-y-2">
-                  <ScoreRow
-                    scores={r.hafalan_scores}
-                    label={`Hafalan — rata-rata: ${r.nilai_kelancaran ?? "-"}`}
-                  />
-                  <ScoreRow
-                    scores={r.tajwid_scores}
-                    label={`Tajwid — rata-rata: ${r.nilai_tajwid ?? "-"}`}
-                  />
-                  {jenis === "bulanan" && r.nilai_adab != null && (
-                    <p className="text-xs text-muted-foreground">
-                      Adab & Akhlak: <span className={`font-bold ${scoreColor(r.nilai_adab)}`}>{r.nilai_adab}</span>
-                      {r.peringkat ? ` · Peringkat ke-${r.peringkat}` : ""}
-                    </p>
-                  )}
-                </div>
+                {jenis !== "bulanan" && (
+                  <div className="pt-2 border-t border-border/40 space-y-2">
+                    <ScoreRow
+                      scores={r.hafalan_scores}
+                      label={`Hafalan — rata-rata: ${r.nilai_kelancaran ?? "-"}`}
+                    />
+                    <ScoreRow
+                      scores={r.tajwid_scores}
+                      label={`Tajwid — rata-rata: ${r.nilai_tajwid ?? "-"}`}
+                    />
+                  </div>
+                )}
               </div>
             );
           })

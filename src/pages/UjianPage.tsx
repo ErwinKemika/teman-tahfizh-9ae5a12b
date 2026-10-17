@@ -10,7 +10,6 @@ import StudentPicker from "@/components/StudentPicker";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Slider } from "@/components/ui/slider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -159,14 +158,7 @@ export default function UjianPage() {
   const [statusLulus, setStatusLulus] = useState<"true" | "false">("true");
 
   // Bulanan
-  const [juzBulanan, setJuzBulanan] = useState<string[]>([]);
-  const [totalJuz, setTotalJuz] = useState("");
-  const [hafalanScoresBulanan, setHafalanScoresBulanan] = useState<number[]>([]);
-  const [tajwidScoresBulanan, setTajwidScoresBulanan] = useState<number[]>([]);
-  const [nilaiAdab, setNilaiAdab] = useState(80);
-  const [peringkat, setPeringkat] = useState("");
-  const [statusNaikJuz, setStatusNaikJuz] = useState<"true" | "false">("true");
-  const [rekomendasi, setRekomendasi] = useState("");
+  const [juzBulanan, setJuzBulanan] = useState("");
 
   const avgHafalanHarian = useMemo(() => calcAvg(hafalanScoresHarian), [hafalanScoresHarian]);
   const avgTajwidHarian = useMemo(() => calcAvg(tajwidScoresHarian), [tajwidScoresHarian]);
@@ -180,13 +172,6 @@ export default function UjianPage() {
   const nilaiTotalPekan = useMemo(
     () => Math.round((avgHafalanPekan + avgTajwidPekan) / 2),
     [avgHafalanPekan, avgTajwidPekan]
-  );
-
-  const avgHafalanBulanan = useMemo(() => calcAvg(hafalanScoresBulanan), [hafalanScoresBulanan]);
-  const avgTajwidBulanan = useMemo(() => calcAvg(tajwidScoresBulanan), [tajwidScoresBulanan]);
-  const nilaiAkhirBulan = useMemo(
-    () => Math.round(avgHafalanBulanan * 0.5 + avgTajwidBulanan * 0.3 + nilaiAdab * 0.2),
-    [avgHafalanBulanan, avgTajwidBulanan, nilaiAdab]
   );
 
   const { data: students } = useQuery({
@@ -228,9 +213,7 @@ export default function UjianPage() {
     setPekanKe(""); setJuzPekanan([]); setHalamanDari(""); setHalamanHingga("");
     setHafalanScores([]); setTajwidScores([]); setStatusLulus("true");
     setMurojaahQadhimTsnai(""); setMurojaahQadhimFardhi("");
-    setJuzBulanan([]); setTotalJuz("");
-    setHafalanScoresBulanan([]); setTajwidScoresBulanan([]);
-    setNilaiAdab(80); setPeringkat(""); setStatusNaikJuz("true"); setRekomendasi("");
+    setJuzBulanan("");
   };
 
   const submitMutation = useMutation({
@@ -285,19 +268,8 @@ export default function UjianPage() {
       } else {
         payload = {
           ...base,
-          juz_diuji: juzBulanan,
-          hafalan_scores: hafalanScoresBulanan,
-          tajwid_scores: tajwidScoresBulanan,
-          nilai_kelancaran: avgHafalanBulanan,
-          nilai_tajwid: avgTajwidBulanan,
-          nilai_adab: nilaiAdab,
-          nilai_akhir: nilaiAkhirBulan,
-          nilai: nilaiAkhirBulan,
-          peringkat: peringkat ? parseInt(peringkat) : null,
-          status_naik_juz: statusNaikJuz === "true",
-          rekomendasi: rekomendasi || null,
-          juz_tested: juzBulanan.join(", "),
-          jumlah_ayat: totalJuz ? parseInt(totalJuz) : null,
+          juz_diuji: [],
+          juz_tested: juzBulanan.trim(),
         };
       }
       const { error } = await supabase.from("ujian").insert(payload);
@@ -348,7 +320,7 @@ export default function UjianPage() {
     if (!selectedStudent) return false;
     if (formType === "harian") return juzHarian.length > 0;
     if (formType === "pekanan") return !!pekanKe;
-    if (formType === "bulanan") return juzBulanan.length > 0;
+    if (formType === "bulanan") return juzBulanan.trim().length > 0;
     return false;
   };
 
@@ -516,7 +488,7 @@ export default function UjianPage() {
                 </div>
               </TabsContent>
 
-              {/* ── BULANAN: 20 soal ── */}
+              {/* ── BULANAN: cukup tulis juz ── */}
               <TabsContent value="bulanan" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
@@ -536,74 +508,12 @@ export default function UjianPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Total Juz diuji</Label>
-                  <Input type="number" value={totalJuz} onChange={(e) => setTotalJuz(e.target.value)} />
-                </div>
-                <div className="space-y-2">
                   <Label>Juz yang diuji</Label>
-                  <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 rounded-md border border-border">
-                    {Array.from({ length: 30 }, (_, i) => String(i + 1)).map((j) => (
-                      <Badge
-                        key={j}
-                        variant={juzBulanan.includes(j) ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => toggleArr(juzBulanan, j, setJuzBulanan)}
-                      >
-                        Juz {j}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <DynamicScoreSection
-                  hafalan={hafalanScoresBulanan}
-                  tajwid={tajwidScoresBulanan}
-                  onHafalanChange={setHafalanScoresBulanan}
-                  onTajwidChange={setTajwidScoresBulanan}
-                />
-                <div className="space-y-2">
-                  <Label>
-                    Nilai Adab & Akhlak:{" "}
-                    <span className="font-semibold text-primary">{nilaiAdab}</span>
-                  </Label>
-                  <Slider
-                    value={[nilaiAdab]}
-                    onValueChange={(v) => setNilaiAdab(v[0])}
-                    min={0}
-                    max={100}
-                    step={1}
+                  <Input
+                    placeholder="Contoh: Juz 29 dan 30"
+                    value={juzBulanan}
+                    onChange={(e) => setJuzBulanan(e.target.value)}
                   />
-                </div>
-                <p className="text-sm">
-                  Nilai Akhir:{" "}
-                  <span className={`font-bold text-lg ${scoreColor(nilaiAkhirBulan)}`}>
-                    {nilaiAkhirBulan}
-                  </span>{" "}
-                  <span className="text-xs text-muted-foreground">
-                    (50% Hafalan + 30% Tajwid + 20% Adab)
-                  </span>
-                </p>
-                <div className="space-y-2">
-                  <Label>Peringkat di Kelas (opsional)</Label>
-                  <Input type="number" value={peringkat} onChange={(e) => setPeringkat(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Status Naik Juz</Label>
-                  <RadioGroup
-                    value={statusNaikJuz}
-                    onValueChange={(v) => setStatusNaikJuz(v as any)}
-                    className="flex gap-4"
-                  >
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <RadioGroupItem value="true" /> Ya
-                    </label>
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <RadioGroupItem value="false" /> Belum
-                    </label>
-                  </RadioGroup>
-                </div>
-                <div className="space-y-2">
-                  <Label>Rekomendasi (opsional)</Label>
-                  <Textarea value={rekomendasi} onChange={(e) => setRekomendasi(e.target.value)} rows={2} />
                 </div>
               </TabsContent>
 
@@ -681,7 +591,7 @@ export default function UjianPage() {
               <div className="space-y-3">
                 {filteredResults.map((r: any) => {
                   const jenis = r.jenis_ujian as string;
-                  const score = jenis === "bulanan" ? (r.nilai_akhir ?? r.nilai) : (r.nilai_total ?? r.nilai);
+                  const score = r.nilai_total ?? r.nilai;
                   const jenisLabel = jenis === "harian" ? "Harian" : jenis === "pekanan" ? "Pekanan" : "Bulanan";
                   const jenisClass = jenis === "harian" ? "bg-primary/10 text-primary border-primary/20" : jenis === "pekanan" ? "bg-secondary/10 text-secondary border-secondary/20" : "bg-highlight/10 text-highlight border-highlight/20";
 
@@ -708,11 +618,6 @@ export default function UjianPage() {
                                 {" • "}{r.status_lulus ? "Lulus" : "Mengulang"}
                               </span>
                             )}
-                            {jenis === "bulanan" && r.status_naik_juz != null && (
-                              <span className={r.status_naik_juz ? " text-success" : " text-warning"}>
-                                {" • "}{r.status_naik_juz ? "Naik Juz" : "Belum Naik"}
-                              </span>
-                            )}
                           </p>
                           {(r.murojaah_qadhim_tsnai || r.murojaah_qadhim_fardhi) && (
                             <p className="text-xs text-muted-foreground">
@@ -724,11 +629,14 @@ export default function UjianPage() {
                             <p className="text-xs text-muted-foreground italic">"{r.catatan_guru}"</p>
                           )}
                         </div>
+                        {jenis !== "bulanan" && (
                         <div className="text-right shrink-0">
-                          <p className="text-[10px] text-muted-foreground">{jenis === "bulanan" ? "Akhir" : "Total"}</p>
+                          <p className="text-[10px] text-muted-foreground">Total</p>
                           <div className={`text-xl font-bold ${scoreColor(score || 0)}`}>{score || 0}</div>
                         </div>
+                        )}
                       </div>
+                      {jenis !== "bulanan" && (
                       <div className="pt-2 border-t border-border/40 space-y-2">
                         <div className="space-y-1">
                           <p className="text-[10px] font-medium text-muted-foreground">Hafalan — rata-rata: {r.nilai_kelancaran ?? "-"}</p>
@@ -752,13 +660,8 @@ export default function UjianPage() {
                             ))}
                           </div>
                         </div>
-                        {jenis === "bulanan" && r.nilai_adab != null && (
-                          <p className="text-xs text-muted-foreground">
-                            Adab & Akhlak: <span className={`font-bold ${scoreColor(r.nilai_adab)}`}>{r.nilai_adab}</span>
-                            {r.peringkat ? ` · Peringkat ke-${r.peringkat}` : ""}
-                          </p>
-                        )}
                       </div>
+                      )}
                     </div>
                   );
                 })}
