@@ -20,6 +20,7 @@ CREATE INDEX IF NOT EXISTS weekly_top_snapshots_lembaga_week_idx
   ON public.weekly_top_snapshots (lembaga_id, week_start DESC);
 
 ALTER TABLE public.weekly_top_snapshots ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.weekly_top_snapshots TO authenticated;
 
 -- Guru & siswa hanya bisa BACA data lembaganya sendiri. Tidak ada policy tulis:
 -- hanya fungsi di bawah (SECURITY DEFINER) yang bisa mengisi tabel ini.
