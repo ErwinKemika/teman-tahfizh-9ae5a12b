@@ -10,6 +10,7 @@ import {
   BookMarked,
   User,
   Trophy,
+  Award,
   LogOut,
   Menu,
   ClipboardList,
@@ -34,6 +35,7 @@ const mainNavItems: NavItem[] = [
   { label: "Tracker", icon: BookOpen, path: "/tracker" },
   { label: "Mutaba'ah", icon: ClipboardCheck, path: "/mutabaah" },
   { label: "Ujian", icon: Trophy, path: "/ujian" },
+  { label: "Rekap Top", icon: Award, path: "/rekap-top" },
   { label: "Mushaf", icon: BookMarked, path: "/mushaf" },
   { label: "Profil", icon: User, path: "/profile" },
 ];
@@ -78,6 +80,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
             path: "/ujian",
             subItems: [{ label: "Hasil Ujian", icon: ClipboardList, path: "/hasil-ujian" }],
           },
+          { label: "Rekap Top", icon: Award, path: "/rekap-top" },
           { label: "Mushaf", icon: BookMarked, path: "/mushaf" },
           { label: "Profil", icon: User, path: "/profile" },
         ]

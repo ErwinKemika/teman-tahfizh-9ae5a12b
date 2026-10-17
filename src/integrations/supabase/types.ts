@@ -411,6 +411,56 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_top_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          lembaga_id: string
+          peringkat: number
+          skor_akhir: number
+          skor_hafalan: number
+          skor_murojaah: number
+          skor_ujian: number
+          student_id: string
+          student_name: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lembaga_id: string
+          peringkat: number
+          skor_akhir: number
+          skor_hafalan: number
+          skor_murojaah: number
+          skor_ujian: number
+          student_id: string
+          student_name: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lembaga_id?: string
+          peringkat?: number
+          skor_akhir?: number
+          skor_hafalan?: number
+          skor_murojaah?: number
+          skor_ujian?: number
+          student_id?: string
+          student_name?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_top_snapshots_lembaga_id_fkey"
+            columns: ["lembaga_id"]
+            isOneToOne: false
+            referencedRelation: "lembaga"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

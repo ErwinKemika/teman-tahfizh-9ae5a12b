@@ -40,7 +40,7 @@ export function WeeklyRankCard({ currentUserId }: WeeklyRankCardProps) {
 
         {!isLoading && top10.length === 0 && (
           <p className="py-8 text-center text-[13px] text-[#9aa6b8] dark:text-[#5a6a80]">
-            Belum ada aktivitas minggu ini
+            Top pekan ini belum tersedia
           </p>
         )}
 

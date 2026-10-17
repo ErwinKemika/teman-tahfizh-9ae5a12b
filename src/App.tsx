@@ -15,6 +15,7 @@ import MutabaahPage from "@/pages/MutabaahPage";
 import MushafViewer from "@/pages/MushafViewer";
 import UjianPage from "@/pages/UjianPage";
 import HasilUjianPage from "@/pages/HasilUjianPage";
+import RekapTopPage from "@/pages/RekapTopPage";
 import ProfilePage from "@/pages/ProfilePage";
 import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/NotFound";
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/mushaf" element={<ProtectedLayout><MushafViewer /></ProtectedLayout>} />
               <Route path="/ujian" element={<ProtectedLayout><UjianPage /></ProtectedLayout>} />
               <Route path="/hasil-ujian" element={<ProtectedLayout><HasilUjianPage /></ProtectedLayout>} />
+              <Route path="/rekap-top" element={<ProtectedLayout><RekapTopPage /></ProtectedLayout>} />
               <Route path="/profile" element={<ProtectedLayout><ProfilePage /></ProtectedLayout>} />
               <Route path="/admin" element={<RoleRoute allowedRoles={["admin_lembaga"]}><AdminDashboard /></RoleRoute>} />
               <Route path="*" element={<NotFound />} />

@@ -18,6 +18,7 @@ import {
   Menu,
 } from "lucide-react";
 import { WeeklyRankCard } from "@/components/ui/weekly-rank-card";
+import { useRankingWindow } from "@/hooks/useWeeklyRanking";
 
 // ── Donut SVG ────────────────────────────────────────────────────
 function ProgressDonut({ value = 0, size = 110, stroke = 11 }: { value?: number; size?: number; stroke?: number }) {
@@ -328,6 +329,7 @@ function HistoryTable({ rows }: { rows: MutabaahEntry[] }) {
 
 // ── Main Dashboard ───────────────────────────────────────────────
 export default function SiswaDashboard() {
+  const showRanking = useRankingWindow();
   const { profile, user } = useAuth();
   const navigate = useNavigate();
   const firstName = profile?.nickname || profile?.full_name?.split(" ")[0] || "Santri";
@@ -551,9 +553,11 @@ export default function SiswaDashboard() {
         </div>
 
         {/* Weekly Ranking */}
-        <div className="mt-8">
-          <WeeklyRankCard currentUserId={user?.id} />
-        </div>
+        {showRanking && (
+          <div className="mt-8">
+            <WeeklyRankCard currentUserId={user?.id} />
+          </div>
+        )}
 
         {/* History table */}
         {recentMutabaah && recentMutabaah.length > 0 && (

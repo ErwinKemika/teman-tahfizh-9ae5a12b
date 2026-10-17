@@ -18,6 +18,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { WeeklyRankCard } from "@/components/ui/weekly-rank-card";
+import { useRankingWindow } from "@/hooks/useWeeklyRanking";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
@@ -194,6 +195,7 @@ function Topbar() {
 
 // ── Main Dashboard ───────────────────────────────────────────────
 export default function GuruDashboard() {
+  const showRanking = useRankingWindow();
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -554,9 +556,11 @@ export default function GuruDashboard() {
         </div>
 
         {/* Weekly Ranking */}
-        <div className="mt-6">
-          <WeeklyRankCard />
-        </div>
+        {showRanking && (
+          <div className="mt-6">
+            <WeeklyRankCard />
+          </div>
+        )}
 
         <div className="h-8" />
       </div>
