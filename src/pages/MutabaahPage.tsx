@@ -15,7 +15,7 @@ import StudentPicker from "@/components/StudentPicker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ClipboardCheck, ChevronLeft, ChevronRight, FileDown, Pencil, Check, ChevronDown } from "lucide-react";
+import { ClipboardCheck, ChevronLeft, ChevronRight, FileDown, Pencil, Trash2, Check, ChevronDown } from "lucide-react";
 
 type MutabaahStatus = "lulus" | "mengulang" | "libur" | "sakit";
 
@@ -86,6 +86,7 @@ export default function MutabaahPage() {
   const [hifdzJadidHingga, setHifdzJadidHingga] = useState("");
   const [hifdzJadidJuz, setHifdzJadidJuz] = useState<number[]>([]);
   const [statusManual, setStatusManual] = useState<MutabaahStatus>("lulus");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [keterangan, setKeterangan] = useState("");
 
   const [selectedFormStudent, setSelectedFormStudent] = useState<string>("");
@@ -202,30 +203,34 @@ export default function MutabaahPage() {
       queryClient.invalidateQueries({ queryKey: ["streak"] });
       queryClient.invalidateQueries({ queryKey: ["mutabaah-pending"] });
       queryClient.invalidateQueries({ queryKey: ["today-mutabaah-entries"] });
-      if (isGuru) {
-        setZiyadahSurats([]); setZiyadahAyatStart(""); setZiyadahAyatEnd("");
-        setZiyadahHalaman(""); setHifdzJadidDari(""); setHifdzJadidHingga(""); setHifdzJadidJuz([]); setStatusManual("lulus");
-        setKeterangan("");
-      }
+      if (isGuru) resetFields();
     },
     onError: (e) => toast.error("Gagal: " + e.message),
   });
 
-  const startEdit = () => {
-    if (!todayEntry) return;
+  const resetFields = () => {
+    setZiyadahSurats([]); setZiyadahAyatStart(""); setZiyadahAyatEnd("");
+    setZiyadahHalaman(""); setHifdzJadidDari(""); setHifdzJadidHingga(""); setHifdzJadidJuz([]);
+    setStatusManual("lulus"); setKeterangan("");
+  };
+
+  type EntryRow = NonNullable<typeof todayEntry>;
+  const startEdit = (entry: EntryRow | null | undefined = todayEntry) => {
+    if (!entry) return;
+    setEditingId(entry.id);
     setZiyadahSurats(
-      todayEntry.ziyadah_surat
-        ? todayEntry.ziyadah_surat.split(", ").map((s: string) => s.trim()).filter(Boolean)
+      entry.ziyadah_surat
+        ? entry.ziyadah_surat.split(", ").map((s: string) => s.trim()).filter(Boolean)
         : []
     );
-    setZiyadahAyatStart(todayEntry.ziyadah_ayat_start != null ? String(todayEntry.ziyadah_ayat_start) : "");
-    setZiyadahAyatEnd(todayEntry.ziyadah_ayat_end != null ? String(todayEntry.ziyadah_ayat_end) : "");
-    setZiyadahHalaman(formatHalaman(todayEntry.ziyadah_jumlah as number | null));
-    setHifdzJadidDari(formatHalaman(todayEntry.murojaah_hifdzul_jadid_dari as number | null));
-    setHifdzJadidHingga(formatHalaman(todayEntry.murojaah_hifdzul_jadid_hingga as number | null));
-    setHifdzJadidJuz(todayEntry.murojaah_hifdzul_jadid_juz ?? []);
-    setStatusManual(todayEntry.status as MutabaahStatus);
-    setKeterangan(todayEntry.keterangan || "");
+    setZiyadahAyatStart(entry.ziyadah_ayat_start != null ? String(entry.ziyadah_ayat_start) : "");
+    setZiyadahAyatEnd(entry.ziyadah_ayat_end != null ? String(entry.ziyadah_ayat_end) : "");
+    setZiyadahHalaman(formatHalaman(entry.ziyadah_jumlah as number | null));
+    setHifdzJadidDari(formatHalaman(entry.murojaah_hifdzul_jadid_dari as number | null));
+    setHifdzJadidHingga(formatHalaman(entry.murojaah_hifdzul_jadid_hingga as number | null));
+    setHifdzJadidJuz(entry.murojaah_hifdzul_jadid_juz ?? []);
+    setStatusManual(entry.status as MutabaahStatus);
+    setKeterangan(entry.keterangan || "");
     setIsEditing(true);
   };
 
@@ -244,7 +249,7 @@ export default function MutabaahPage() {
           murojaah_hifdzul_jadid_juz: hifdzJadidJuz.length > 0 ? hifdzJadidJuz : null,
           keterangan: keterangan || null,
         })
-        .eq("id", todayEntry!.id);
+        .eq("id", editingId!);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -260,6 +265,28 @@ export default function MutabaahPage() {
     },
     onError: (e) => toast.error("Gagal: " + e.message),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.from("mutabaah_entries").delete().eq("id", id).select("id");
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error("tidak punya izin menghapus entri ini");
+    },
+    onSuccess: () => {
+      toast.success("Mutaba'ah dihapus");
+      setIsEditing(false);
+      setEditingId(null);
+      resetFields();
+      ["mutabaah-today", "mutabaah-month", "mutabaah-report", "today-mutabaah", "today-activity", "streak", "mutabaah-pending", "today-mutabaah-entries"].forEach((k) =>
+        queryClient.invalidateQueries({ queryKey: [k] })
+      );
+    },
+    onError: (e) => toast.error("Gagal: " + e.message),
+  });
+
+  const confirmDelete = (id: string) => {
+    if (window.confirm("Hapus mutaba'ah ini? Data tidak bisa dikembalikan.")) deleteMutation.mutate(id);
+  };
 
   const { data: pendingEntries } = useQuery({
     queryKey: ["mutabaah-pending", profile?.lembaga_id],
@@ -296,11 +323,14 @@ export default function MutabaahPage() {
     onError: (e) => toast.error("Gagal: " + e.message),
   });
 
-  const openInForm = (entry: { student_id: string; date: string }) => {
-    setSelectedFormStudent(entry.student_id);
+  const openInForm = (entry: { id: string; student_id: string; date: string }, edit = false) => {
+    if (isGuru) setSelectedFormStudent(entry.student_id);
     setSelectedDate(entry.date);
     setIsEditing(false);
+    resetFields();
+    if (edit) startEdit(entry as EntryRow);
     setActiveTab("form");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Entri siswa yang belum disetujui ustadzah ditampilkan sebagai "menunggu", apa pun status tersimpannya.
@@ -389,7 +419,7 @@ export default function MutabaahPage() {
                   <Input
                     type="date"
                     value={selectedDate}
-                    onChange={(e) => { setSelectedDate(e.target.value || today); setIsEditing(false); }}
+                    onChange={(e) => { setSelectedDate(e.target.value || today); setIsEditing(false); resetFields(); }}
                     max={today}
                     className="w-36 h-7 text-sm font-semibold px-2 py-0 cursor-pointer"
                   />
@@ -410,7 +440,7 @@ export default function MutabaahPage() {
                   <StudentPicker
                     students={students}
                     value={selectedFormStudent}
-                    onChange={(v) => { setSelectedFormStudent(v); setIsEditing(false); }}
+                    onChange={(v) => { setSelectedFormStudent(v); setIsEditing(false); resetFields(); }}
                     placeholder="Pilih nama siswa..."
                   />
                 </div>
@@ -446,7 +476,7 @@ export default function MutabaahPage() {
                       </span>
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full gap-2" onClick={startEdit}>
+                  <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => startEdit()}>
                     <Pencil className="w-3.5 h-3.5" /> Edit Mutaba'ah
                   </Button>
                 </div>
@@ -581,7 +611,10 @@ export default function MutabaahPage() {
                       <Button variant="outline" className="flex-1" onClick={() => setIsEditing(false)}>
                         Batal
                       </Button>
-                      <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending || !formStudentId} className="flex-1">
+                      <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => editingId && confirmDelete(editingId)} disabled={deleteMutation.isPending || !editingId}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending || !formStudentId || !editingId} className="flex-1">
                         {updateMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
                       </Button>
                     </div>
@@ -652,7 +685,15 @@ export default function MutabaahPage() {
                     <div key={entry.id} className="text-xs bg-muted/30 rounded-lg p-2.5 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{entry.date}</span>
-                        <Badge className={`text-[10px] px-1.5 py-0 ${statusColor[displayStatus(entry)]}`}>{statusLabel(displayStatus(entry))}</Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Badge className={`text-[10px] px-1.5 py-0 ${statusColor[displayStatus(entry)]}`}>{statusLabel(displayStatus(entry))}</Badge>
+                          <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1" onClick={() => openInForm(entry, true)}>
+                            <Pencil className="w-3 h-3" /> Ubah
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-destructive hover:text-destructive" onClick={() => confirmDelete(entry.id)} disabled={deleteMutation.isPending}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
                       {entry.ziyadah_surat && (
                         <p className="text-muted-foreground">
@@ -880,9 +921,17 @@ export default function MutabaahPage() {
                                 <span className="text-xs font-bold text-muted-foreground w-5">{idx + 1}.</span>
                                 <span className="text-sm font-semibold">{entry.date}</span>
                               </div>
-                              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusColor[displayStatus(entry)]}`}>
-                                {statusLabel(displayStatus(entry))}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusColor[displayStatus(entry)]}`}>
+                                  {statusLabel(displayStatus(entry))}
+                                </span>
+                                <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 print:hidden" onClick={() => openInForm(entry, true)}>
+                                  <Pencil className="w-3 h-3" /> Ubah
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 print:hidden text-destructive hover:text-destructive" onClick={() => confirmDelete(entry.id)} disabled={deleteMutation.isPending}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
                             </div>
                             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-7">
                               <div>
@@ -925,6 +974,7 @@ export default function MutabaahPage() {
                               <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Hifdzul Jadid</th>
                               <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Keterangan</th>
                               <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Status</th>
+                              <th className="px-3 py-2 print:hidden" />
                             </tr>
                           </thead>
                           <tbody>
@@ -956,6 +1006,14 @@ export default function MutabaahPage() {
                                     {statusLabel(displayStatus(entry))}
                                   </span>
                                 </td>
+                                <td className="px-2 py-1 text-right print:hidden">
+                                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => openInForm(entry, true)}>
+                                    <Pencil className="w-3 h-3" /> Ubah
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="h-7 text-xs px-1.5 text-destructive hover:text-destructive" onClick={() => confirmDelete(entry.id)} disabled={deleteMutation.isPending}>
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -965,6 +1023,7 @@ export default function MutabaahPage() {
                                 Total: {reportEntries.length} hari &nbsp;|&nbsp; Lulus: {totalLulus} &nbsp;|&nbsp; Mengulang: {totalMengulang} &nbsp;|&nbsp; Libur/Sakit: {totalLibur + totalSakit}{totalMenunggu > 0 && <> &nbsp;|&nbsp; Menunggu: {totalMenunggu}</>}
                               </td>
                               <td className="px-3 py-2" />
+                              <td className="print:hidden" />
                             </tr>
                           </tfoot>
                         </table>
