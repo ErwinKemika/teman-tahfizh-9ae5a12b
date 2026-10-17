@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -88,7 +89,11 @@ export default function MutabaahPage() {
   const isGuru = role === "guru";
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"form" | "history" | "report">(isGuru ? "report" : "form");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"form" | "history" | "report" | "approval">(
+    isGuru ? (searchParams.get("tab") === "approval" ? "approval" : "report") : "form"
+  );
+  const [pendingStatus, setPendingStatus] = useState<Record<string, MutabaahStatus>>({});
   const [isEditing, setIsEditing] = useState(false);
 
   const today = new Date().toLocaleDateString("en-CA");
@@ -103,6 +108,7 @@ export default function MutabaahPage() {
   const [hifdzJadidDari, setHifdzJadidDari] = useState("");
   const [hifdzJadidHingga, setHifdzJadidHingga] = useState("");
   const [hifdzJadidJuz, setHifdzJadidJuz] = useState<number[]>([]);
+  const [statusManual, setStatusManual] = useState<MutabaahStatus>("lulus");
   const [keterangan, setKeterangan] = useState("");
 
   const [selectedFormStudent, setSelectedFormStudent] = useState<string>("");
@@ -126,14 +132,6 @@ export default function MutabaahPage() {
   });
 
   const isSingleSurat = ziyadahSurats.length === 1;
-  const requiredFields = [
-    ziyadahSurats.length > 0 ? "x" : "",
-    ...(isSingleSurat ? [ziyadahAyatStart, ziyadahAyatEnd] : []),
-    ziyadahHalaman,
-    hifdzJadidDari,
-    hifdzJadidHingga,
-  ];
-  const autoStatus: MutabaahStatus = requiredFields.every((f) => f.trim() !== "") ? "lulus" : "mengulang";
 
   const toggleJuz = (juz: number) => {
     setHifdzJadidJuz((prev) => (prev.includes(juz) ? prev.filter((j) => j !== juz) : [...prev, juz]));
@@ -207,7 +205,7 @@ export default function MutabaahPage() {
       const { error } = await supabase.from("mutabaah_entries").insert({
         student_id: formStudentId!,
         date: selectedDate,
-        status: autoStatus,
+        status: isGuru ? statusManual : "mengulang",
         ziyadah_surat: ziyadahSurats.length > 0 ? ziyadahSurats.join(", ") : null,
         ziyadah_ayat_start: isSingleSurat && ziyadahAyatStart ? parseInt(ziyadahAyatStart) : null,
         ziyadah_ayat_end: isSingleSurat && ziyadahAyatEnd ? parseInt(ziyadahAyatEnd) : null,
@@ -226,9 +224,11 @@ export default function MutabaahPage() {
       queryClient.invalidateQueries({ queryKey: ["today-mutabaah"] });
       queryClient.invalidateQueries({ queryKey: ["today-activity"] });
       queryClient.invalidateQueries({ queryKey: ["streak"] });
+      queryClient.invalidateQueries({ queryKey: ["mutabaah-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["today-mutabaah-entries"] });
       if (isGuru) {
         setZiyadahSurats([]); setZiyadahAyatStart(""); setZiyadahAyatEnd("");
-        setZiyadahHalaman(""); setHifdzJadidDari(""); setHifdzJadidHingga(""); setHifdzJadidJuz([]);
+        setZiyadahHalaman(""); setHifdzJadidDari(""); setHifdzJadidHingga(""); setHifdzJadidJuz([]); setStatusManual("lulus");
         setKeterangan("");
       }
     },
@@ -248,6 +248,7 @@ export default function MutabaahPage() {
     setHifdzJadidDari(formatHalaman(todayEntry.murojaah_hifdzul_jadid_dari as number | null));
     setHifdzJadidHingga(formatHalaman(todayEntry.murojaah_hifdzul_jadid_hingga as number | null));
     setHifdzJadidJuz(todayEntry.murojaah_hifdzul_jadid_juz ?? []);
+    setStatusManual(todayEntry.status as MutabaahStatus);
     setKeterangan(todayEntry.keterangan || "");
     setIsEditing(true);
   };
@@ -257,7 +258,7 @@ export default function MutabaahPage() {
       const { error } = await supabase
         .from("mutabaah_entries")
         .update({
-          status: autoStatus,
+          ...(isGuru ? { status: statusManual } : {}),
           ziyadah_surat: ziyadahSurats.length > 0 ? ziyadahSurats.join(", ") : null,
           ziyadah_ayat_start: isSingleSurat && ziyadahAyatStart ? parseInt(ziyadahAyatStart) : null,
           ziyadah_ayat_end: isSingleSurat && ziyadahAyatEnd ? parseInt(ziyadahAyatEnd) : null,
@@ -277,12 +278,61 @@ export default function MutabaahPage() {
       queryClient.invalidateQueries({ queryKey: ["today-mutabaah"] });
       queryClient.invalidateQueries({ queryKey: ["today-activity"] });
       queryClient.invalidateQueries({ queryKey: ["streak"] });
+      queryClient.invalidateQueries({ queryKey: ["mutabaah-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["today-mutabaah-entries"] });
       setIsEditing(false);
     },
     onError: (e) => toast.error("Gagal: " + e.message),
   });
 
+  const { data: pendingEntries } = useQuery({
+    queryKey: ["mutabaah-pending", profile?.lembaga_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mutabaah_entries")
+        .select("*")
+        .eq("is_approved", false)
+        .order("date", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isGuru,
+  });
+
+  const studentName = (id: string) => students?.find((s) => s.user_id === id)?.full_name ?? "Siswa";
+
+  const approveMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: MutabaahStatus }) => {
+      const { error } = await supabase
+        .from("mutabaah_entries")
+        .update({ status, is_approved: true })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Mutaba'ah disetujui");
+      queryClient.invalidateQueries({ queryKey: ["mutabaah-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["mutabaah-today"] });
+      queryClient.invalidateQueries({ queryKey: ["mutabaah-report"] });
+      queryClient.invalidateQueries({ queryKey: ["today-mutabaah-entries"] });
+    },
+    onError: (e) => toast.error("Gagal: " + e.message),
+  });
+
+  const openInForm = (entry: { student_id: string; date: string }) => {
+    setSelectedFormStudent(entry.student_id);
+    setSelectedDate(entry.date);
+    setIsEditing(false);
+    setActiveTab("form");
+  };
+
+  // Entri siswa yang belum disetujui ustadzah ditampilkan sebagai "menunggu", apa pun status tersimpannya.
+  const displayStatus = (e: { status: string; is_approved?: boolean | null }) =>
+    e.is_approved === false ? "menunggu" : e.status;
+
   const statusColor: Record<string, string> = {
+    menunggu: "bg-primary/10 text-primary",
     lulus: "bg-success/10 text-success",
     mengulang: "bg-warning/10 text-warning",
     libur: "bg-muted text-muted-foreground",
@@ -290,17 +340,20 @@ export default function MutabaahPage() {
   };
 
   const statusLabel = (s: string) => {
-    if (s === "mengulang") return "Belum Lulus";
+    if (s === "mengulang") return "Mengulang";
     if (s === "lulus") return "Lulus";
+    if (s === "menunggu") return "Menunggu";
     if (s === "libur") return "Libur";
     if (s === "sakit") return "Sakit";
     return s;
   };
 
-  const totalLulus = reportEntries?.filter((e) => e.status === "lulus").length ?? 0;
-  const totalMengulang = reportEntries?.filter((e) => e.status === "mengulang").length ?? 0;
-  const totalLibur = reportEntries?.filter((e) => e.status === "libur").length ?? 0;
-  const totalSakit = reportEntries?.filter((e) => e.status === "sakit").length ?? 0;
+  const countStatus = (st: string) => reportEntries?.filter((e) => displayStatus(e) === st).length ?? 0;
+  const totalLulus = countStatus("lulus");
+  const totalMengulang = countStatus("mengulang");
+  const totalLibur = countStatus("libur");
+  const totalSakit = countStatus("sakit");
+  const totalMenunggu = countStatus("menunggu");
 
   const handleExportPDF = () => { window.print(); };
 
@@ -338,6 +391,16 @@ export default function MutabaahPage() {
           <Button variant={activeTab === "report" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("report")}>
             Laporan
           </Button>
+          {isGuru && (
+            <Button variant={activeTab === "approval" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("approval")} className="gap-1.5">
+              Persetujuan
+              {!!pendingEntries?.length && (
+                <span className="rounded-full bg-warning text-white text-[10px] font-bold px-1.5 min-w-[1.25rem] text-center">
+                  {pendingEntries.length}
+                </span>
+              )}
+            </Button>
+          )}
         </div>
 
         {/* === TAB: FORM === */}
@@ -356,7 +419,11 @@ export default function MutabaahPage() {
                   />
                 </div>
                 {formStudentId && todayEntry && (
-                  <Badge className="bg-success/10 text-success shrink-0">Sudah diisi ✓</Badge>
+                  todayEntry.is_approved === false ? (
+                    <Badge className="bg-primary/10 text-primary shrink-0">Menunggu persetujuan</Badge>
+                  ) : (
+                    <Badge className="bg-success/10 text-success shrink-0">Sudah diisi ✓</Badge>
+                  )
                 )}
               </CardTitle>
             </CardHeader>
@@ -396,6 +463,12 @@ export default function MutabaahPage() {
                     {todayEntry.keterangan && (
                       <p className="text-muted-foreground italic">"{todayEntry.keterangan}"</p>
                     )}
+                    <p className="text-muted-foreground">
+                      Status:{" "}
+                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${statusColor[displayStatus(todayEntry)]}`}>
+                        {todayEntry.is_approved === false ? "Menunggu persetujuan ustadzah" : statusLabel(todayEntry.status)}
+                      </span>
+                    </p>
                   </div>
                   <Button variant="outline" size="sm" className="w-full gap-2" onClick={startEdit}>
                     <Pencil className="w-3.5 h-3.5" /> Edit Mutaba'ah
@@ -509,12 +582,23 @@ export default function MutabaahPage() {
                     <Textarea placeholder="Catatan tambahan..." value={keterangan} onChange={(e) => setKeterangan(e.target.value)} rows={2} />
                   </div>
 
-                  <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 bg-muted/20">
-                    <span className="text-sm text-muted-foreground">Status otomatis</span>
-                    <Badge className={autoStatus === "lulus" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}>
-                      {autoStatus === "lulus" ? "Lulus ✓" : "Belum Lulus"}
-                    </Badge>
-                  </div>
+                  {isGuru ? (
+                    <div className="space-y-1.5">
+                      <Label className="font-semibold">Status</Label>
+                      <Select value={statusManual} onValueChange={(v) => setStatusManual(v as MutabaahStatus)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {(["lulus", "mengulang", ...(statusManual === "libur" || statusManual === "sakit" ? [statusManual] : [])] as MutabaahStatus[]).map((o) => (
+                            <SelectItem key={o} value={o}>{statusLabel(o)}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground rounded-lg border border-border px-3 py-2 bg-muted/20">
+                      Status (Lulus / Mengulang) ditentukan oleh ustadzah.
+                    </p>
+                  )}
 
                   {isEditing ? (
                     <div className="flex gap-2">
@@ -563,7 +647,7 @@ export default function MutabaahPage() {
                   const firstDay = new Date(year, month, 1).getDay();
                   const daysInMonth = new Date(year, month + 1, 0).getDate();
                   const entryMap: Record<string, string> = {};
-                  monthEntries?.forEach((e) => { entryMap[e.date] = e.status; });
+                  monthEntries?.forEach((e) => { entryMap[e.date] = displayStatus(e); });
                   const cells = [];
                   for (let i = 0; i < firstDay; i++) cells.push(<div key={`e-${i}`} />);
                   for (let d = 1; d <= daysInMonth; d++) {
@@ -579,8 +663,9 @@ export default function MutabaahPage() {
                 })()}
               </div>
               <div className="flex flex-wrap gap-3 text-[10px]">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary" /> Menunggu</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-success" /> Lulus</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-warning" /> Belum Lulus</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-warning" /> Mengulang</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-destructive" /> Sakit</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-muted-foreground" /> Libur</span>
               </div>
@@ -591,7 +676,7 @@ export default function MutabaahPage() {
                     <div key={entry.id} className="text-xs bg-muted/30 rounded-lg p-2.5 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{entry.date}</span>
-                        <Badge className={`text-[10px] px-1.5 py-0 ${statusColor[entry.status]}`}>{statusLabel(entry.status)}</Badge>
+                        <Badge className={`text-[10px] px-1.5 py-0 ${statusColor[displayStatus(entry)]}`}>{statusLabel(displayStatus(entry))}</Badge>
                       </div>
                       {entry.ziyadah_surat && (
                         <p className="text-muted-foreground">
@@ -611,6 +696,75 @@ export default function MutabaahPage() {
                     </div>
                   ))}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* === TAB: PERSETUJUAN (guru) === */}
+        {activeTab === "approval" && isGuru && (
+          <Card className="shadow-card print:hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Menunggu Persetujuan</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Mutaba'ah yang diisi santri sendiri. Tentukan status lalu setujui.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {!pendingEntries || pendingEntries.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Tidak ada mutaba'ah yang menunggu persetujuan
+                </p>
+              ) : (
+                pendingEntries.map((entry) => {
+                  const chosen = pendingStatus[entry.id] ?? "lulus";
+                  return (
+                    <div key={entry.id} className="rounded-xl border border-border/50 p-3 space-y-2 text-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-foreground truncate">{studentName(entry.student_id)}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">{entry.date}</span>
+                      </div>
+                      {entry.ziyadah_surat && (
+                        <p className="text-muted-foreground">
+                          Ziyadah: <span className="text-foreground">
+                            {entry.ziyadah_surat}
+                            {entry.ziyadah_ayat_start != null ? ` ayat ${entry.ziyadah_ayat_start}–${entry.ziyadah_ayat_end}` : ""}
+                            {entry.ziyadah_jumlah ? ` (${formatHalaman(entry.ziyadah_jumlah)} hal.)` : ""}
+                          </span>
+                        </p>
+                      )}
+                      {formatHifdzJadid(entry) && (
+                        <p className="text-muted-foreground">
+                          Hifdzul Jadid: <span className="text-foreground">{formatHifdzJadid(entry)}</span>
+                        </p>
+                      )}
+                      {entry.keterangan && <p className="text-muted-foreground italic">"{entry.keterangan}"</p>}
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <Select
+                          value={chosen}
+                          onValueChange={(v) => setPendingStatus((prev) => ({ ...prev, [entry.id]: v as MutabaahStatus }))}
+                        >
+                          <SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="lulus">Lulus</SelectItem>
+                            <SelectItem value="mengulang">Mengulang</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          size="sm"
+                          className="h-8 gap-1"
+                          disabled={approveMutation.isPending}
+                          onClick={() => approveMutation.mutate({ id: entry.id, status: chosen })}
+                        >
+                          <Check className="w-3.5 h-3.5" /> Setujui
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8 gap-1 ml-auto" onClick={() => openInForm(entry)}>
+                          <Pencil className="w-3.5 h-3.5" /> Ubah isian
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </CardContent>
           </Card>
@@ -714,7 +868,7 @@ export default function MutabaahPage() {
                   {[
                     { label: "Total Hari", value: reportEntries?.length ?? 0, cls: "text-foreground" },
                     { label: "Lulus", value: totalLulus, cls: "text-success" },
-                    { label: "Belum Lulus", value: totalMengulang, cls: "text-warning" },
+                    { label: "Mengulang", value: totalMengulang, cls: "text-warning" },
                     { label: "Libur / Sakit", value: totalLibur + totalSakit, cls: "text-muted-foreground" },
                   ].map((s) => (
                     <Card key={s.label} className="shadow-card overflow-hidden print:shadow-none print:border">
@@ -748,8 +902,8 @@ export default function MutabaahPage() {
                                 <span className="text-xs font-bold text-muted-foreground w-5">{idx + 1}.</span>
                                 <span className="text-sm font-semibold">{entry.date}</span>
                               </div>
-                              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusColor[entry.status]}`}>
-                                {statusLabel(entry.status)}
+                              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusColor[displayStatus(entry)]}`}>
+                                {statusLabel(displayStatus(entry))}
                               </span>
                             </div>
                             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-7">
@@ -778,7 +932,7 @@ export default function MutabaahPage() {
                         ))}
                         {/* Mobile summary footer */}
                         <div className="text-center text-xs text-muted-foreground pt-1 pb-2 border-t border-border">
-                          Total: {reportEntries.length} hari &nbsp;·&nbsp; Lulus: {totalLulus} &nbsp;·&nbsp; Belum: {totalMengulang} &nbsp;·&nbsp; Libur/Sakit: {totalLibur + totalSakit}
+                          Total: {reportEntries.length} hari &nbsp;·&nbsp; Lulus: {totalLulus} &nbsp;·&nbsp; Mengulang: {totalMengulang} &nbsp;·&nbsp; Libur/Sakit: {totalLibur + totalSakit}{totalMenunggu > 0 && <> &nbsp;·&nbsp; Menunggu: {totalMenunggu}</>}
                         </div>
                       </div>
                     ) : (
@@ -815,12 +969,13 @@ export default function MutabaahPage() {
                                 <td className="px-3 py-2 max-w-[120px] truncate">{entry.keterangan || <span className="text-muted-foreground">—</span>}</td>
                                 <td className="px-3 py-2">
                                   <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium print:border ${
-                                    entry.status === "lulus" ? "bg-success/10 text-success print:border-green-400"
+                                    displayStatus(entry) === "menunggu" ? "bg-primary/10 text-primary print:border-blue-400"
+                                    : entry.status === "lulus" ? "bg-success/10 text-success print:border-green-400"
                                     : entry.status === "mengulang" ? "bg-warning/10 text-warning print:border-yellow-400"
                                     : entry.status === "sakit" ? "bg-destructive/10 text-destructive print:border-red-400"
                                     : "bg-muted text-muted-foreground"
                                   }`}>
-                                    {statusLabel(entry.status)}
+                                    {statusLabel(displayStatus(entry))}
                                   </span>
                                 </td>
                               </tr>
@@ -829,7 +984,7 @@ export default function MutabaahPage() {
                           <tfoot>
                             <tr className="bg-muted/40 print:bg-gray-100 font-semibold">
                               <td colSpan={5} className="px-3 py-2 text-right text-muted-foreground">
-                                Total: {reportEntries.length} hari &nbsp;|&nbsp; Lulus: {totalLulus} &nbsp;|&nbsp; Belum Lulus: {totalMengulang} &nbsp;|&nbsp; Libur/Sakit: {totalLibur + totalSakit}
+                                Total: {reportEntries.length} hari &nbsp;|&nbsp; Lulus: {totalLulus} &nbsp;|&nbsp; Mengulang: {totalMengulang} &nbsp;|&nbsp; Libur/Sakit: {totalLibur + totalSakit}{totalMenunggu > 0 && <> &nbsp;|&nbsp; Menunggu: {totalMenunggu}</>}
                               </td>
                               <td className="px-3 py-2" />
                             </tr>

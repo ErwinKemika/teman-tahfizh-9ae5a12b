@@ -103,8 +103,11 @@ export type Database = {
       mutabaah_entries: {
         Row: {
           created_at: string
+          approved_at: string | null
+          approved_by: string | null
           date: string
           id: string
+          is_approved: boolean
           keterangan: string | null
           murojaah_hifdzul_jadid_dari: number | null
           murojaah_hifdzul_jadid_hingga: number | null
@@ -120,8 +123,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          approved_at?: string | null
+          approved_by?: string | null
           date?: string
           id?: string
+          is_approved?: boolean
           keterangan?: string | null
           murojaah_hifdzul_jadid_dari?: number | null
           murojaah_hifdzul_jadid_hingga?: number | null
@@ -137,8 +143,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          approved_at?: string | null
+          approved_by?: string | null
           date?: string
           id?: string
+          is_approved?: boolean
           keterangan?: string | null
           murojaah_hifdzul_jadid_dari?: number | null
           murojaah_hifdzul_jadid_hingga?: number | null

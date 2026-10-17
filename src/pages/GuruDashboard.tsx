@@ -140,6 +140,7 @@ function QuickAction({ Icon, label, desc, primary, onClick }: QuickActionProps) 
 
 // ── Status Pill ──────────────────────────────────────────────────
 const statusConfig: Record<string, { cls: string; label: string }> = {
+  menunggu:  { cls: "bg-[#e7f0fb] dark:bg-[#1a2f4a] text-[#1b426f] dark:text-[#5b9fd4]", label: "Menunggu" },
   lulus:     { cls: "bg-[#e6f4ea] dark:bg-[#1a3d28] text-[#2f8a4d] dark:text-[#4dbc72]", label: "Lulus" },
   mengulang: { cls: "bg-[#fdece7] dark:bg-[#3d1f18] text-[#cf5a37] dark:text-[#e07755]", label: "Mengulang" },
   libur:     { cls: "bg-[#fff4e0] dark:bg-[#3d3010] text-[#b8801f] dark:text-[#d4a943]", label: "Libur" },
@@ -228,6 +229,17 @@ export default function GuruDashboard() {
         .select("student_id")
         .eq("date", today);
       return data?.length || 0;
+    },
+  });
+
+  const { data: pendingCount } = useQuery({
+    queryKey: ["mutabaah-pending", "count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("mutabaah_entries")
+        .select("id", { count: "exact", head: true })
+        .eq("is_approved", false);
+      return count ?? 0;
     },
   });
 
@@ -490,9 +502,19 @@ export default function GuruDashboard() {
                 Mutaba'ah Hari Ini
               </h3>
             </div>
-            <span className="text-[12px] font-semibold text-[#7a8699] dark:text-[#8a9ab0] shrink-0">
-              {todayMutabaahEntries?.length || 0} siswa
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              {!!pendingCount && (
+                <button
+                  onClick={() => navigate("/mutabaah?tab=approval")}
+                  className="rounded-full bg-[#fff4e0] dark:bg-[#3d3010] text-[#b8801f] dark:text-[#d4a943] text-[11.5px] font-semibold px-2.5 py-1 hover:underline underline-offset-2"
+                >
+                  {pendingCount} menunggu persetujuan
+                </button>
+              )}
+              <span className="text-[12px] font-semibold text-[#7a8699] dark:text-[#8a9ab0]">
+                {todayMutabaahEntries?.length || 0} siswa
+              </span>
+            </div>
           </div>
 
           {!todayMutabaahEntries || todayMutabaahEntries.length === 0 ? (
@@ -544,7 +566,7 @@ export default function GuruDashboard() {
                           {entry.keterangan || "—"}
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-right">
-                          <StatusPill status={entry.status} />
+                          <StatusPill status={entry.is_approved === false ? "menunggu" : entry.status} />
                         </td>
                       </tr>
                     );
