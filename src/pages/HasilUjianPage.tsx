@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import StudentPicker from "@/components/StudentPicker";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -172,15 +173,13 @@ export default function HasilUjianPage() {
             {isGuru && (
               <div className="space-y-1 col-span-2">
                 <Label className="text-xs">Nama Siswa</Label>
-                <Select value={filterSiswa} onValueChange={setFilterSiswa}>
-                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="semua">Semua Siswa</SelectItem>
-                    {students?.map((s) => (
-                      <SelectItem key={s.user_id} value={s.user_id}>{s.full_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <StudentPicker
+                  students={students}
+                  value={filterSiswa}
+                  onChange={setFilterSiswa}
+                  allOption={{ value: "semua", label: "Semua Siswa" }}
+                  className="h-9"
+                />
               </div>
             )}
           </div>

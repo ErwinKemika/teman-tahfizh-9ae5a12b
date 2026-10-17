@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import StudentPicker from "@/components/StudentPicker";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -377,14 +378,7 @@ export default function UjianPage() {
 
               <div className="space-y-2 mt-4">
                 <Label>Siswa</Label>
-                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                  <SelectTrigger><SelectValue placeholder="Pilih siswa..." /></SelectTrigger>
-                  <SelectContent>
-                    {students?.map((s) => (
-                      <SelectItem key={s.user_id} value={s.user_id}>{s.full_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <StudentPicker students={students} value={selectedStudent} onChange={setSelectedStudent} />
               </div>
 
               {/* ── HARIAN: 5 soal ── */}

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import StudentPicker from "@/components/StudentPicker";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
@@ -307,19 +308,13 @@ export default function TahfizhTracker() {
   };
 
   const studentSelector = (
-    <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-      <SelectTrigger className="w-full h-9 text-sm">
-        <SelectValue placeholder="Pilih siswa..." />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">Semua Siswa</SelectItem>
-        {students?.map((s) => (
-          <SelectItem key={s.user_id} value={s.user_id}>
-            {s.full_name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <StudentPicker
+      students={students}
+      value={selectedStudent}
+      onChange={setSelectedStudent}
+      allOption={{ value: "all", label: "Semua Siswa" }}
+      className="h-9"
+    />
   );
 
   return (
@@ -411,19 +406,13 @@ export default function TahfizhTracker() {
             <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-base">📊 Ringkasan Progress</CardTitle>
               {isGuru && (
-                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                  <SelectTrigger className="w-48 h-8 text-xs">
-                    <SelectValue placeholder="Pilih siswa..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Siswa</SelectItem>
-                    {students?.map((s) => (
-                      <SelectItem key={s.user_id} value={s.user_id}>
-                        {s.full_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <StudentPicker
+                  students={students}
+                  value={selectedStudent}
+                  onChange={setSelectedStudent}
+                  allOption={{ value: "all", label: "Semua Siswa" }}
+                  className="w-48 h-8 text-xs"
+                />
               )}
             </div>
           </CardHeader>

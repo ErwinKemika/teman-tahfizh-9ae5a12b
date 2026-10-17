@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import StudentPicker from "@/components/StudentPicker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -338,16 +339,12 @@ export default function MutabaahPage() {
               {isGuru && (
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">Pilih Siswa</Label>
-                  <Select value={selectedFormStudent} onValueChange={(v) => { setSelectedFormStudent(v); setIsEditing(false); }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih nama siswa..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {students?.map((s) => (
-                        <SelectItem key={s.user_id} value={s.user_id}>{s.full_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <StudentPicker
+                    students={students}
+                    value={selectedFormStudent}
+                    onChange={(v) => { setSelectedFormStudent(v); setIsEditing(false); }}
+                    placeholder="Pilih nama siswa..."
+                  />
                 </div>
               )}
               {isGuru && !selectedFormStudent ? (
@@ -592,16 +589,11 @@ export default function MutabaahPage() {
                     {isGuru && (
                       <div className="space-y-1.5">
                         <Label className="text-xs">Siswa</Label>
-                        <Select value={selectedReportStudent} onValueChange={setSelectedReportStudent}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Pilih siswa..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {students?.map((s) => (
-                              <SelectItem key={s.user_id} value={s.user_id}>{s.full_name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <StudentPicker
+                          students={students}
+                          value={selectedReportStudent}
+                          onChange={setSelectedReportStudent}
+                        />
                       </div>
                     )}
                     <div className="flex gap-3">
@@ -633,16 +625,12 @@ export default function MutabaahPage() {
                     {isGuru && (
                       <div className="space-y-1.5 w-full sm:w-auto">
                         <Label className="text-xs">Siswa</Label>
-                        <Select value={selectedReportStudent} onValueChange={setSelectedReportStudent}>
-                          <SelectTrigger className="w-full sm:w-52">
-                            <SelectValue placeholder="Pilih siswa..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {students?.map((s) => (
-                              <SelectItem key={s.user_id} value={s.user_id}>{s.full_name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <StudentPicker
+                          students={students}
+                          value={selectedReportStudent}
+                          onChange={setSelectedReportStudent}
+                          className="sm:w-52"
+                        />
                       </div>
                     )}
                     <div className="space-y-1.5">
