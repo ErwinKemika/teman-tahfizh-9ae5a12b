@@ -35,6 +35,23 @@ function formatHalaman(n: number | null | undefined): string {
   return String(n);
 }
 
+type HifdzJadidEntry = {
+  murojaah_hifdzul_jadid_dari?: number | null;
+  murojaah_hifdzul_jadid_hingga?: number | null;
+  murojaah_hifdzul_jadid_juz?: number[] | null;
+};
+
+function formatHifdzJadid(e: HifdzJadidEntry): string {
+  const juz = e.murojaah_hifdzul_jadid_juz?.length
+    ? `Juz ${[...e.murojaah_hifdzul_jadid_juz].sort((a, b) => a - b).join(", ")}`
+    : "";
+  const hal =
+    e.murojaah_hifdzul_jadid_dari || e.murojaah_hifdzul_jadid_hingga
+      ? `hal. ${formatHalaman(e.murojaah_hifdzul_jadid_dari)}–${formatHalaman(e.murojaah_hifdzul_jadid_hingga)}`
+      : "";
+  return [juz, hal].filter(Boolean).join(" · ");
+}
+
 const QURAN_SURAHS = [
   "Al-Fatihah", "Al-Baqarah", "Ali 'Imran", "An-Nisa'", "Al-Ma'idah",
   "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Taubah", "Yunus",
@@ -85,6 +102,7 @@ export default function MutabaahPage() {
   const [ziyadahHalaman, setZiyadahHalaman] = useState("");
   const [hifdzJadidDari, setHifdzJadidDari] = useState("");
   const [hifdzJadidHingga, setHifdzJadidHingga] = useState("");
+  const [hifdzJadidJuz, setHifdzJadidJuz] = useState<number[]>([]);
   const [keterangan, setKeterangan] = useState("");
 
   const [selectedFormStudent, setSelectedFormStudent] = useState<string>("");
@@ -116,6 +134,10 @@ export default function MutabaahPage() {
     hifdzJadidHingga,
   ];
   const autoStatus: MutabaahStatus = requiredFields.every((f) => f.trim() !== "") ? "lulus" : "mengulang";
+
+  const toggleJuz = (juz: number) => {
+    setHifdzJadidJuz((prev) => (prev.includes(juz) ? prev.filter((j) => j !== juz) : [...prev, juz]));
+  };
 
   const toggleSurat = (surat: string) => {
     setZiyadahSurats((prev) =>
@@ -192,6 +214,7 @@ export default function MutabaahPage() {
         ziyadah_jumlah: parseHalaman(ziyadahHalaman),
         murojaah_hifdzul_jadid_dari: parseHalaman(hifdzJadidDari),
         murojaah_hifdzul_jadid_hingga: parseHalaman(hifdzJadidHingga),
+        murojaah_hifdzul_jadid_juz: hifdzJadidJuz.length > 0 ? hifdzJadidJuz : null,
         keterangan: keterangan || null,
       });
       if (error) throw error;
@@ -205,7 +228,7 @@ export default function MutabaahPage() {
       queryClient.invalidateQueries({ queryKey: ["streak"] });
       if (isGuru) {
         setZiyadahSurats([]); setZiyadahAyatStart(""); setZiyadahAyatEnd("");
-        setZiyadahHalaman(""); setHifdzJadidDari(""); setHifdzJadidHingga("");
+        setZiyadahHalaman(""); setHifdzJadidDari(""); setHifdzJadidHingga(""); setHifdzJadidJuz([]);
         setKeterangan("");
       }
     },
@@ -224,6 +247,7 @@ export default function MutabaahPage() {
     setZiyadahHalaman(formatHalaman(todayEntry.ziyadah_jumlah as number | null));
     setHifdzJadidDari(formatHalaman(todayEntry.murojaah_hifdzul_jadid_dari as number | null));
     setHifdzJadidHingga(formatHalaman(todayEntry.murojaah_hifdzul_jadid_hingga as number | null));
+    setHifdzJadidJuz(todayEntry.murojaah_hifdzul_jadid_juz ?? []);
     setKeterangan(todayEntry.keterangan || "");
     setIsEditing(true);
   };
@@ -240,6 +264,7 @@ export default function MutabaahPage() {
           ziyadah_jumlah: parseHalaman(ziyadahHalaman),
           murojaah_hifdzul_jadid_dari: parseHalaman(hifdzJadidDari),
           murojaah_hifdzul_jadid_hingga: parseHalaman(hifdzJadidHingga),
+          murojaah_hifdzul_jadid_juz: hifdzJadidJuz.length > 0 ? hifdzJadidJuz : null,
           keterangan: keterangan || null,
         })
         .eq("id", todayEntry!.id);
@@ -363,9 +388,9 @@ export default function MutabaahPage() {
                         </span>
                       </p>
                     )}
-                    {(todayEntry.murojaah_hifdzul_jadid_dari || todayEntry.murojaah_hifdzul_jadid_hingga) && (
+                    {formatHifdzJadid(todayEntry) && (
                       <p className="text-muted-foreground">
-                        Hifdzul Jadid: hal. <span className="text-foreground">{formatHalaman(todayEntry.murojaah_hifdzul_jadid_dari as number)}–{formatHalaman(todayEntry.murojaah_hifdzul_jadid_hingga as number)}</span>
+                        Hifdzul Jadid: <span className="text-foreground">{formatHifdzJadid(todayEntry)}</span>
                       </p>
                     )}
                     {todayEntry.keterangan && (
@@ -458,7 +483,21 @@ export default function MutabaahPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="font-semibold">Muroja'ah Hifdzul Jadid (Halaman)</Label>
+                    <Label className="font-semibold">Muroja'ah Hifdzul Jadid</Label>
+                    <p className="text-xs text-muted-foreground">Juz (opsional, boleh lebih dari satu)</p>
+                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 rounded-md border border-border">
+                      {Array.from({ length: 30 }, (_, i) => i + 1).map((j) => (
+                        <Badge
+                          key={j}
+                          variant={hifdzJadidJuz.includes(j) ? "default" : "outline"}
+                          className="cursor-pointer"
+                          onClick={() => toggleJuz(j)}
+                        >
+                          Juz {j}
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground pt-1">Halaman</p>
                     <div className="grid grid-cols-2 gap-2">
                       <Input placeholder="Dari hal. (cth: 5 atau 5½)" value={hifdzJadidDari} onChange={(e) => setHifdzJadidDari(e.target.value)} />
                       <Input placeholder="Hingga hal. (cth: 6 atau 5½)" value={hifdzJadidHingga} onChange={(e) => setHifdzJadidHingga(e.target.value)} />
@@ -563,9 +602,9 @@ export default function MutabaahPage() {
                           {entry.ziyadah_jumlah ? <span className="text-foreground"> ({formatHalaman(entry.ziyadah_jumlah)} hal.)</span> : null}
                         </p>
                       )}
-                      {(entry.murojaah_hifdzul_jadid_dari || entry.murojaah_hifdzul_jadid_hingga) && (
+                      {formatHifdzJadid(entry) && (
                         <p className="text-muted-foreground">
-                          Hifdzul Jadid: hal. <span className="text-foreground">{formatHalaman(entry.murojaah_hifdzul_jadid_dari)}–{formatHalaman(entry.murojaah_hifdzul_jadid_hingga)}</span>
+                          Hifdzul Jadid: <span className="text-foreground">{formatHifdzJadid(entry)}</span>
                         </p>
                       )}
                       {entry.keterangan && <p className="text-muted-foreground italic">"{entry.keterangan}"</p>}
@@ -725,9 +764,7 @@ export default function MutabaahPage() {
                               <div>
                                 <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Hifdzul Jadid</p>
                                 <p className="text-foreground leading-tight">
-                                  {entry.murojaah_hifdzul_jadid_dari
-                                    ? `Hal. ${formatHalaman(entry.murojaah_hifdzul_jadid_dari)}–${formatHalaman(entry.murojaah_hifdzul_jadid_hingga)}`
-                                    : "—"}
+                                  {formatHifdzJadid(entry) || "—"}
                                 </p>
                               </div>
                               {entry.keterangan && (
@@ -773,9 +810,7 @@ export default function MutabaahPage() {
                                   ) : <span className="text-muted-foreground">—</span>}
                                 </td>
                                 <td className="px-3 py-2">
-                                  {entry.murojaah_hifdzul_jadid_dari
-                                    ? `Hal. ${formatHalaman(entry.murojaah_hifdzul_jadid_dari)}–${formatHalaman(entry.murojaah_hifdzul_jadid_hingga)}`
-                                    : <span className="text-muted-foreground">—</span>}
+                                  {formatHifdzJadid(entry) || <span className="text-muted-foreground">—</span>}
                                 </td>
                                 <td className="px-3 py-2 max-w-[120px] truncate">{entry.keterangan || <span className="text-muted-foreground">—</span>}</td>
                                 <td className="px-3 py-2">

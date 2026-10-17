@@ -108,6 +108,7 @@ export type Database = {
           keterangan: string | null
           murojaah_hifdzul_jadid_dari: number | null
           murojaah_hifdzul_jadid_hingga: number | null
+          murojaah_hifdzul_jadid_juz: number[] | null
           murojaah_hifdzul_qodim: string | null
           murojaah_tsnai: string | null
           status: Database["public"]["Enums"]["mutabaah_status"]
@@ -124,6 +125,7 @@ export type Database = {
           keterangan?: string | null
           murojaah_hifdzul_jadid_dari?: number | null
           murojaah_hifdzul_jadid_hingga?: number | null
+          murojaah_hifdzul_jadid_juz?: number[] | null
           murojaah_hifdzul_qodim?: string | null
           murojaah_tsnai?: string | null
           status?: Database["public"]["Enums"]["mutabaah_status"]
@@ -140,6 +142,7 @@ export type Database = {
           keterangan?: string | null
           murojaah_hifdzul_jadid_dari?: number | null
           murojaah_hifdzul_jadid_hingga?: number | null
+          murojaah_hifdzul_jadid_juz?: number[] | null
           murojaah_hifdzul_qodim?: string | null
           murojaah_tsnai?: string | null
           status?: Database["public"]["Enums"]["mutabaah_status"]
