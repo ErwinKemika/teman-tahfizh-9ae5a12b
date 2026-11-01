@@ -158,7 +158,10 @@ export default function UjianPage() {
   const [statusLulus, setStatusLulus] = useState<"true" | "false">("true");
 
   // Bulanan
-  const [juzBulanan, setJuzBulanan] = useState("");
+  const [juzBulanan, setJuzBulanan] = useState<string[]>([]);
+  const [hafalanScoresBulan, setHafalanScoresBulan] = useState<number[]>([]);
+  const [tajwidScoresBulan, setTajwidScoresBulan] = useState<number[]>([]);
+  const [statusLulusBulan, setStatusLulusBulan] = useState<"true" | "false">("true");
   const [materiBulanan, setMateriBulanan] = useState("");
 
   const avgHafalanHarian = useMemo(() => calcAvg(hafalanScoresHarian), [hafalanScoresHarian]);
@@ -168,6 +171,12 @@ export default function UjianPage() {
     [avgHafalanHarian, avgTajwidHarian]
   );
 
+  const avgHafalanBulan = useMemo(() => calcAvg(hafalanScoresBulan), [hafalanScoresBulan]);
+  const avgTajwidBulan = useMemo(() => calcAvg(tajwidScoresBulan), [tajwidScoresBulan]);
+  const nilaiTotalBulan = useMemo(
+    () => Math.round((avgHafalanBulan + avgTajwidBulan) / 2),
+    [avgHafalanBulan, avgTajwidBulan]
+  );
   const avgHafalanPekan = useMemo(() => calcAvg(hafalanScores), [hafalanScores]);
   const avgTajwidPekan = useMemo(() => calcAvg(tajwidScores), [tajwidScores]);
   const nilaiTotalPekan = useMemo(
@@ -214,7 +223,8 @@ export default function UjianPage() {
     setPekanKe(""); setJuzPekanan([]); setHalamanDari(""); setHalamanHingga("");
     setHafalanScores([]); setTajwidScores([]); setStatusLulus("true");
     setMurojaahQadhimTsnai(""); setMurojaahQadhimFardhi("");
-    setJuzBulanan("");
+    setJuzBulanan([]);
+    setHafalanScoresBulan([]); setTajwidScoresBulan([]); setStatusLulusBulan("true");
     setMateriBulanan("");
   };
 
@@ -270,8 +280,15 @@ export default function UjianPage() {
       } else {
         payload = {
           ...base,
-          juz_diuji: [],
-          juz_tested: juzBulanan.trim(),
+          juz_diuji: juzBulanan,
+          juz_tested: juzBulanan.join(", "),
+          hafalan_scores: hafalanScoresBulan,
+          tajwid_scores: tajwidScoresBulan,
+          nilai_kelancaran: avgHafalanBulan,
+          nilai_tajwid: avgTajwidBulan,
+          nilai_total: nilaiTotalBulan,
+          nilai: nilaiTotalBulan,
+          status_lulus: statusLulusBulan === "true",
           materi_surat: materiBulanan.trim() || null,
         };
       }
@@ -323,7 +340,7 @@ export default function UjianPage() {
     if (!selectedStudent) return false;
     if (formType === "harian") return juzHarian.length > 0;
     if (formType === "pekanan") return !!pekanKe;
-    if (formType === "bulanan") return juzBulanan.trim().length > 0;
+    if (formType === "bulanan") return juzBulanan.length > 0;
     return false;
   };
 
@@ -491,7 +508,7 @@ export default function UjianPage() {
                 </div>
               </TabsContent>
 
-              {/* ── BULANAN: cukup tulis juz ── */}
+              {/* ── BULANAN: sama seperti pekanan (tanpa Qadhim) ── */}
               <TabsContent value="bulanan" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
@@ -512,11 +529,45 @@ export default function UjianPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Juz yang diuji</Label>
-                  <Input
-                    placeholder="Contoh: Juz 29 dan 30"
-                    value={juzBulanan}
-                    onChange={(e) => setJuzBulanan(e.target.value)}
-                  />
+                  <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 rounded-md border border-border">
+                    {Array.from({ length: 30 }, (_, i) => String(i + 1)).map((j) => (
+                      <Badge
+                        key={j}
+                        variant={juzBulanan.includes(j) ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => toggleArr(juzBulanan, j, setJuzBulanan)}
+                      >
+                        Juz {j}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <DynamicScoreSection
+                  hafalan={hafalanScoresBulan}
+                  tajwid={tajwidScoresBulan}
+                  onHafalanChange={setHafalanScoresBulan}
+                  onTajwidChange={setTajwidScoresBulan}
+                />
+                <p className="text-sm">
+                  Nilai Total:{" "}
+                  <span className={`font-bold text-lg ${scoreColor(nilaiTotalBulan)}`}>
+                    {nilaiTotalBulan}
+                  </span>
+                </p>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <RadioGroup
+                    value={statusLulusBulan}
+                    onValueChange={(v) => setStatusLulusBulan(v as any)}
+                    className="flex gap-4"
+                  >
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <RadioGroupItem value="true" /> Lulus
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <RadioGroupItem value="false" /> Mengulang
+                    </label>
+                  </RadioGroup>
                 </div>
                 <div className="space-y-2">
                   <Label>Soal / Materi yang diujikan (opsional)</Label>
@@ -625,7 +676,7 @@ export default function UjianPage() {
                           <Badge variant="outline" className={`text-[10px] ${jenisClass}`}>{jenisLabel}</Badge>
                           <p className="text-xs text-muted-foreground">
                             {meta}{juzLabel ? ` — ${juzLabel}` : ""}
-                            {jenis === "pekanan" && (
+                            {(jenis === "pekanan" || (jenis === "bulanan" && r.hafalan_scores?.length > 0)) && (
                               <span className={r.status_lulus ? " text-success" : " text-warning"}>
                                 {" • "}{r.status_lulus ? "Lulus" : "Mengulang"}
                               </span>
@@ -646,14 +697,14 @@ export default function UjianPage() {
                             <p className="text-xs text-muted-foreground italic">"{r.catatan_guru}"</p>
                           )}
                         </div>
-                        {jenis !== "bulanan" && (
+                        {(jenis !== "bulanan" || r.hafalan_scores?.length > 0) && (
                         <div className="text-right shrink-0">
                           <p className="text-[10px] text-muted-foreground">Total</p>
                           <div className={`text-xl font-bold ${scoreColor(score || 0)}`}>{score || 0}</div>
                         </div>
                         )}
                       </div>
-                      {jenis !== "bulanan" && (
+                      {(jenis !== "bulanan" || r.hafalan_scores?.length > 0) && (
                       <div className="pt-2 border-t border-border/40 space-y-2">
                         <div className="space-y-1">
                           <p className="text-[10px] font-medium text-muted-foreground">Hafalan — rata-rata: {r.nilai_kelancaran ?? "-"}</p>

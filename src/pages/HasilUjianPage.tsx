@@ -260,7 +260,7 @@ export default function HasilUjianPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {meta}{juzLabel ? ` — ${juzLabel}` : ""}
-                      {jenis === "pekanan" && (
+                      {(jenis === "pekanan" || (jenis === "bulanan" && r.hafalan_scores?.length > 0)) && (
                         <span className={r.status_lulus ? " • text-success" : " • text-warning"}>
                           {" "}{r.status_lulus ? "Lulus" : "Mengulang"}
                         </span>
@@ -276,7 +276,7 @@ export default function HasilUjianPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {jenis !== "bulanan" && (
+                    {(jenis !== "bulanan" || r.hafalan_scores?.length > 0) && (
                       <div className="text-right">
                         <p className="text-[10px] text-muted-foreground">Total</p>
                         <div className={`text-xl font-bold ${scoreColor(score || 0)}`}>{score || 0}</div>
@@ -290,7 +290,7 @@ export default function HasilUjianPage() {
                   </div>
                 </div>
 
-                {jenis !== "bulanan" && (
+                {(jenis !== "bulanan" || r.hafalan_scores?.length > 0) && (
                   <div className="pt-2 border-t border-border/40 space-y-2">
                     <ScoreRow
                       scores={r.hafalan_scores}
