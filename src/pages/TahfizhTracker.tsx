@@ -236,6 +236,44 @@ export default function TahfizhTracker() {
     onError: (e) => toast.error("Gagal: " + (e as Error).message),
   });
 
+  const bulkMutqinMutation = useMutation({
+    mutationFn: async () => {
+      const studentId = chartStudentId || user!.id;
+      const today = new Date().toLocaleDateString("en-CA");
+      const todo = pages.filter((p) => !entriesByPage[p]?.is_mutqin);
+      const withEntry = todo.filter((p) => entriesByPage[p]);
+      const withoutEntry = todo.filter((p) => !entriesByPage[p]);
+
+      if (withEntry.length > 0) {
+        const { error } = await supabase
+          .from("tahfizh_entries")
+          .update({ is_mutqin: true, status: "mutqin" })
+          .in("id", withEntry.map((p) => entriesByPage[p].id));
+        if (error) throw error;
+      }
+      if (withoutEntry.length > 0) {
+        const { error } = await supabase.from("tahfizh_entries").insert(
+          withoutEntry.map((pageNum) => ({
+            student_id: studentId,
+            page_number: pageNum,
+            status: "mutqin" as const,
+            is_mutqin: true,
+            kualitas_hafalan: 100,
+            kuantitas_murojaah: 0,
+            tanggal_hafalan: today,
+          }))
+        );
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(`Semua ${pages.length} halaman Juz ${selectedJuz} ditandai Mutqin!`);
+      queryClient.invalidateQueries({ queryKey: ["chart-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["tahfizh-stats"] });
+    },
+    onError: (e) => toast.error("Gagal: " + (e as Error).message),
+  });
+
   const mutqinToggleMutation = useMutation({
     mutationFn: async ({
       entryId,
@@ -564,16 +602,30 @@ export default function TahfizhTracker() {
                   <span className="text-destructive">Belum: {pages.length - juzHafal}</span>
                 </div>
                 {isGuru && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs gap-1.5"
-                    disabled={bulkMurojaahMutation.isPending}
-                    onClick={() => bulkMurojaahMutation.mutate()}
-                  >
-                    <PlusCircle className="w-3.5 h-3.5" />
-                    {bulkMurojaahMutation.isPending ? "Menyimpan..." : "+1 Muroja'ah Semua"}
-                  </Button>
+                  <div className="flex flex-wrap gap-1.5 justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1.5"
+                      disabled={bulkMutqinMutation.isPending || juzMutqin === pages.length}
+                      onClick={() => {
+                        if (window.confirm(`Tandai semua ${pages.length} halaman Juz ${selectedJuz} sebagai Mutqin? Bintang tiap halaman tetap bisa dilepas manual.`)) bulkMutqinMutation.mutate();
+                      }}
+                    >
+                      <Star className="w-3.5 h-3.5" />
+                      {bulkMutqinMutation.isPending ? "Menyimpan..." : "Mutqin Semua"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1.5"
+                      disabled={bulkMurojaahMutation.isPending}
+                      onClick={() => bulkMurojaahMutation.mutate()}
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      {bulkMurojaahMutation.isPending ? "Menyimpan..." : "+1 Muroja'ah Semua"}
+                    </Button>
+                  </div>
                 )}
               </div>
             </CardContent>

@@ -266,6 +266,11 @@ export default function HasilUjianPage() {
                         </span>
                       )}
                     </p>
+                    {jenis === "bulanan" && r.materi_surat && (
+                      <p className="text-xs text-muted-foreground">
+                        Materi: <span className="text-foreground">{r.materi_surat}</span>
+                      </p>
+                    )}
                     {r.catatan_guru && (
                       <p className="text-xs text-muted-foreground italic">"{r.catatan_guru}"</p>
                     )}

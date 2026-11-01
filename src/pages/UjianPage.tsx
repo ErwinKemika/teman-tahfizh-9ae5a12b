@@ -159,6 +159,7 @@ export default function UjianPage() {
 
   // Bulanan
   const [juzBulanan, setJuzBulanan] = useState("");
+  const [materiBulanan, setMateriBulanan] = useState("");
 
   const avgHafalanHarian = useMemo(() => calcAvg(hafalanScoresHarian), [hafalanScoresHarian]);
   const avgTajwidHarian = useMemo(() => calcAvg(tajwidScoresHarian), [tajwidScoresHarian]);
@@ -214,6 +215,7 @@ export default function UjianPage() {
     setHafalanScores([]); setTajwidScores([]); setStatusLulus("true");
     setMurojaahQadhimTsnai(""); setMurojaahQadhimFardhi("");
     setJuzBulanan("");
+    setMateriBulanan("");
   };
 
   const submitMutation = useMutation({
@@ -270,6 +272,7 @@ export default function UjianPage() {
           ...base,
           juz_diuji: [],
           juz_tested: juzBulanan.trim(),
+          materi_surat: materiBulanan.trim() || null,
         };
       }
       const { error } = await supabase.from("ujian").insert(payload);
@@ -515,6 +518,15 @@ export default function UjianPage() {
                     onChange={(e) => setJuzBulanan(e.target.value)}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Soal / Materi yang diujikan (opsional)</Label>
+                  <Textarea
+                    placeholder="Contoh: An-Naba' 1–20, An-Nazi'at 1–15, Abasa 1–42"
+                    value={materiBulanan}
+                    onChange={(e) => setMateriBulanan(e.target.value)}
+                    rows={3}
+                  />
+                </div>
               </TabsContent>
 
               <div className="space-y-2 mt-4">
@@ -623,6 +635,11 @@ export default function UjianPage() {
                             <p className="text-xs text-muted-foreground">
                               Qadhim — Tsuna'i: <span className="text-foreground">{r.murojaah_qadhim_tsnai || "-"}</span>
                               {" | "}Fardhi: <span className="text-foreground">{r.murojaah_qadhim_fardhi || "-"}</span>
+                            </p>
+                          )}
+                          {jenis === "bulanan" && r.materi_surat && (
+                            <p className="text-xs text-muted-foreground">
+                              Materi: <span className="text-foreground">{r.materi_surat}</span>
                             </p>
                           )}
                           {r.catatan_guru && (
