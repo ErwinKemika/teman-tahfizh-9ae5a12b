@@ -119,6 +119,7 @@ export type Database = {
           ziyadah_ayat_end: number | null
           ziyadah_ayat_start: number | null
           ziyadah_jumlah: number | null
+          ziyadah_detail: string | null
           ziyadah_surat: string | null
         }
         Insert: {
@@ -139,6 +140,7 @@ export type Database = {
           ziyadah_ayat_end?: number | null
           ziyadah_ayat_start?: number | null
           ziyadah_jumlah?: number | null
+          ziyadah_detail?: string | null
           ziyadah_surat?: string | null
         }
         Update: {
@@ -159,6 +161,7 @@ export type Database = {
           ziyadah_ayat_end?: number | null
           ziyadah_ayat_start?: number | null
           ziyadah_jumlah?: number | null
+          ziyadah_detail?: string | null
           ziyadah_surat?: string | null
         }
         Relationships: []

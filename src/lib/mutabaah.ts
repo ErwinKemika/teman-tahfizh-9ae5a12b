@@ -22,3 +22,9 @@ export function formatHifdzJadid(e: HifdzJadidEntry): string {
       : "";
   return [juz, hal].filter(Boolean).join(" · ");
 }
+
+// Jumlah ziyadah: angka halaman ("1½ hal.") atau teks bebas kalau yang diisi bukan angka.
+export function formatZiyadahJumlah(e: { ziyadah_jumlah?: number | null; ziyadah_detail?: string | null }): string {
+  if (e.ziyadah_detail) return e.ziyadah_detail;
+  return e.ziyadah_jumlah ? `${formatHalaman(e.ziyadah_jumlah)} hal.` : "";
+}
