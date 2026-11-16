@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StudentPicker from "@/components/StudentPicker";
@@ -62,6 +63,8 @@ export default function TahfizhTracker() {
   const [selectedJuz, setSelectedJuz] = useState("1");
   const [editEntry, setEditEntry] = useState<EditEntry | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<string>("all");
+  const [murojaahPopoverOpen, setMurojaahPopoverOpen] = useState(false);
+  const [murojaahCustom, setMurojaahCustom] = useState("");
 
   const { data: students } = useQuery({
     queryKey: ["students-list", profile?.lembaga_id],
@@ -189,7 +192,7 @@ export default function TahfizhTracker() {
   });
 
   const bulkMurojaahMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (amount: number) => {
       const studentId = chartStudentId || user!.id;
       const today = new Date().toLocaleDateString("en-CA");
 
@@ -201,7 +204,7 @@ export default function TahfizhTracker() {
           const entry = entriesByPage[pageNum];
           return supabase
             .from("tahfizh_entries")
-            .update({ kuantitas_murojaah: (entry.kuantitas_murojaah || 0) + 1 })
+            .update({ kuantitas_murojaah: (entry.kuantitas_murojaah || 0) + amount })
             .eq("id", entry.id)
             .then(({ error }) => { if (error) throw error; });
         }),
@@ -217,7 +220,7 @@ export default function TahfizhTracker() {
                 page_number: pageNum,
                 status: "murajaah" as const,
                 kualitas_hafalan: 0,
-                kuantitas_murojaah: 1,
+                kuantitas_murojaah: amount,
                 is_mutqin: false,
                 tanggal_hafalan: today,
               }))
@@ -228,8 +231,8 @@ export default function TahfizhTracker() {
 
       await Promise.all(ops);
     },
-    onSuccess: () => {
-      toast.success(`Muroja'ah +1 untuk semua ${pages.length} halaman Juz ${selectedJuz}!`);
+    onSuccess: (_d, amount) => {
+      toast.success(`Muroja'ah +${amount} untuk semua ${pages.length} halaman Juz ${selectedJuz}!`);
       queryClient.invalidateQueries({ queryKey: ["chart-entries"] });
       queryClient.invalidateQueries({ queryKey: ["tahfizh-stats"] });
     },
@@ -620,11 +623,61 @@ export default function TahfizhTracker() {
                       variant="outline"
                       className="h-7 text-xs gap-1.5"
                       disabled={bulkMurojaahMutation.isPending}
-                      onClick={() => bulkMurojaahMutation.mutate()}
+                      onClick={() => bulkMurojaahMutation.mutate(1)}
                     >
                       <PlusCircle className="w-3.5 h-3.5" />
                       {bulkMurojaahMutation.isPending ? "Menyimpan..." : "+1 Muroja'ah Semua"}
                     </Button>
+                    <Popover open={murojaahPopoverOpen} onOpenChange={setMurojaahPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" disabled={bulkMurojaahMutation.isPending}>
+                          <PlusCircle className="w-3.5 h-3.5" />
+                          Tambah Muroja'ah...
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-60 space-y-3">
+                        <p className="text-xs text-muted-foreground">
+                          Tambahkan muroja'ah ke semua {pages.length} halaman Juz {selectedJuz}:
+                        </p>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {[2, 3, 5, 10].map((n) => (
+                            <Button
+                              key={n}
+                              size="sm"
+                              variant="outline"
+                              className="h-8 text-xs"
+                              onClick={() => { setMurojaahPopoverOpen(false); bulkMurojaahMutation.mutate(n); }}
+                            >
+                              +{n}
+                            </Button>
+                          ))}
+                        </div>
+                        <div className="flex gap-1.5">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={100}
+                            placeholder="Jumlah lain"
+                            value={murojaahCustom}
+                            onChange={(e) => setMurojaahCustom(e.target.value)}
+                            className="h-8 text-xs"
+                          />
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs"
+                            disabled={!(parseInt(murojaahCustom) >= 1 && parseInt(murojaahCustom) <= 100)}
+                            onClick={() => {
+                              const n = parseInt(murojaahCustom);
+                              setMurojaahPopoverOpen(false);
+                              setMurojaahCustom("");
+                              bulkMurojaahMutation.mutate(n);
+                            }}
+                          >
+                            Tambah
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 )}
               </div>
