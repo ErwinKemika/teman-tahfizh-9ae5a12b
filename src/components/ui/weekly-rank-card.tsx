@@ -66,9 +66,8 @@ export function WeeklyRankCard({ currentUserId }: WeeklyRankCardProps) {
       {/* Legend */}
       <div className="flex items-center gap-3 flex-wrap px-4 sm:px-6 pb-4 pt-1">
         {[
-          { label: "Ujian", weight: "40%" },
-          { label: "Hafalan", weight: "35%" },
-          { label: "Murojaah", weight: "25%" },
+          { label: "Ujian", weight: "60%" },
+          { label: "Mutaba'ah", weight: "40%" },
         ].map((item) => (
           <span key={item.label} className="text-[10.5px] text-[#9aa6b8] dark:text-[#5a6a80]">
             {item.label}{" "}
@@ -147,9 +146,7 @@ function RankRow({
         <div className="flex items-center gap-1.5 mt-1">
           <span className="text-[10px] text-[#9aa6b8] dark:text-[#5a6a80]">U:{s.skor_ujian}</span>
           <span className="text-[10px] text-[#c4cdd9] dark:text-[#3a4a5a]">·</span>
-          <span className="text-[10px] text-[#9aa6b8] dark:text-[#5a6a80]">H:{s.skor_hafalan}</span>
-          <span className="text-[10px] text-[#c4cdd9] dark:text-[#3a4a5a]">·</span>
-          <span className="text-[10px] text-[#9aa6b8] dark:text-[#5a6a80]">M:{s.skor_murojaah}</span>
+          <span className="text-[10px] text-[#9aa6b8] dark:text-[#5a6a80]">M:{s.skor_hafalan}</span>
         </div>
       </div>
     </div>
