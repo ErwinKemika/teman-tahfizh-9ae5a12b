@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { compareNama } from "@/lib/utils";
-import { formatHalaman, formatHifdzJadid, formatZiyadahJumlah } from "@/lib/mutabaah";
+import { formatHalaman, formatHifdzJadid, formatZiyadahJumlah, formatTanggalPendek } from "@/lib/mutabaah";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -290,6 +290,9 @@ export default function MutabaahPage() {
     },
     onError: (e) => toast.error("Gagal: " + e.message),
   });
+
+  // Siswa hanya boleh menghapus entri yang masih menunggu (sesuai policy database).
+  const canDelete = (e: { is_approved?: boolean | null }) => isGuru || e.is_approved === false;
 
   const confirmDelete = (id: string) => {
     if (window.confirm("Hapus mutaba'ah ini? Data tidak bisa dikembalikan.")) deleteMutation.mutate(id);
@@ -691,15 +694,17 @@ export default function MutabaahPage() {
                   {[...monthEntries].reverse().map((entry: any) => (
                     <div key={entry.id} className="text-xs bg-muted/30 rounded-lg p-2.5 space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">{entry.date}</span>
+                        <span className="font-medium">{formatTanggalPendek(entry.date)}</span>
                         <div className="flex items-center gap-1.5">
                           <Badge className={`text-[10px] px-1.5 py-0 ${statusColor[displayStatus(entry)]}`}>{statusLabel(displayStatus(entry))}</Badge>
                           <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1" onClick={() => openInForm(entry, true)}>
                             <Pencil className="w-3 h-3" /> Ubah
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-destructive hover:text-destructive" onClick={() => confirmDelete(entry.id)} disabled={deleteMutation.isPending}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                          {canDelete(entry) && (
+                            <Button variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-destructive hover:text-destructive" onClick={() => confirmDelete(entry.id)} disabled={deleteMutation.isPending}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                       {entry.ziyadah_surat && (
@@ -748,7 +753,7 @@ export default function MutabaahPage() {
                     <div key={entry.id} className="rounded-xl border border-border/50 p-3 space-y-2 text-sm">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-foreground truncate">{studentName(entry.student_id)}</span>
-                        <span className="text-xs text-muted-foreground shrink-0">{entry.date}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">{formatTanggalPendek(entry.date)}</span>
                       </div>
                       {entry.ziyadah_surat && (
                         <p className="text-muted-foreground">
@@ -926,7 +931,7 @@ export default function MutabaahPage() {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-muted-foreground w-5">{idx + 1}.</span>
-                                <span className="text-sm font-semibold">{entry.date}</span>
+                                <span className="text-sm font-semibold">{formatTanggalPendek(entry.date)}</span>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusColor[displayStatus(entry)]}`}>
@@ -935,12 +940,14 @@ export default function MutabaahPage() {
                                 <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px] gap-1 print:hidden" onClick={() => openInForm(entry, true)}>
                                   <Pencil className="w-3 h-3" /> Ubah
                                 </Button>
-                                <Button variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 print:hidden text-destructive hover:text-destructive" onClick={() => confirmDelete(entry.id)} disabled={deleteMutation.isPending}>
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
+                                {canDelete(entry) && (
+                                  <Button variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 print:hidden text-destructive hover:text-destructive" onClick={() => confirmDelete(entry.id)} disabled={deleteMutation.isPending}>
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-7">
+                            <div className="grid grid-cols-1 gap-y-1.5 text-xs pl-7">
                               <div>
                                 <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Ziyadah</p>
                                 <p className="text-foreground leading-tight">
@@ -956,7 +963,7 @@ export default function MutabaahPage() {
                                 </p>
                               </div>
                               {entry.keterangan && (
-                                <div className="col-span-2">
+                                <div>
                                   <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Keterangan</p>
                                   <p className="text-foreground italic leading-tight">"{entry.keterangan}"</p>
                                 </div>
@@ -988,7 +995,7 @@ export default function MutabaahPage() {
                             {reportEntries.map((entry: any, idx: number) => (
                               <tr key={entry.id} className="border-b border-border/50 hover:bg-muted/20 print:hover:bg-transparent">
                                 <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
-                                <td className="px-3 py-2 font-medium whitespace-nowrap">{entry.date}</td>
+                                <td className="px-3 py-2 font-medium whitespace-nowrap">{formatTanggalPendek(entry.date)}</td>
                                 <td className="px-3 py-2">
                                   {entry.ziyadah_surat ? (
                                     <span>
@@ -1017,9 +1024,11 @@ export default function MutabaahPage() {
                                   <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => openInForm(entry, true)}>
                                     <Pencil className="w-3 h-3" /> Ubah
                                   </Button>
-                                  <Button variant="ghost" size="sm" className="h-7 text-xs px-1.5 text-destructive hover:text-destructive" onClick={() => confirmDelete(entry.id)} disabled={deleteMutation.isPending}>
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
+                                  {canDelete(entry) && (
+                                    <Button variant="ghost" size="sm" className="h-7 text-xs px-1.5 text-destructive hover:text-destructive" onClick={() => confirmDelete(entry.id)} disabled={deleteMutation.isPending}>
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  )}
                                 </td>
                               </tr>
                             ))}

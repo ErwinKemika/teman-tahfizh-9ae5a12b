@@ -116,23 +116,23 @@ export default function RekapTopPage() {
               <CardTitle className="text-base">Paling Sering Masuk Top 10</CardTitle>
             </CardHeader>
             <CardContent className="px-2 sm:px-4 pb-4">
-              <div className="grid grid-cols-[2rem_1fr_3.5rem_3rem_3.5rem] gap-2 px-2 pb-1.5 text-[10.5px] font-medium text-muted-foreground">
+              <div className="grid grid-cols-[1.5rem_minmax(0,1fr)_2.75rem_2.75rem_3rem] gap-2 px-2 pb-1.5 text-[10.5px] font-medium text-muted-foreground">
                 <span>#</span>
                 <span>Nama</span>
                 <span className="text-center">Top 10</span>
-                <span className="text-center">🥇</span>
+                <span className="text-center">Juara 1</span>
                 <span className="text-center">Terbaik</span>
               </div>
               <div className="space-y-1">
                 {leaderboard.map((s, i) => (
                   <div
                     key={s.student_id}
-                    className={`grid grid-cols-[2rem_1fr_3.5rem_3rem_3.5rem] gap-2 items-center rounded-lg px-2 py-2 text-sm ${
+                    className={`grid grid-cols-[1.5rem_minmax(0,1fr)_2.75rem_2.75rem_3rem] gap-2 items-center rounded-lg px-2 py-2 text-sm ${
                       s.student_id === user?.id ? "bg-primary/10 ring-1 ring-primary/20" : "hover:bg-muted/40"
                     }`}
                   >
                     <span className="text-xs font-bold text-muted-foreground">{i + 1}</span>
-                    <span className="truncate font-medium text-foreground">{s.name}</span>
+                    <span className="font-medium text-foreground leading-snug break-words">{s.name}</span>
                     <span className="text-center font-bold text-foreground">{s.count}×</span>
                     <span className="text-center text-muted-foreground">{s.first || "-"}</span>
                     <span className="text-center text-muted-foreground">
@@ -152,8 +152,8 @@ export default function RekapTopPage() {
               {weeks.map(([weekStart, rows]) => (
                 <details key={weekStart} className="group rounded-xl border border-border/50 px-3 py-2">
                   <summary className="flex items-center justify-between gap-2 cursor-pointer list-none text-sm">
-                    <span className="font-semibold text-foreground">{getWeekLabel(weekStart)}</span>
-                    <span className="text-xs text-muted-foreground truncate">
+                    <span className="font-semibold text-foreground whitespace-nowrap">{getWeekLabel(weekStart)}</span>
+                    <span className="text-xs text-muted-foreground truncate min-w-0">
                       🥇 {rows[0]?.name}
                     </span>
                   </summary>
@@ -168,7 +168,7 @@ export default function RekapTopPage() {
                         <span className="w-6 text-center text-xs font-bold text-muted-foreground">
                           {MEDALS[r.rank - 1] ?? r.rank}
                         </span>
-                        <span className="flex-1 truncate">{r.name}</span>
+                        <span className="flex-1 min-w-0 leading-snug break-words">{r.name}</span>
                         <span className="font-bold text-foreground">{r.skor_akhir}</span>
                       </li>
                     ))}

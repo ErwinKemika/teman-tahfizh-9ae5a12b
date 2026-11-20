@@ -294,7 +294,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
         {/* Top bar (mobile only) */}
         <header
           className="lg:hidden flex items-center justify-between px-4 border-b border-border bg-card"

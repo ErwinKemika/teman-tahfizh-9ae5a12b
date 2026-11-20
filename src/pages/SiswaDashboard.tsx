@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { WeeklyRankCard } from "@/components/ui/weekly-rank-card";
 import { useRankingWindow } from "@/hooks/useWeeklyRanking";
+import { formatHifdzJadid, formatZiyadah } from "@/lib/mutabaah";
 
 // ── Donut SVG ────────────────────────────────────────────────────
 function ProgressDonut({ value = 0, size = 110, stroke = 11 }: { value?: number; size?: number; stroke?: number }) {
@@ -86,6 +87,7 @@ const statusMap: Record<string, { cls: string; label: string }> = {
   mengulang: { cls: "bg-[#fdece7] dark:bg-[#3d1f18] text-[#cf5a37] dark:text-[#e07755]", label: "Mengulang" },
   libur:     { cls: "bg-[#fff4e0] dark:bg-[#3d3010] text-[#b8801f] dark:text-[#d4a943]", label: "Libur" },
   sakit:     { cls: "bg-[#fdece7] dark:bg-[#3d1f18] text-[#cf5a37] dark:text-[#e07755]", label: "Sakit" },
+  menunggu:  { cls: "bg-[#eef2f7] dark:bg-[#1a2f4a] text-[#1b426f] dark:text-[#5b9fd4]", label: "Menunggu" },
 };
 
 function StatusPill({ status }: { status: string }) {
@@ -188,6 +190,10 @@ interface MutabaahEntry {
   ziyadah_surat?: string | null;
   ziyadah_ayat_start?: number | null;
   ziyadah_ayat_end?: number | null;
+  ziyadah_jumlah?: number | null;
+  ziyadah_detail?: string | null;
+  murojaah_hifdzul_jadid_juz?: number[] | null;
+  is_approved?: boolean | null;
   murojaah_hifdzul_jadid_dari?: number | null;
   murojaah_hifdzul_jadid_hingga?: number | null;
   murojaah_hifdzul_qodim?: string | null;
@@ -227,19 +233,19 @@ function HistoryTable({ rows }: { rows: MutabaahEntry[] }) {
                   year: "numeric",
                 })}
               </span>
-              <StatusPill status={entry.status} />
+              <StatusPill status={entry.is_approved === false ? "menunggu" : entry.status} />
             </div>
             <div className="grid grid-cols-1 gap-0.5 text-[12px] text-[#27384f] dark:text-[#b0c4db]">
-              {entry.ziyadah_surat && (
-                <div className="truncate">
+              {formatZiyadah(entry) && (
+                <div>
                   <span className="text-[#7a8699] dark:text-[#8a9ab0]">Ziyadah: </span>
-                  {entry.ziyadah_surat} {entry.ziyadah_ayat_start ?? ""}–{entry.ziyadah_ayat_end ?? ""}
+                  {formatZiyadah(entry)}
                 </div>
               )}
-              {entry.murojaah_hifdzul_jadid_dari != null && entry.murojaah_hifdzul_jadid_hingga != null && (
-                <div className="truncate">
+              {formatHifdzJadid(entry) && (
+                <div>
                   <span className="text-[#7a8699] dark:text-[#8a9ab0]">Hifdzul Jadid: </span>
-                  Hal. {entry.murojaah_hifdzul_jadid_dari}–{entry.murojaah_hifdzul_jadid_hingga}
+                  {formatHifdzJadid(entry)}
                 </div>
               )}
               {entry.murojaah_hifdzul_qodim && (
@@ -287,14 +293,10 @@ function HistoryTable({ rows }: { rows: MutabaahEntry[] }) {
                   })}
                 </td>
                 <td className="px-6 py-3.5 text-[#27384f] dark:text-[#b0c4db]">
-                  {entry.ziyadah_surat
-                    ? `${entry.ziyadah_surat} ${entry.ziyadah_ayat_start ?? ""}–${entry.ziyadah_ayat_end ?? ""}`
-                    : "—"}
+                  {formatZiyadah(entry) || "—"}
                 </td>
                 <td className="px-6 py-3.5 text-[#5b6b80] dark:text-[#8a9ab0]">
-                  {entry.murojaah_hifdzul_jadid_dari != null && entry.murojaah_hifdzul_jadid_hingga != null
-                    ? `Hal. ${entry.murojaah_hifdzul_jadid_dari}–${entry.murojaah_hifdzul_jadid_hingga}`
-                    : "—"}
+                  {formatHifdzJadid(entry) || "—"}
                 </td>
                 <td className="px-6 py-3.5">
                   {entry.murojaah_hifdzul_qodim ? (
@@ -316,7 +318,7 @@ function HistoryTable({ rows }: { rows: MutabaahEntry[] }) {
                 </td>
                 <td className="px-6 py-3.5 text-[#7a8699] dark:text-[#8a9ab0]">{entry.keterangan || "—"}</td>
                 <td className="px-6 py-3.5 text-right">
-                  <StatusPill status={entry.status} />
+                  <StatusPill status={entry.is_approved === false ? "menunggu" : entry.status} />
                 </td>
               </tr>
             ))}
@@ -339,11 +341,15 @@ export default function SiswaDashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("tahfizh_entries")
-        .select("status, is_mutqin, kuantitas_murojaah")
+        .select("status, is_mutqin, kuantitas_murojaah, page_number, updated_at")
         .eq("student_id", user!.id);
       const hafal = data?.filter((e) => e.is_mutqin || e.status === "tasmi_done").length || 0;
       const murajaah = data?.reduce((sum, e) => sum + (e.kuantitas_murojaah || 0), 0) || 0;
-      return { hafal, murajaah, percent: Math.round((hafal / 604) * 100) };
+      // Halaman yang terakhir diperbarui = posisi hafalan santri saat ini.
+      const latest = data?.length
+        ? data.reduce((a, b) => ((b.updated_at ?? "") > (a.updated_at ?? "") ? b : a))
+        : null;
+      return { hafal, murajaah, percent: Math.round((hafal / 604) * 100), latestPage: latest?.page_number ?? null };
     },
     enabled: !!user,
   });
@@ -416,8 +422,11 @@ export default function SiswaDashboard() {
   });
 
   const hafalCount = tahfizhStats?.hafal || 0;
-  const juzAktif = hafalCount >= 20 ? `Juz ${Math.min(Math.floor(hafalCount / 20) + 1, 30)}` : "Juz 1";
-  const surahAktif = hafalCount >= 20 ? "Al-Baqarah" : "Al-Fatihah";
+  const latestPage = tahfizhStats?.latestPage ?? null;
+  const juzAktif = latestPage
+    ? `Juz ${latestPage <= 21 ? 1 : Math.min(30, Math.floor((latestPage - 2) / 20) + 1)}`
+    : "—";
+  const surahAktif = latestPage ? `Terakhir hal. ${latestPage}` : "Belum ada hafalan";
 
   return (
     <div className="font-jakarta bg-[#eef2f7] dark:bg-[#0a1726] min-h-screen w-full overflow-x-hidden">

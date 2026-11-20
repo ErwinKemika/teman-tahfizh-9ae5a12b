@@ -60,7 +60,8 @@ export default function TahfizhTracker() {
   const isGuru = role === "guru";
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
-  const [selectedJuz, setSelectedJuz] = useState("1");
+  // null = ikuti juz yang terakhir dikerjakan santri (lihat autoJuz di bawah).
+  const [pickedJuz, setSelectedJuz] = useState<string | null>(null);
   const [editEntry, setEditEntry] = useState<EditEntry | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<string>("all");
   const [murojaahPopoverOpen, setMurojaahPopoverOpen] = useState(false);
@@ -78,6 +79,11 @@ export default function TahfizhTracker() {
     },
     enabled: isGuru && !!profile?.lembaga_id,
   });
+
+  const selectStudent = (v: string) => {
+    setSelectedStudent(v);
+    setSelectedJuz(null);
+  };
 
   const chartStudentId = isGuru
     ? selectedStudent === "all" ? null : selectedStudent
@@ -325,6 +331,15 @@ export default function TahfizhTracker() {
         )
       : {};
 
+  // Buka juz halaman yang terakhir diperbarui, supaya orang tua/santri tidak melihat Juz 1 kosong.
+  const autoJuz = useMemo(() => {
+    if (!chartStudentId || !chartEntries?.length) return null;
+    const latest = chartEntries.reduce((a, b) => ((b.updated_at ?? "") > (a.updated_at ?? "") ? b : a));
+    const p = latest.page_number;
+    return String(p <= 21 ? 1 : Math.min(30, Math.floor((p - 2) / 20) + 1));
+  }, [chartStudentId, chartEntries]);
+  const selectedJuz = pickedJuz ?? autoJuz ?? "1";
+
   const juzNum = parseInt(selectedJuz);
   const juzStart = juzNum === 1 ? 1 : (juzNum - 1) * 20 + 2;
   const juzEnd = juzNum === 30 ? 604 : juzNum * 20 + 1;
@@ -352,7 +367,7 @@ export default function TahfizhTracker() {
     <StudentPicker
       students={students}
       value={selectedStudent}
-      onChange={setSelectedStudent}
+      onChange={selectStudent}
       allOption={{ value: "all", label: "Semua Siswa" }}
       className="h-9"
     />
@@ -362,7 +377,7 @@ export default function TahfizhTracker() {
     <div className="p-4 lg:p-6 space-y-4 max-w-4xl mx-auto overflow-x-hidden">
       <div className="space-y-1">
         <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-primary" /> Teman Qur'ani
+          <BookOpen className="w-5 h-5 text-primary" /> Tracker Hafalan
         </h1>
         <p className="text-sm text-muted-foreground">Lacak hafalan per halaman Al-Qur'an</p>
       </div>
@@ -450,7 +465,7 @@ export default function TahfizhTracker() {
                 <StudentPicker
                   students={students}
                   value={selectedStudent}
-                  onChange={setSelectedStudent}
+                  onChange={selectStudent}
                   allOption={{ value: "all", label: "Semua Siswa" }}
                   className="w-48 h-8 text-xs"
                 />
